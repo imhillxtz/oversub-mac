@@ -32,6 +32,7 @@ final class AppModel {
         DebugSnapshot.menuTestIfRequested()
         DebugSnapshot.progressiveTestIfRequested(engine: engine)
         DebugSnapshot.updateTestIfRequested()
+        DebugSnapshot.hideTestIfRequested()
         #endif
         // Đợi AppModel dựng xong rồi mới mở lại Cửa sổ phụ đề (nó cần AppModel.shared).
         DispatchQueue.main.async { SubtitleWindowState.shared.restore() }

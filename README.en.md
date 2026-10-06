@@ -43,7 +43,7 @@ OverSub reads the text in your game right off the screen, translates it with AI 
 
 OverSub works with **any game shown on your Mac's screen**: Mac games, Windows games through CrossOver or Whisky, cloud gaming, or consoles (Switch, PlayStation…) played through a capture card and a viewer app such as OBS or VisionRelay. It never touches the game; it only looks at the screen, like you do.
 
-Three main features, each turned on or off with one of the three round buttons in the main window:
+Three main features, each turned on or off independently in the main window: the Subtitles button on the left, the OverSub mascot in the middle (the voice; click it to turn the voice on or off, and it moves its mouth while speaking), and the Screen translation button on the right:
 
 | | Feature | What it does |
 |---|---|---|
@@ -97,7 +97,7 @@ Versions 1.1.41 and earlier don't have this yet: download the new `.dmg` and dra
 2. **Add a free key** (recommended): get one from [Google AI Studio](https://aistudio.google.com/apikey) or [Groq](https://console.groq.com/keys), then go to **Settings → Translation services**, paste it and click **Check & add**. Only working keys are added.
 3. **Select the subtitle region**: open your game at a point with dialogue, click **Select subtitle region** (⌘K, or ⌃⌥K in game) and drag a box around where subtitles appear. Include the **character name label** if the game has one. Click **Done**, check the text that was read, then **Save**.
 4. **Click Start** (⌘R, or ⌃⌥S in game).
-5. Turn **Subtitles**, **Voice-over** and **Screen translation** on or off with the three round buttons.
+5. Turn **Subtitles**, **Voice-over** (click the mascot in the middle) and **Screen translation** on or off as you like.
 
 ---
 

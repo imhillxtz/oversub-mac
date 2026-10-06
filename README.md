@@ -43,7 +43,7 @@ OverSub đọc chữ trong game ngay trên màn hình, dịch bằng AI và hi�
 
 OverSub dùng được với **mọi game hiện trên màn hình Mac**: game Mac, game Windows chạy qua CrossOver hay Whisky, game đám mây, hay máy console (Switch, PlayStation…) chơi qua capture card và app xem hình như OBS, VisionRelay. App không can thiệp vào game, chỉ nhìn màn hình như bạn.
 
-Ba tính năng chính, bật tắt độc lập bằng ba nút tròn ở cửa sổ chính:
+Ba tính năng chính, bật tắt độc lập ở cửa sổ chính: nút Phụ đề bên trái, linh vật OverSub ở giữa (giọng đọc, bấm vào là bật tắt, đang đọc thì mấp máy miệng), nút Dịch màn hình bên phải:
 
 | | Tính năng | Làm gì |
 |---|---|---|
@@ -97,7 +97,7 @@ Bản 1.1.41 trở về trước chưa có tính năng này: tải `.dmg` mới 
 2. **Thêm key miễn phí** (khuyên dùng): lấy key ở [Google AI Studio](https://aistudio.google.com/apikey) hoặc [Groq](https://console.groq.com/keys), rồi vào **Cài đặt → Dịch vụ dịch**, dán key, bấm **Kiểm tra & thêm**. App chỉ thêm key chạy được.
 3. **Chọn vùng phụ đề**: mở game tới một đoạn có lời thoại, bấm **Chọn vùng phụ đề** (⌘K, hoặc ⌃⌥K ngay trong game), kéo một khung bao quanh chỗ phụ đề hiện ra. Nên bao cả **nhãn tên nhân vật** nếu game có. Bấm **Xong**, xem lại chữ đọc được, rồi **Lưu**.
 4. **Bấm Bắt đầu** (⌘R, hoặc ⌃⌥S trong game).
-5. Bật tắt **Phụ đề**, **Voice-over**, **Dịch màn hình** bằng ba nút tròn tuỳ ý.
+5. Bật tắt **Phụ đề**, **Voice-over** (bấm vào linh vật ở giữa), **Dịch màn hình** tuỳ ý.
 
 ---
 

@@ -19,6 +19,7 @@ struct ContentView: View {
     @StateObject private var presetForm = PresetNameForm()
     @ObservedObject private var subtitles = SubtitleWindowState.shared
     @ObservedObject private var updater = Updater.shared
+    @StateObject private var presence = WindowPresence()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -31,6 +32,9 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             footer
         }
+        // Nền gradient trôi chậm, rực hơn khi phiên đang chạy; chạy lên cả dưới thanh công cụ cho liền một mảng.
+        .background { HomeBackdrop(vivid: engine.anyRunning) }
+        .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
         .animation(.smooth(duration: 0.3), value: engine.problem)
         .animation(.smooth(duration: 0.3), value: updater.pending)
         .animation(.smooth(duration: 0.25), value: settings.speakEnabled)
@@ -64,6 +68,9 @@ struct ContentView: View {
         .onChange(of: engine.requestedSettingsPage) { _, page in
             if page != nil { openSettings() }
         }
+        // Cửa sổ bị game che hay app bị ẩn thì các hoạt ảnh ở màn hình chính dừng hẳn.
+        .background(WindowPresenceReader(presence: presence))
+        .environment(\.homeAnimating, presence.visible)
     }
 
     // MARK: Thanh công cụ
@@ -263,7 +270,7 @@ struct ContentView: View {
 
 // MARK: Sân khấu: Sub & giọng đọc
 
-/// Phần giữa cửa sổ: hai nút lớn ngang nhau (Phụ đề đè lên game, Giọng đọc), và câu đang đọc hiện như phụ đề trên game, sáng dần theo giọng.
+/// Phần giữa cửa sổ: nút Phụ đề, linh vật (giọng đọc) ở giữa, nút Dịch màn hình; câu đang đọc hiện như phụ đề trên game, sáng dần theo giọng.
 struct VoiceOverStage: View {
     @ObservedObject var speaker: Speaker
     var openSubtitles: () -> Void
@@ -274,15 +281,15 @@ struct VoiceOverStage: View {
         VStack(spacing: 22) {
             Spacer(minLength: 8)
             // Ba tính năng bật/tắt độc lập; nút Bắt đầu chạy cả phiên.
-            // Ba nút cân đối, nút giọng đọc lớn ở giữa. Phụ đề và giọng đọc cùng lo lời thoại (chung vùng phụ đề) nên được
+            // Ba cột cân đối, linh vật (giọng đọc) lớn ở giữa. Phụ đề và giọng đọc cùng lo lời thoại (chung vùng phụ đề) nên được
             // nối với nhau bằng một dải kính mảnh phía sau; dịch màn hình đứng riêng.
             HStack(alignment: .top, spacing: 40) {
                 HStack(alignment: .top, spacing: 40) {
                     SubButton()
-                    VoiceOverButton(speaker: speaker)
+                    MascotButton(speaker: speaker)
                 }
                 .background(alignment: .top) {
-                    // Ống chạy từ mép nút Phụ đề tới mép nút giọng đọc (lấn vào dưới mỗi nút một chút cho liền).
+                    // Ống chạy từ mép nút Phụ đề tới mép linh vật (lấn vào dưới mỗi bên một chút cho liền).
                     EnergyLink(enabled: settings.speakEnabled, active: engine.running && settings.speakEnabled, speaking: settings.speakEnabled && speaker.isSpeaking)
                         .padding(.leading, orbColumn / 2 + 44)
                         .padding(.trailing, orbColumn / 2 + 58)
@@ -436,75 +443,6 @@ struct ScreenTranslateButton: View {
         .animation(.smooth(duration: 0.3), value: on)
         .help(n == 0 ? L("Thêm vùng quanh menu, bảng nhiệm vụ để dịch ngay tại chỗ (\(HotkeyCenter.Action.screenTranslate.display))", "Add a region around menus or quest logs to translate them in place (\(HotkeyCenter.Action.screenTranslate.display))")
               : on ? L("Tắt dịch màn hình (\(HotkeyCenter.Action.screenTranslate.display))", "Turn off screen translation (\(HotkeyCenter.Action.screenTranslate.display))") : L("Bật dịch màn hình: dịch tại chỗ menu, bảng nhiệm vụ, mô tả vật phẩm (\(HotkeyCenter.Action.screenTranslate.display))", "Turn on screen translation: menus, quest logs and item descriptions translated in place (\(HotkeyCenter.Action.screenTranslate.display))"))
-    }
-}
-
-/// Nút lớn bật/tắt giọng đọc (Voice-over một giọng, hoặc Dub theo nhân vật): sóng âm chạy khi đang đọc.
-struct VoiceOverButton: View {
-    @ObservedObject var speaker: Speaker
-    @EnvironmentObject var settings: AppSettings
-    @EnvironmentObject var engine: Engine
-
-    var body: some View {
-        let on = settings.speakEnabled
-        VStack(spacing: 8) {
-            Button { engine.toggleDub() } label: {
-                ZStack {
-                    if on {
-                        WaveformBars(active: speaker.isSpeaking)
-                            .frame(width: 66, height: 46)
-                            .transition(.scale.combined(with: .opacity))
-                    } else {
-                        Image(systemName: "speaker.slash.fill")
-                            .font(.system(size: 38, weight: .medium))
-                            .foregroundStyle(.secondary)
-                            .transition(.scale.combined(with: .opacity))
-                    }
-                }
-            }
-            .buttonStyle(GlassOrbStyle(on: on, active: engine.anyRunning || speaker.isSpeaking, glowing: speaker.isSpeaking, size: orbRowHeight))
-            .background { SpeakingRipples(active: on && speaker.isSpeaking, size: orbRowHeight) }
-            VStack(spacing: 2) {
-                Text(settings.dubCharacters ? "Dub" : "Voice-over").font(.headline)
-                Text(detail).font(.caption).foregroundStyle(.secondary).contentTransition(.opacity)
-            }
-        }
-        .frame(width: orbColumn)
-        .animation(.smooth(duration: 0.3), value: on)
-        .help(on ? L("Tắt giọng đọc (⇧⌘D · trong game \(HotkeyCenter.Action.toggleDub.display)). Giọng chỉ đọc lời thoại trong vùng phụ đề, không đọc chữ ở vùng dịch màn hình.", "Turn off the voice (⇧⌘D · in game \(HotkeyCenter.Action.toggleDub.display)). Voice reads only dialogue in the subtitle region, not text in screen regions.") : L("Bật giọng đọc (⇧⌘D · trong game \(HotkeyCenter.Action.toggleDub.display))", "Turn on the voice (⇧⌘D · in game \(HotkeyCenter.Action.toggleDub.display))"))
-    }
-
-    private var detail: String {
-        guard settings.speakEnabled else { return L("Đang tắt · \(HotkeyCenter.Action.toggleDub.display)", "Off · \(HotkeyCenter.Action.toggleDub.display)") }
-        if speaker.isSpeaking {
-            if settings.dubCharacters, let n = speaker.speakingName { return L("Đang đọc · \(n)", "Speaking · \(n)") }
-            return L("Đang đọc", "Speaking")
-        }
-        // Giọng đọc lấy lời thoại từ vùng phụ đề: chưa có vùng thì nhắc.
-        if settings.region == nil { return L("Cần vùng phụ đề · \(HotkeyCenter.Action.toggleDub.display)", "Needs a subtitle region · \(HotkeyCenter.Action.toggleDub.display)") }
-        return settings.dubCharacters ? L("Đọc lời thoại, theo nhân vật · \(HotkeyCenter.Action.toggleDub.display)", "Reads dialogue, per character · \(HotkeyCenter.Action.toggleDub.display)") : L("Đọc lời thoại · \(HotkeyCenter.Action.toggleDub.display)", "Reads dialogue · \(HotkeyCenter.Action.toggleDub.display)")
-    }
-}
-
-/// Năm cột sóng âm. Giọng Siri đọc thẳng không cho đo âm lượng, nên sóng là hoạt ảnh nhịp nhàng khi đang đọc, đứng yên khi chờ.
-struct WaveformBars: View {
-    var active: Bool
-
-    var body: some View {
-        TimelineView(.animation(minimumInterval: 1 / 30, paused: !active)) { ctx in
-            let t = ctx.date.timeIntervalSinceReferenceDate
-            HStack(alignment: .center, spacing: 6) {
-                ForEach(0..<5, id: \.self) { i in
-                    let phase = Double(i) * 0.9
-                    let h = active ? 0.35 + 0.65 * abs(sin(t * 5.2 + phase) * cos(t * 2.3 + phase * 0.5)) : [0.35, 0.55, 0.75, 0.55, 0.35][i]
-                    Capsule()
-                        .fill(Color.white.gradient)
-                        .frame(width: 8, height: max(9, 46 * h))
-                }
-            }
-            .frame(maxHeight: .infinity)
-            .animation(.smooth(duration: 0.12), value: active)
-        }
     }
 }
 

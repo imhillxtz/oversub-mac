@@ -542,6 +542,11 @@ final class Speaker: NSObject, ObservableObject, NSSpeechSynthesizerDelegate {
         speakingName = (name?.isEmpty ?? true) ? nil : name
     }
 
+    #if DEVTOOLS
+    /// Chỉ để chụp giao diện lúc đang đọc mà không phát tiếng thật.
+    func debugSetSpeaking(_ name: String?) { setSpeaking(name) }
+    #endif
+
     // MARK: Giảm tiếng game
 
     private func duck(_ on: Bool) {

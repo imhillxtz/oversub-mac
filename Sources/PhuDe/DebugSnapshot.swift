@@ -590,18 +590,54 @@ enum DebugSnapshot {
         }
     }
 
+    /// Đo CPU lúc app bị ẩn (OVERSUB_HIDE_TEST=giây): ẩn app sau số giây đó, ghi trạng thái vào nhật ký.
+    static func hideTestIfRequested() {
+        guard let s = ProcessInfo.processInfo.environment["OVERSUB_HIDE_TEST"], let secs = Double(s) else { return }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(secs))
+            NSApp.hide(nil)
+            DebugLog.write("Thử ẩn app: đã ẩn")
+        }
+    }
+
     static func runIfRequested(engine: Engine) {
         guard let dir = ProcessInfo.processInfo.environment["OVERSUB_SNAPSHOT_DIR"] else { return }
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(2.5))
             // Có nguồn cập nhật thử: kiểm tra trước để ảnh chụp có thông báo bản mới và mục Cập nhật.
             if ProcessInfo.processInfo.environment["OVERSUB_UPDATE_FEED"] != nil { await Updater.shared.check(manual: true) }
-            try? await Task.sleep(for: .seconds(0.5))
+            // Đưa cửa sổ lên trước: dùng Stage Manager mà cửa sổ đang nằm ở dải bên thì ảnh chụp bị méo phối cảnh.
+            NSApp.activate()
+            mainWindow()?.makeKeyAndOrderFront(nil)
+            try? await Task.sleep(for: .seconds(1.2))
             await shoot("main", dir: dir, window: mainWindow())
             if let sheet = mainWindow()?.attachedSheet {   // hướng dẫn lần đầu đang mở: chụp rồi thôi
                 await shoot("onboarding-\(UserDefaults.standard.integer(forKey: "onboardStep"))", dir: dir, window: sheet)
                 return
             }
+            // Màn hình chính lúc phiên đang chạy (nền rực hơn, linh vật đang nghe) và lúc đang đọc (miệng mấp máy, sóng loang).
+            // Chỉ đổi cờ để chụp, không chạy vòng quét hay phát tiếng thật.
+            do {
+                let wasRunning = engine.running
+                let saved = (engine.lastSource, engine.lastTranslation, engine.lastSpeaker)
+                let savedStatus = engine.status
+                engine.running = true
+                engine.status = L("Đang nhận phụ đề…", "Watching for subtitles…")
+                try? await Task.sleep(for: .seconds(1.8))
+                await shoot("main-running", dir: dir, window: mainWindow())
+                engine.lastSpeaker = "Expert Farmer"
+                engine.lastSource = "Back in the day, there used to be 100 Poogies around the vines."
+                engine.lastTranslation = "Ngày trước, có tới cả trăm chú Poogie quanh mấy giàn nho ấy chứ."
+                engine.speaker.debugSetSpeaking("")
+                try? await Task.sleep(for: .seconds(0.9))
+                await shoot("main-speaking", dir: dir, window: mainWindow())
+                engine.speaker.debugSetSpeaking(nil)
+                (engine.lastSource, engine.lastTranslation, engine.lastSpeaker) = saved
+                engine.running = wasRunning
+                engine.status = savedStatus
+                try? await Task.sleep(for: .seconds(0.3))
+            }
+            if ProcessInfo.processInfo.environment["OVERSUB_SNAPSHOT_MAIN_ONLY"] != nil { DebugLog.write("snapshot xong: \(dir)"); return }
             // Lịch sử thoại nổi trên cửa sổ chính, có vài câu mẫu.
             let savedTranscript = engine.transcript
             engine.transcript = [

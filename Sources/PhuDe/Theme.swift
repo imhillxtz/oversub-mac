@@ -80,9 +80,10 @@ private struct GlassOrb<Label: View>: View {
 struct SpeakingRipples: View {
     var active: Bool
     var size: CGFloat
+    @Environment(\.homeAnimating) private var animating
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1 / 30, paused: !active)) { ctx in
+        TimelineView(.animation(minimumInterval: 1 / 30, paused: !active || !animating)) { ctx in
             let t = ctx.date.timeIntervalSinceReferenceDate
             ZStack {
                 ForEach(0..<3, id: \.self) { i in
@@ -100,20 +101,21 @@ struct SpeakingRipples: View {
     }
 }
 
-/// Ống nối giữa nút Phụ đề và nút giọng đọc: lời thoại "chảy" từ phụ đề sang giọng đọc. Ống kính mềm, bên trong có các
-/// vệt sáng trôi từ trái sang phải. Ba mức: chưa chạy (vệt trắng mờ, trôi chậm), đang chạy (vệt cam, nhanh hơn),
-/// đang đọc (sáng và nhanh nhất, ống phát sáng nhẹ).
+/// Ống nối giữa nút Phụ đề và linh vật (giọng đọc): lời thoại "chảy" từ phụ đề sang giọng đọc. Ống kính mềm, bên trong có
+/// các vệt sáng trôi từ trái sang phải. Ba mức: chưa chạy (vệt trắng mờ, đứng yên để cửa sổ mở mà không tốn CPU), đang chạy
+/// (vệt cam trôi), đang đọc (sáng và nhanh nhất, ống phát sáng nhẹ).
 struct EnergyLink: View {
     var enabled = true    // giọng đọc đang bật; tắt thì không có gì truyền sang: ống trống và mờ
     var active: Bool      // phiên đang chạy và giọng đọc đang bật
     var speaking: Bool    // đang phát tiếng
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.homeAnimating) private var animating
 
     var body: some View {
         let light = scheme == .light
         let ink: Color = light ? .black : .white   // màu trung tính của ống và vệt lúc chưa chạy, theo nền
         let level: Double = speaking ? 1 : active ? (light ? 0.8 : 0.6) : (light ? 0.3 : 0.22)
-        TimelineView(.animation(minimumInterval: 1 / 30, paused: !enabled)) { ctx in
+        TimelineView(.animation(minimumInterval: 1 / 30, paused: !(active || speaking) || !animating)) { ctx in
             let t = ctx.date.timeIntervalSinceReferenceDate
             Canvas { g, size in
                 let h = size.height, w = size.width

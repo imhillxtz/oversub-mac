@@ -1,0 +1,107 @@
+{
+  "fill": {
+    "linear-gradient": [
+      "extended-srgb:1.00000,0.63000,0.40000,1.00000",
+      "extended-srgb:0.95000,0.37000,0.22000,1.00000"
+    ]
+  },
+  "fill-specializations": [
+    {
+      "appearance": "dark",
+      "value": {
+        "linear-gradient": [
+          "display-p3:0.20000,0.17000,0.19000,1.00000",
+          "display-p3:0.07000,0.06000,0.07000,1.00000"
+        ]
+      }
+    }
+  ],
+  "groups": [
+    {
+      "name": "Mặt",
+      "layers": [
+        {
+          "name": "Mắt",
+          "image-name": "eyes.svg",
+          "glass": true,
+          "fill-specializations": [
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "extended-srgb:0.97000,0.95000,0.94000,1.00000"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Má hồng",
+          "image-name": "blush.svg",
+          "glass": false,
+          "opacity": 1.0
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "translucency": {
+        "enabled": true,
+        "value": 0.35
+      }
+    },
+    {
+      "name": "Chữ O",
+      "layers": [
+        {
+          "name": "Vòng O",
+          "image-name": "ring.svg",
+          "glass": true,
+          "fill-specializations": [
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "extended-srgb:0.97000,0.95000,0.94000,1.00000"
+              }
+            }
+          ]
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "translucency": {
+        "enabled": true,
+        "value": 0.4
+      }
+    },
+    {
+      "name": "Quầng sáng",
+      "layers": [
+        {
+          "name": "Quầng cam",
+          "image-name": "glow.svg",
+          "glass": false,
+          "hidden-specializations": [
+            {
+              "value": true
+            },
+            {
+              "appearance": "dark",
+              "value": false
+            }
+          ]
+        }
+      ],
+      "shadow": {
+        "kind": "none",
+        "opacity": 0
+      }
+    }
+  ],
+  "supported-platforms": {
+    "squares": [
+      "macOS"
+    ]
+  }
+}
