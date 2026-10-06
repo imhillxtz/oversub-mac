@@ -361,6 +361,22 @@ enum DebugSnapshot {
     }
 
     /// Thử dịch nhanh (OVERSUB_QUICK_TEST="x,y,w,h" trên màn hình chính): mở dịch nhanh, chọn sẵn vùng đó, chụp kết quả.
+    /// Chụp một vùng màn hình của app khác (OVERSUB_SCREEN_RECT="x,y,w,h", điểm, gốc trên trái, màn hình chính), vd. cửa sổ
+    /// cài đặt .dmg trong Finder. App tự ẩn trước khi chụp để không che vùng đó.
+    static func screenRectIfRequested() {
+        let env = ProcessInfo.processInfo.environment
+        guard let spec = env["OVERSUB_SCREEN_RECT"], let dir = env["OVERSUB_SNAPSHOT_DIR"], let screen = NSScreen.screens.first, let id = displayIDOf(screen) else { return }
+        let n = spec.split(separator: ",").compactMap { Double($0) }
+        guard n.count == 4 else { return }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1.5))
+            NSApp.hide(nil)
+            try? await Task.sleep(for: .seconds(1.5))
+            await shootScreen("screen", dir: dir, display: id, rect: CGRect(x: n[0], y: n[1], width: n[2], height: n[3]))
+            DebugLog.write("snapshot xong: \(dir)")
+        }
+    }
+
     static func quickTestIfRequested(engine: Engine) {
         let env = ProcessInfo.processInfo.environment
         guard let spec = env["OVERSUB_QUICK_TEST"], let dir = env["OVERSUB_SNAPSHOT_DIR"], let screen = NSScreen.screens.first, let id = displayIDOf(screen) else { return }

@@ -3,6 +3,7 @@ Mẫu ghi chú bản phát hành OverSub trên GitHub. Chép ra file tạm, đi�
   gh release create v<phiên bản> dist/OverSub-<phiên bản>.dmg dist/OverSub-<phiên bản>.dmg.sig \
      --repo imhillxtz/oversub-mac --target main --title "OverSub <phiên bản>" --notes-file <file>
 Thiếu file .sig thì app không tự cập nhật được. Giữ nguyên mục "Ủng hộ · Support" ở cuối.
+Mục "Có gì mới" và "Sửa lỗi" không liệt kê các thay đổi liên quan tới Ủng hộ (cửa sổ Ủng hộ, VietQR, PayPal, bảng cảm ơn…).
 -->
 <Một câu tóm tắt tiếng Việt> · <One-sentence summary in English>.
 

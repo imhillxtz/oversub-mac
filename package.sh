@@ -12,15 +12,10 @@ if [[ -n "$1" ]]; then VERSION="$1"; else VERSION="${OLD%.*}.$(( ${OLD##*.} + 1 
 BUILD=$(( $($PB -c "Print :CFBundleVersion" Info.plist) + 1 ))
 $PB -c "Set :CFBundleShortVersionString $VERSION" -c "Set :CFBundleVersion $BUILD" Info.plist
 ./build.sh
-STAGE=$(mktemp -d)
-cp -R OverSub.app "$STAGE/OverSub.app"
-ln -s /Applications "$STAGE/Applications"
-cp "Docs/Đọc trước - Read me first.txt" "$STAGE/"
 mkdir -p dist
 DMG="dist/OverSub-$VERSION.dmg"
-rm -f "$DMG"
-hdiutil create -volname "OverSub $VERSION" -srcfolder "$STAGE" -ov -format UDZO "$DMG" >/dev/null
-rm -rf "$STAGE"
+# Cửa sổ cài đặt: hình nền có hướng dẫn kéo vào Applications và cách mở lần đầu (thay cho file "Đọc trước" cũ).
+Tools/make_dmg.sh "$VERSION" "$DMG" 2> >(grep -v "is deprecated" >&2)
 # Ký file cài để app tự cập nhật nhận ra bản chính chủ (khoá bí mật chỉ nằm trên máy tác giả, ngoài kho mã).
 SIGNER=$(mktemp -d)/sign_update
 if swiftc -O -o "$SIGNER" Tools/sign_update.swift 2>/dev/null && "$SIGNER" "$DMG" > "$DMG.sig"; then
