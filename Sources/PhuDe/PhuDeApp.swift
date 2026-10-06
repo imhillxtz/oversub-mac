@@ -35,6 +35,8 @@ final class AppModel {
         DebugSnapshot.progressiveTestIfRequested(engine: engine)
         DebugSnapshot.updateTestIfRequested()
         DebugSnapshot.hideTestIfRequested()
+        // Thẻ cảm ơn theo mốc, chỉ để chụp giao diện (không ghi vào cài đặt).
+        if ProcessInfo.processInfo.environment["OVERSUB_SUPPORT_TEST"] != nil { SupportPrompt.shared.debugShow(1_000) }
         #endif
         // Đợi AppModel dựng xong rồi mới mở lại Cửa sổ phụ đề (nó cần AppModel.shared).
         DispatchQueue.main.async { SubtitleWindowState.shared.restore() }

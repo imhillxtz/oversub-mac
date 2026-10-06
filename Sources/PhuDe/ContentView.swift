@@ -20,6 +20,7 @@ struct ContentView: View {
     @ObservedObject private var subtitles = SubtitleWindowState.shared
     @ObservedObject private var updater = Updater.shared
     @StateObject private var presence = WindowPresence()
+    @ObservedObject private var support = SupportPrompt.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -36,6 +37,7 @@ struct ContentView: View {
         .background { HomeBackdrop(vivid: engine.anyRunning) }
         .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
         .animation(.smooth(duration: 0.3), value: engine.problem)
+        .animation(.smooth(duration: 0.3), value: support.pending)
         .animation(.smooth(duration: 0.3), value: updater.pending)
         .animation(.smooth(duration: 0.25), value: settings.speakEnabled)
         // Lịch sử thoại nổi đè lên phía phải, không chiếm chỗ: trước đây là cột bên (inspector) ép nội dung chính co lại,
@@ -167,6 +169,28 @@ struct ContentView: View {
         .font(.caption)
     }
 
+    /// Lời cảm ơn khi số câu đã dịch vượt mốc, nằm trong dòng trạng thái ở chân cửa sổ như thông báo bản mới (thẻ riêng ở đầu
+    /// cửa sổ đẩy hàng chip ở chân ra ngoài khi cửa sổ thấp). Bấm Ủng hộ mở cửa sổ Ủng hộ; Để sau thì không nhắc mốc này nữa.
+    private func supportNotice(_ m: Int) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "heart.fill").foregroundStyle(.pink)
+            (Text(L("OverSub đã dịch hơn \(Donation.count(m)) câu thoại cho bạn! ", "OverSub has translated over \(Donation.count(m)) lines for you! ")).fontWeight(.semibold)
+             + Text(L("Thấy hữu ích thì mời mình một ly cà phê nhé.", "If it's been useful, consider buying me a coffee.")).foregroundStyle(.secondary))
+                .lineLimit(1)
+            Button(L("Để sau", "Later")) { support.dismiss() }.buttonStyle(.link)
+            Button {
+                support.dismiss()
+                openWindow(id: "donate")
+            } label: {
+                Text(L("Ủng hộ", "Support")).fontWeight(.semibold).foregroundStyle(.white)
+                    .padding(.horizontal, 10).padding(.vertical, 2)
+                    .background(Capsule().fill(Theme.gradient))
+            }
+            .buttonStyle(.plain)
+        }
+        .font(.caption)
+    }
+
     private func problemBanner(_ problem: String) -> some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
@@ -191,6 +215,9 @@ struct ContentView: View {
             HStack(spacing: 8) {
                 if let r = updater.pending, updater.dismissedVersion != r.version {
                     updateNotice(r).transition(.opacity)
+                } else if let m = support.pending, !engine.anyRunning, settings.onboardingDone {
+                    // Chỉ hiện lúc không chơi; bản mới (ở trên) được ưu tiên.
+                    supportNotice(m).transition(.opacity)
                 } else {
                     Text(engine.status)
                         .font(.caption).foregroundStyle(.secondary).lineLimit(1)
@@ -198,7 +225,8 @@ struct ContentView: View {
                         .animation(.smooth, value: engine.status)
                 }
                 Spacer(minLength: 8)
-                // Lối vào cửa sổ Ủng hộ: luôn có nhưng nhỏ, không tranh chú ý với các nút chính.
+                // Lối vào cửa sổ Ủng hộ: luôn có nhưng nhỏ, không tranh chú ý với các nút chính (ẩn khi lời cảm ơn đang hiện).
+                if support.pending == nil || engine.anyRunning {
                 Button { openWindow(id: "donate") } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "heart.fill").foregroundStyle(.pink)
@@ -209,6 +237,7 @@ struct ContentView: View {
                 }
                 .buttonStyle(.plain)
                 .help(L("Ủng hộ OverSub: quét VietQR hoặc PayPal", "Support OverSub via VietQR or PayPal"))
+                }
             }
             .frame(height: 18)
             GlassEffectContainer(spacing: 8) {

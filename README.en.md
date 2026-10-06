@@ -351,6 +351,13 @@ OverSub is free for everyone. If it makes your games more fun, buy me a coffee t
 
 <br clear="right">
 
+### Thank-you list
+
+Thank you to everyone who has supported OverSub. To have your name here (and in the app's Support window), add it to the transfer message, e.g. "OverSub Minh", or to your PayPal note. Leave it out to stay anonymous.
+
+<!-- Newest first; the in-app list comes from Docs/supporters.json -->
+*No names yet. You could be the first ♥*
+
 ---
 
 ## Copyright

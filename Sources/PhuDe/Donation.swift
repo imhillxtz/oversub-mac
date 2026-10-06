@@ -77,6 +77,11 @@ enum Donation {
         return CIContext().createCGImage(out, from: out.extent)
     }
 
+    /// Số đếm theo ngôn ngữ giao diện (1.000 hay 1,000), không theo vùng của máy.
+    static func count(_ n: Int) -> String {
+        n.formatted(.number.locale(Locale(identifier: Lang.isEnglish ? "en_US" : "vi_VN")))
+    }
+
     static func vnd(_ amount: Int) -> String {
         let f = NumberFormatter()
         f.numberStyle = .decimal
@@ -88,8 +93,81 @@ enum Donation {
 
     private static let linesKey = "statLinesTranslated"
     static var linesTranslated: Int { UserDefaults.standard.integer(forKey: linesKey) }
-    static func countLine() { UserDefaults.standard.set(linesTranslated + 1, forKey: linesKey) }
+    @MainActor static func countLine() {
+        let n = linesTranslated + 1
+        UserDefaults.standard.set(n, forKey: linesKey)
+        SupportPrompt.shared.check(n)
+    }
 }
+
+// MARK: Lời cảm ơn theo mốc
+
+/// Khi số câu đã dịch vượt một mốc (300, 1.000, 3.000, 10.000), màn hình chính hiện một thẻ cảm ơn nhỏ kèm nút Ủng hộ. Mỗi
+/// mốc một lần; nhảy qua nhiều mốc thì chỉ nhắc mốc cao nhất. Không hiện lúc phiên đang chạy (đang chơi) hay lúc đang có lỗi
+/// cần xử lý. Bấm "Mình đã ủng hộ rồi" trong cửa sổ Ủng hộ thì thôi hẳn.
+@MainActor
+final class SupportPrompt: ObservableObject {
+    static let shared = SupportPrompt()
+    static let milestones = [300, 1_000, 3_000, 10_000]
+    private let d = UserDefaults.standard
+    @Published private(set) var pending: Int?
+    @Published var donated: Bool {
+        didSet { d.set(donated, forKey: "supportDonated"); if donated { pending = nil } }
+    }
+
+    private init() {
+        donated = d.bool(forKey: "supportDonated")
+        check(Donation.linesTranslated)
+    }
+
+    func check(_ lines: Int) {
+        guard !donated, let m = Self.milestones.last(where: { $0 <= lines }), m > d.integer(forKey: "supportMilestoneShown") else { return }
+        if pending != m { pending = m }
+    }
+
+    /// Đã xem thẻ (bấm Ủng hộ hay Để sau): không nhắc lại mốc này.
+    func dismiss() {
+        if let m = pending { d.set(m, forKey: "supportMilestoneShown") }
+        pending = nil
+    }
+
+    #if DEVTOOLS
+    /// Chỉ để chụp giao diện: hiện thẻ mà không ghi gì vào cài đặt.
+    func debugShow(_ m: Int) { pending = m }
+    #endif
+}
+
+// MARK: Bảng cảm ơn
+
+/// Tên người ủng hộ (họ tự ghi thêm vào nội dung chuyển khoản hay lời nhắn PayPal), lưu ở `Docs/supporters.json` trên GitHub
+/// để thêm tên không cần ra bản app mới. Tải khi mở cửa sổ Ủng hộ (chỉ tải về, không gửi gì đi), nhớ bản gần nhất để xem khi
+/// không có mạng.
+@MainActor
+final class Supporters: ObservableObject {
+    static let shared = Supporters()
+    private static let url = URL(string: "https://raw.githubusercontent.com/imhillxtz/oversub-mac/main/Docs/supporters.json")!
+    private static let cacheKey = "supporterNames"
+    @Published private(set) var names: [String] = UserDefaults.standard.stringArray(forKey: Supporters.cacheKey) ?? []
+    private var loaded = false
+
+    func refresh() async {
+        guard !loaded else { return }
+        loaded = true
+        struct File: Decodable {
+            struct Entry: Decodable { let name: String }
+            let supporters: [Entry]
+        }
+        let req = URLRequest(url: Self.url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 10)
+        guard let (data, resp) = try? await URLSession.shared.data(for: req),
+              (resp as? HTTPURLResponse)?.statusCode == 200,
+              let file = try? JSONDecoder().decode(File.self, from: data) else { loaded = false; return }
+        let list = file.supporters.map { $0.name.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+        if list != names { names = list }
+        UserDefaults.standard.set(list, forKey: Self.cacheKey)
+    }
+}
+
+// MARK: Cửa sổ Ủng hộ
 
 @MainActor
 final class DonateState: ObservableObject {
@@ -99,53 +177,102 @@ final class DonateState: ObservableObject {
     }
     @Published var tier = Donation.tiers(Lang.isEnglish ? .paypal : .vietQR)[1]
     @Published var copied: String?
+    /// Chiều cao nội dung và chiều cao màn hình dùng được: cửa sổ cao vừa nội dung, màn hình thấp hơn thì cuộn.
+    @Published var contentHeight: CGFloat = 640
+    @Published var screenHeight: CGFloat = 900
+
+    init() { measureScreen() }
+
+    func measureScreen() {
+        var h = (NSApp.keyWindow?.screen ?? NSScreen.main)?.visibleFrame.height ?? 900
+        #if DEVTOOLS
+        // Thử màn hình thấp mà không cần đổi độ phân giải thật: OVERSUB_SCREEN_HEIGHT=560.
+        if let v = ProcessInfo.processInfo.environment["OVERSUB_SCREEN_HEIGHT"], let n = Double(v) { h = n }
+        #endif
+        if h != screenHeight { screenHeight = h }
+    }
 }
 
-/// Cửa sổ "Ủng hộ OverSub": linh vật, lời nhờ ngắn, số câu app đã dịch cho bạn, chọn mức, quét mã. Không tiện ủng hộ tiền thì
-/// gắn sao GitHub hoặc giới thiệu cho bạn bè.
+/// Cửa sổ "Ủng hộ OverSub": linh vật và lời nhờ ngắn, số câu app đã dịch cho bạn; bên trái chọn kênh (VietQR / PayPal) và mức,
+/// bên phải mã QR; dưới cùng là bảng cảm ơn và cách ủng hộ không tốn tiền (gắn sao GitHub, giới thiệu bạn bè).
 struct DonateView: View {
     @StateObject private var state = DonateState()
+    @ObservedObject private var prompt = SupportPrompt.shared
+    @ObservedObject private var supporters = Supporters.shared
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        let lines = Donation.linesTranslated
-        VStack(spacing: 16) {
-            VStack(spacing: 10) {
-                Mascot(mood: .idle, size: 68)
-                Text(L("Ủng hộ OverSub", "Support OverSub")).font(.title2.weight(.bold))
-                Text(L("OverSub miễn phí cho mọi người. Nếu app giúp bạn chơi game vui hơn, mời mình một ly cà phê để có thêm động lực làm tiếp nhé.",
-                       "OverSub is free for everyone. If it makes your games more fun, buy me a coffee to keep it going."))
-                    .font(.callout).foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: 380)
-                if lines >= 10 {
-                    Label(L("OverSub đã dịch \(lines.formatted()) câu thoại cho bạn", "OverSub has translated \(lines.formatted()) lines for you"),
-                          systemImage: "text.bubble.fill")
-                        .font(.caption.weight(.medium))
-                        .padding(.horizontal, 12).padding(.vertical, 6)
-                        .background(.regularMaterial, in: Capsule())
+        ScrollView {
+            content
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
+                    if abs(h - state.contentHeight) > 0.5 { state.contentHeight = h }
                 }
-            }
-            channelPicker
-            tierPicker
-            qrCard
-            if state.channel == .vietQR { details } else { paypalButton }
-            Divider().padding(.horizontal, 8)
-            alternatives
         }
-        .padding(.horizontal, 28)
-        .padding(.top, 34)   // thanh tiêu đề ẩn, chừa chỗ cho ba nút cửa sổ
-        .padding(.bottom, 20)
-        .frame(width: 480)
+        .scrollBounceBehavior(.basedOnSize)
+        // Cao vừa nội dung nhưng không quá màn hình (màn hình nhỏ, hay vừa đổi độ phân giải thì cuộn).
+        .frame(width: 660, height: min(state.contentHeight, max(320, state.screenHeight - 40)))
         .background { HomeBackdrop(vivid: false) }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)) { _ in
+            state.measureScreen()
+        }
+        .onAppear { state.measureScreen() }
+        .task { await supporters.refresh() }
         .animation(.smooth(duration: 0.25), value: state.tier)
         .animation(.smooth(duration: 0.25), value: state.channel)
     }
 
+    private var content: some View {
+        VStack(spacing: 18) {
+            header
+            HStack(alignment: .top, spacing: 24) {
+                VStack(spacing: 14) {
+                    channelPicker
+                    tierGrid
+                    if state.channel == .vietQR { details } else { paypalButton }
+                    Text(state.channel == .vietQR
+                         ? L("Muốn có tên trong bảng cảm ơn? Ghi thêm tên vào nội dung, vd. \"OverSub Minh\".", "Want your name on the thank-you list? Add it to the message, e.g. \"OverSub Minh\".")
+                         : L("Muốn có tên trong bảng cảm ơn? Ghi tên vào lời nhắn PayPal.", "Want your name on the thank-you list? Add it to the PayPal note."))
+                        .font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(width: 340)
+                qrColumn
+            }
+            thanks
+            Divider()
+            footer
+        }
+        .padding(.horizontal, 28)
+        .padding(.top, 34)   // thanh tiêu đề ẩn, chừa chỗ cho ba nút cửa sổ
+        .padding(.bottom, 22)
+    }
+
+    private var header: some View {
+        let lines = Donation.linesTranslated
+        return HStack(spacing: 16) {
+            Mascot(mood: .idle, size: 64)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(L("Ủng hộ OverSub", "Support OverSub")).font(.title2.weight(.bold))
+                Text(L("OverSub miễn phí cho mọi người. Nếu app giúp bạn chơi game vui hơn, mời mình một ly cà phê để có thêm động lực làm tiếp nhé.",
+                       "OverSub is free for everyone. If it makes your games more fun, buy me a coffee to keep it going."))
+                    .font(.callout).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                if lines >= 10 {
+                    Label(L("OverSub đã dịch \(Donation.count(lines)) câu thoại cho bạn", "OverSub has translated \(Donation.count(lines)) lines for you"),
+                          systemImage: "text.bubble.fill")
+                        .font(.caption.weight(.medium))
+                        .padding(.horizontal, 10).padding(.vertical, 4)
+                        .background(.regularMaterial, in: Capsule())
+                }
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
     // MARK: Chọn kênh, chọn mức
 
-    /// Hai kênh ngang hàng: viên trắng trên nền kính như hàng chọn mức (không dùng màu nhấn xanh của hệ thống).
+    /// Hai kênh ngang hàng: viên trắng trên nền kính như ô chọn mức (không dùng màu nhấn xanh của hệ thống).
     private var channelPicker: some View {
         HStack(spacing: 2) {
             ForEach(Donation.Channel.allCases) { c in
@@ -154,7 +281,8 @@ struct DonateView: View {
                     Text(c.title)
                         .font(.callout.weight(on ? .semibold : .regular))
                         .foregroundStyle(on ? Color.primary : Color.secondary)
-                        .padding(.horizontal, 14).padding(.vertical, 6)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 6)
                         .background {
                             if on {
                                 Capsule().fill(scheme == .light ? Color.white : Color.white.opacity(0.14))
@@ -170,75 +298,83 @@ struct DonateView: View {
         .glassEffect(.regular, in: Capsule())
     }
 
-    private var tierPicker: some View {
-        HStack(spacing: 4) {
-            ForEach(Donation.tiers(state.channel)) { t in
-                let on = t == state.tier
-                Button { state.tier = t } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: t.icon).font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(on ? Color.primary : Color.secondary)
-                        Text(t.price ?? L("Tuỳ bạn", "Any")).font(.callout.weight(.semibold)).monospacedDigit()
-                        Text(t.label).font(.caption2).foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                    .background {
-                        if on {
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(scheme == .light ? Color.white : Color.white.opacity(0.14))
-                                .shadow(color: .black.opacity(0.12), radius: 4, y: 1)
-                        }
-                    }
-                    .contentShape(RoundedRectangle(cornerRadius: 12))
-                }
-                .buttonStyle(.plain)
-            }
+    private var tierGrid: some View {
+        let tiers = Donation.tiers(state.channel)
+        return Grid(horizontalSpacing: 4, verticalSpacing: 4) {
+            GridRow { tierCell(tiers[0]); tierCell(tiers[1]) }
+            GridRow { tierCell(tiers[2]); tierCell(tiers[3]) }
         }
         .padding(4)
         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
+    private func tierCell(_ t: Donation.Tier) -> some View {
+        let on = t == state.tier
+        return Button { state.tier = t } label: {
+            HStack(spacing: 10) {
+                Image(systemName: t.icon).font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(on ? Color.primary : Color.secondary)
+                    .frame(width: 22)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(t.price ?? L("Tuỳ bạn", "Any")).font(.callout.weight(.semibold)).monospacedDigit()
+                    Text(t.label).font(.caption2).foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 12).padding(.vertical, 8)
+            .frame(maxWidth: .infinity)
+            .background {
+                if on {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(scheme == .light ? Color.white : Color.white.opacity(0.14))
+                        .shadow(color: .black.opacity(0.12), radius: 4, y: 1)
+                }
+            }
+            .contentShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
+    }
+
     // MARK: Mã QR
 
-    private var qrCard: some View {
+    private var qrColumn: some View {
         let paypal = state.channel == .paypal
         let payload = paypal ? Donation.paypalURL(state.tier.amount).absoluteString : Donation.payload(amount: state.tier.amount)
         return VStack(spacing: 10) {
-            ZStack {
-                if let img = Donation.qrImage(payload) {
-                    Image(decorative: img, scale: 1)
-                        .interpolation(.none)
+            VStack(spacing: 8) {
+                ZStack {
+                    if let img = Donation.qrImage(payload) {
+                        Image(decorative: img, scale: 1)
+                            .interpolation(.none)
+                            .resizable()
+                            .frame(width: 196, height: 196)
+                    }
+                    // Icon ở giữa mã, như các ví hay đặt ảnh đại diện; mức sửa lỗi H chịu được phần bị che.
+                    Image(nsImage: NSApp.applicationIconImage)
                         .resizable()
-                        .frame(width: 208, height: 208)
+                        .frame(width: 42, height: 42)
+                        .padding(3)
+                        .background(Color.white, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
-                // Icon ở giữa mã, như các ví hay đặt ảnh đại diện; mức sửa lỗi H chịu được phần bị che.
-                Image(nsImage: NSApp.applicationIconImage)
-                    .resizable()
-                    .frame(width: 44, height: 44)
-                    .padding(3)
-                    .background(Color.white, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .id(payload)
+                .transition(.opacity)
+                Text(paypal ? "paypal.me/ngochieuit" + (state.tier.price.map { " · \($0)" } ?? "")
+                     : state.tier.price.map { L("\($0) · nội dung \"\(Donation.note)\"", "\($0) · message \"\(Donation.note)\"") }
+                        ?? L("Tự nhập số tiền khi quét", "Enter any amount after scanning"))
+                    .font(.caption.weight(.medium)).foregroundStyle(Color.black.opacity(0.6))
+                    .monospacedDigit()
             }
-            .id(payload)
-            .transition(.opacity)
-            Text(paypal ? "paypal.me/ngochieuit" + (state.tier.price.map { " · \($0)" } ?? "")
-                 : state.tier.price.map { L("\($0) · nội dung \"\(Donation.note)\"", "\($0) · message \"\(Donation.note)\"") }
-                    ?? L("Bạn tự nhập số tiền khi quét", "Enter any amount after scanning"))
-                .font(.caption.weight(.medium)).foregroundStyle(Color.black.opacity(0.6))
-                .monospacedDigit()
-        }
-        .padding(16)
-        // Nền thẻ luôn trắng để mọi app ngân hàng quét dễ, kể cả ở chế độ tối.
-        .background(Color.white, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .shadow(color: .black.opacity(0.12), radius: 14, y: 6)
-        .overlay(alignment: .bottom) {
-            Text(paypal ? L("Quét bằng camera điện thoại, hoặc bấm nút bên dưới", "Scan with your phone camera, or use the button below")
+            .padding(14)
+            // Nền thẻ luôn trắng để mọi app ngân hàng quét dễ, kể cả ở chế độ tối.
+            .background(Color.white, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .shadow(color: .black.opacity(0.12), radius: 14, y: 6)
+            Text(paypal ? L("Quét bằng camera điện thoại, hoặc bấm nút bên trái", "Scan with your phone camera, or use the button on the left")
                  : L("Quét bằng app ngân hàng, MoMo hoặc ZaloPay trên điện thoại", "Scan with a Vietnamese banking app, MoMo or ZaloPay"))
                 .font(.caption).foregroundStyle(.secondary)
-                .fixedSize()
-                .offset(y: 24)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.bottom, 18)
+        .frame(width: 224)
     }
 
     /// Hành động chính của kênh PayPal: mở trang PayPal với số tiền đã chọn.
@@ -248,6 +384,7 @@ struct DonateView: View {
                   systemImage: "arrow.up.right")
         }
         .buttonStyle(CTAButtonStyle())
+        .padding(.top, 4)
     }
 
     // MARK: Thông tin chuyển khoản tay
@@ -269,14 +406,7 @@ struct DonateView: View {
             Spacer(minLength: 8)
             Text(value).fontWeight(.medium).textSelection(.enabled).lineLimit(1)
             if copy {
-                Button {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(value, forType: .string)
-                    state.copied = value
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak state] in
-                        if state?.copied == value { state?.copied = nil }
-                    }
-                } label: {
+                Button { copyText(value, tag: value) } label: {
                     Image(systemName: state.copied == value ? "checkmark" : "doc.on.doc")
                         .contentTransition(.symbolEffect(.replace))
                         .frame(width: 16)
@@ -287,36 +417,73 @@ struct DonateView: View {
         }
         .font(.callout)
         .padding(.horizontal, 12)
-        .frame(height: 34)
+        .frame(height: 32)
     }
 
-    // MARK: Cách ủng hộ khác
+    private func copyText(_ text: String, tag: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+        state.copied = tag
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak state] in
+            if state?.copied == tag { state?.copied = nil }
+        }
+    }
 
-    private var alternatives: some View {
-        VStack(spacing: 10) {
-            Text(L("Không tiện ủng hộ? Gắn sao cho OverSub trên GitHub hoặc giới thiệu cho bạn bè cũng là ủng hộ rồi.",
-                   "Can't donate? Starring OverSub on GitHub or telling a friend helps just as much."))
-                .font(.caption).foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-            HStack(spacing: 10) {
-                Button { NSWorkspace.shared.open(Donation.repo) } label: {
-                    Label(L("Gắn sao trên GitHub", "Star on GitHub"), systemImage: "star")
-                }
-                Button {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(Donation.repo.absoluteString, forType: .string)
-                    state.copied = "link"
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak state] in
-                        if state?.copied == "link" { state?.copied = nil }
-                    }
-                } label: {
-                    Label(state.copied == "link" ? L("Đã sao chép", "Copied") : L("Sao chép đường dẫn", "Copy link"),
-                          systemImage: state.copied == "link" ? "checkmark" : "link")
+    // MARK: Bảng cảm ơn, cách ủng hộ khác
+
+    private var thanks: some View {
+        let names = supporters.names
+        let limit = 40
+        return VStack(alignment: .leading, spacing: 6) {
+            Label {
+                Text(L("Cảm ơn những người đã ủng hộ", "Thank you to our supporters"))
+            } icon: {
+                Image(systemName: "heart.fill").foregroundStyle(.pink)
+            }
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
+            if names.isEmpty {
+                Text(L("Chưa có tên nào. Bạn có thể là người đầu tiên ♥", "No names yet. You could be the first ♥"))
+                    .font(.callout).foregroundStyle(.secondary)
+            } else {
+                Text(names.prefix(limit).joined(separator: " · ")
+                     + (names.count > limit ? L(" và \(names.count - limit) người khác", " and \(names.count - limit) more") : ""))
+                    .font(.callout)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private var footer: some View {
+        HStack(alignment: .center, spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(L("Không tiện ủng hộ? Gắn sao trên GitHub hoặc giới thiệu OverSub cho bạn bè cũng là ủng hộ rồi.",
+                       "Can't donate? Starring OverSub on GitHub or telling a friend helps just as much."))
+                    .font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                // Đã ủng hộ thì thôi nhắc ở màn hình chính.
+                if prompt.donated {
+                    Text(L("Cảm ơn bạn đã ủng hộ! OverSub sẽ không nhắc nữa ♥", "Thank you for your support! OverSub won't remind you again ♥"))
+                        .font(.caption.weight(.medium))
+                } else {
+                    Button(L("Mình đã ủng hộ rồi", "I've already donated")) { prompt.donated = true }
+                        .buttonStyle(.link)
+                        .font(.caption)
                 }
             }
-            .buttonStyle(.glass)
-            .controlSize(.regular)
+            Spacer(minLength: 0)
+            Button { NSWorkspace.shared.open(Donation.repo) } label: {
+                Label(L("Gắn sao", "Star"), systemImage: "star")
+            }
+            .help(L("Mở kho OverSub trên GitHub để gắn sao", "Open the OverSub repository on GitHub to star it"))
+            Button { copyText(Donation.repo.absoluteString, tag: "link") } label: {
+                Label(state.copied == "link" ? L("Đã sao chép", "Copied") : L("Sao chép link", "Copy link"),
+                      systemImage: state.copied == "link" ? "checkmark" : "link")
+            }
         }
+        .buttonStyle(.glass)
     }
 }

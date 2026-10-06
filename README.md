@@ -351,6 +351,13 @@ OverSub miễn phí cho mọi người. Nếu app giúp bạn chơi game vui hơ
 
 <br clear="right">
 
+### Bảng cảm ơn
+
+Cảm ơn những người đã ủng hộ OverSub. Muốn có tên ở đây (và trong cửa sổ Ủng hộ của app), ghi thêm tên vào nội dung chuyển khoản, vd. "OverSub Minh", hoặc vào lời nhắn PayPal. Không ghi thì ẩn danh.
+
+<!-- Người mới thêm lên đầu; danh sách trong app lấy từ Docs/supporters.json -->
+*Chưa có tên nào. Bạn có thể là người đầu tiên ♥*
+
 ---
 
 ## Bản quyền
