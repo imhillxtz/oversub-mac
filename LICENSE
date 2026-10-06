@@ -1,0 +1,59 @@
+OverSub
+Copyright (c) 2026 imhillxtz. All rights reserved.
+
+The source code in this repository is made publicly visible so that anyone
+can read it and verify what the application does on their computer. It is
+NOT released under an open-source license.
+
+You MAY, without asking:
+  - view and read the source code on GitHub;
+  - fork the repository on GitHub, to the extent GitHub's Terms of Service
+    allow for public repositories;
+  - download and use the official, unmodified builds published on this
+    repository's Releases page, free of charge, for personal use.
+
+You MAY NOT, without prior written permission from the copyright holder:
+  - copy, modify, merge or translate the source code, in whole or in part;
+  - build, publish, distribute, sublicense or sell the software or any
+    work derived from it;
+  - use the source code, or any part of it, in another product or service,
+    commercial or not.
+
+To request permission, open an Issue on this repository.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Game titles and trademarks mentioned in this repository belong to their
+respective owners. Third-party services (Apple, Google, Groq, Cerebras,
+Mistral, OpenRouter and others) are used under their own terms.
+
+----------------------------------------------------------------------------
+
+Bản quyền (c) 2026 imhillxtz. Bảo lưu mọi quyền.
+
+Mã nguồn được công khai để mọi người xem và kiểm tra app làm gì trên máy
+của họ. Đây KHÔNG phải phần mềm mã nguồn mở.
+
+Được phép, không cần xin:
+  - xem, đọc mã nguồn trên GitHub;
+  - fork kho trên GitHub, trong phạm vi Điều khoản dịch vụ của GitHub cho
+    kho công khai;
+  - tải và dùng miễn phí các bản cài chính thức, không chỉnh sửa, ở trang
+    Releases của kho này, cho mục đích cá nhân.
+
+Không được, khi chưa có sự đồng ý bằng văn bản của chủ bản quyền:
+  - sao chép, sửa đổi, gộp hay dịch mã nguồn, toàn bộ hay một phần;
+  - dựng, phát hành, phân phối, cấp phép lại hay bán phần mềm hoặc sản phẩm
+    phái sinh từ nó;
+  - dùng mã nguồn, hay bất kỳ phần nào, trong sản phẩm hoặc dịch vụ khác,
+    có hay không vì mục đích thương mại.
+
+Muốn xin phép, hãy mở một Issue trên kho này.
+
+Phần mềm được cung cấp "nguyên trạng", không kèm bất kỳ bảo đảm nào. Bản
+tiếng Anh ở trên là bản có hiệu lực.

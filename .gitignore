@@ -1,0 +1,7 @@
+.build/
+dist/
+OverSub.app/
+.DS_Store
+*.dSYM
+.swiftpm/
+research/

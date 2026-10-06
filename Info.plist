@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDisplayName</key>
+	<string>OverSub</string>
+	<key>CFBundleExecutable</key>
+	<string>OverSub</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundleIdentifier</key>
+	<string>vn.imhillxtz.phude</string>
+	<key>CFBundleName</key>
+	<string>OverSub</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.1.41</string>
+	<key>CFBundleVersion</key>
+	<string>45</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.utilities</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>26.0</string>
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>OverSub giảm tiếng của riêng game khi đang lồng tiếng (chỉ khi bạn bật tuỳ chọn này).</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSScreenCaptureUsageDescription</key>
+	<string>OverSub chụp vùng phụ đề trên màn hình để nhận diện chữ và dịch.</string>
+</dict>
+</plist>
