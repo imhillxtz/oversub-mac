@@ -50,11 +50,23 @@ enum Donation {
         URL(string: amount.map { "\(paypal)/\($0)USD" } ?? paypal)!
     }
 
-    static func payload(amount: Int?) -> String {
+    /// Nội dung chuyển khoản: "OverSub", thêm tên / nickname người ủng hộ nếu có. Nhiều app ngân hàng khoá ô nội dung khi quét
+    /// mã có sẵn số tiền, nên tên phải nằm sẵn trong mã. Bỏ dấu, chỉ giữ chữ, số, khoảng trắng và gọn trong 25 ký tự: tài liệu
+    /// VietQR cho tối đa 50 ký tự không ký tự đặc biệt, chuẩn EMV gốc chặt hơn, giữ 25 cho mọi ngân hàng đều nhận.
+    static func message(nick: String) -> String {
+        var s = nick.replacingOccurrences(of: "đ", with: "d").replacingOccurrences(of: "Đ", with: "D")
+        s = s.applyingTransform(.stripDiacritics, reverse: false) ?? s
+        let kept = String(s.unicodeScalars.filter { $0.isASCII && (CharacterSet.alphanumerics.contains($0) || $0 == " ") }.map(Character.init))
+        let name = kept.split(separator: " ").joined(separator: " ")
+        guard !name.isEmpty else { return note }
+        return String((note + " " + name).prefix(25)).trimmingCharacters(in: .whitespaces)
+    }
+
+    static func payload(amount: Int?, message: String = note) -> String {
         func tlv(_ id: String, _ value: String) -> String { id + String(format: "%02d", value.utf8.count) + value }
         var s = tlv("00", "01") + tlv("01", amount == nil ? "11" : "12") + tlv("38", merchant) + tlv("53", "704")
         if let amount { s += tlv("54", String(amount)) }
-        s += tlv("58", "VN") + tlv("62", tlv("05", reference) + tlv("08", note)) + "6304"
+        s += tlv("58", "VN") + tlv("62", tlv("05", reference) + tlv("08", message)) + "6304"
         return s + crc(s)
     }
 
@@ -177,11 +189,19 @@ final class DonateState: ObservableObject {
     }
     @Published var tier = Donation.tiers(Lang.isEnglish ? .paypal : .vietQR)[1]
     @Published var copied: String?
+    /// Tên hoặc nickname người ủng hộ muốn ghi vào nội dung chuyển khoản (để có tên trong bảng cảm ơn); không bắt buộc.
+    @Published var nick = "" { didSet { if nick.count > 30 { nick = String(nick.prefix(30)) } } }
+    var message: String { Donation.message(nick: nick) }
     /// Chiều cao nội dung và chiều cao màn hình dùng được: cửa sổ cao vừa nội dung, màn hình thấp hơn thì cuộn.
     @Published var contentHeight: CGFloat = 640
     @Published var screenHeight: CGFloat = 900
 
-    init() { measureScreen() }
+    init() {
+        measureScreen()
+        #if DEVTOOLS
+        if let n = ProcessInfo.processInfo.environment["OVERSUB_DONATE_NICK"] { nick = n }   // chụp thử ô nhập tên
+        #endif
+    }
 
     func measureScreen() {
         var h = (NSApp.keyWindow?.screen ?? NSScreen.main)?.visibleFrame.height ?? 900
@@ -230,7 +250,7 @@ struct DonateView: View {
                     tierGrid
                     if state.channel == .vietQR { details } else { paypalButton }
                     Text(state.channel == .vietQR
-                         ? L("Muốn có tên trong bảng cảm ơn? Ghi thêm tên vào nội dung, vd. \"OverSub Minh\".", "Want your name on the thank-you list? Add it to the message, e.g. \"OverSub Minh\".")
+                         ? L("Tên được thêm sẵn vào nội dung chuyển khoản trong mã QR để mình ghi vào bảng cảm ơn. Để trống nếu muốn ẩn danh.", "Your name is added to the transfer message in the QR code so it can go on the thank-you list. Leave it empty to stay anonymous.")
                          : L("Muốn có tên trong bảng cảm ơn? Ghi tên vào lời nhắn PayPal.", "Want your name on the thank-you list? Add it to the PayPal note."))
                         .font(.caption).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -339,7 +359,7 @@ struct DonateView: View {
 
     private var qrColumn: some View {
         let paypal = state.channel == .paypal
-        let payload = paypal ? Donation.paypalURL(state.tier.amount).absoluteString : Donation.payload(amount: state.tier.amount)
+        let payload = paypal ? Donation.paypalURL(state.tier.amount).absoluteString : Donation.payload(amount: state.tier.amount, message: state.message)
         return VStack(spacing: 10) {
             VStack(spacing: 8) {
                 ZStack {
@@ -359,7 +379,7 @@ struct DonateView: View {
                 .id(payload)
                 .transition(.opacity)
                 Text(paypal ? "paypal.me/ngochieuit" + (state.tier.price.map { " · \($0)" } ?? "")
-                     : state.tier.price.map { L("\($0) · nội dung \"\(Donation.note)\"", "\($0) · message \"\(Donation.note)\"") }
+                     : state.tier.price.map { L("\($0) · nội dung \"\(state.message)\"", "\($0) · message \"\(state.message)\"") }
                         ?? L("Tự nhập số tiền khi quét", "Enter any amount after scanning"))
                     .font(.caption.weight(.medium)).foregroundStyle(Color.black.opacity(0.6))
                     .monospacedDigit()
@@ -396,9 +416,27 @@ struct DonateView: View {
             Divider().padding(.leading, 12)
             row(L("Số tài khoản", "Account"), Donation.account, copy: true)
             Divider().padding(.leading, 12)
-            row(L("Nội dung", "Message"), Donation.note, copy: true)
+            nickRow
+            Divider().padding(.leading, 12)
+            row(L("Nội dung", "Message"), state.message, copy: true)
         }
         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    /// Ô nhập tên / nickname: gõ tới đâu mã QR và dòng Nội dung đổi tới đó.
+    private var nickRow: some View {
+        HStack(spacing: 8) {
+            Text(L("Tên của bạn", "Your name")).foregroundStyle(.secondary)
+            Spacer(minLength: 8)
+            TextField("", text: $state.nick, prompt: Text(L("Tên hoặc nickname", "Name or nickname")))
+                .textFieldStyle(.plain)
+                .multilineTextAlignment(.trailing)
+                .fontWeight(.medium)
+                .frame(maxWidth: 210)
+        }
+        .font(.callout)
+        .padding(.horizontal, 12)
+        .frame(height: 32)
     }
 
     private func row(_ title: String, _ value: String, copy: Bool = false) -> some View {

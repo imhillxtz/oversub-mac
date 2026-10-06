@@ -345,7 +345,7 @@ OverSub miễn phí cho mọi người. Nếu app giúp bạn chơi game vui hơ
 
 <img src="Docs/images/donate-vietqr.png" width="180" align="right" alt="Mã VietQR ủng hộ OverSub">
 
-- **Trong nước**: quét mã VietQR bên cạnh bằng app ngân hàng, MoMo hoặc ZaloPay (người nhận TRINH NGOC HIEU, ví MoMo, nội dung "OverSub"). Trong app, bấm **♥ Ủng hộ** ở góc dưới cửa sổ chính để chọn nhanh mức 20.000đ, 50.000đ, 100.000đ.
+- **Trong nước**: quét mã VietQR bên cạnh bằng app ngân hàng, MoMo hoặc ZaloPay (người nhận TRINH NGOC HIEU, ví MoMo, nội dung "OverSub"). Trong app, bấm **♥ Ủng hộ** ở góc dưới cửa sổ chính để chọn nhanh mức 20.000đ, 50.000đ, 100.000đ và thêm tên của bạn vào mã.
 - **Quốc tế**: [paypal.me/ngochieuit](https://paypal.me/ngochieuit).
 - **Không tốn đồng nào**: gắn ⭐ cho kho này trên GitHub, hoặc giới thiệu OverSub cho bạn bè chơi game.
 
@@ -353,7 +353,7 @@ OverSub miễn phí cho mọi người. Nếu app giúp bạn chơi game vui hơ
 
 ### Bảng cảm ơn
 
-Cảm ơn những người đã ủng hộ OverSub. Muốn có tên ở đây (và trong cửa sổ Ủng hộ của app), ghi thêm tên vào nội dung chuyển khoản, vd. "OverSub Minh", hoặc vào lời nhắn PayPal. Không ghi thì ẩn danh.
+Cảm ơn những người đã ủng hộ OverSub. Muốn có tên ở đây (và trong cửa sổ Ủng hộ của app), nhập tên hoặc nickname vào ô **Tên của bạn** trong cửa sổ Ủng hộ: mã QR tự thêm tên vào nội dung chuyển khoản (nhiều app ngân hàng không cho sửa nội dung sau khi quét). Chuyển khoản tay thì ghi nội dung "OverSub tên-của-bạn"; qua PayPal thì ghi tên vào lời nhắn. Không ghi thì ẩn danh.
 
 <!-- Người mới thêm lên đầu; danh sách trong app lấy từ Docs/supporters.json -->
 *Chưa có tên nào. Bạn có thể là người đầu tiên ♥*

@@ -346,14 +346,14 @@ OverSub is free for everyone. If it makes your games more fun, buy me a coffee t
 <img src="Docs/images/donate-vietqr.png" width="180" align="right" alt="VietQR code to support OverSub">
 
 - **International**: [paypal.me/ngochieuit](https://paypal.me/ngochieuit).
-- **In Vietnam**: scan the VietQR code with a banking app, MoMo or ZaloPay (recipient TRINH NGOC HIEU, MoMo wallet, message "OverSub"). In the app, click **♥ Support** at the bottom of the main window to pick an amount quickly.
+- **In Vietnam**: scan the VietQR code with a banking app, MoMo or ZaloPay (recipient TRINH NGOC HIEU, MoMo wallet, message "OverSub"). In the app, click **♥ Support** at the bottom of the main window to pick an amount quickly and add your name to the code.
 - **Free ways to help**: star this repository on GitHub, or tell a friend who plays games.
 
 <br clear="right">
 
 ### Thank-you list
 
-Thank you to everyone who has supported OverSub. To have your name here (and in the app's Support window), add it to the transfer message, e.g. "OverSub Minh", or to your PayPal note. Leave it out to stay anonymous.
+Thank you to everyone who has supported OverSub. To have your name here (and in the app's Support window), type a name or nickname in the **Your name** field of the Support window: the QR code adds it to the transfer message (many banking apps don't let you edit the message after scanning). For a manual transfer, use the message "OverSub your-name"; with PayPal, put your name in the note. Leave it out to stay anonymous.
 
 <!-- Newest first; the in-app list comes from Docs/supporters.json -->
 *No names yet. You could be the first ♥*
