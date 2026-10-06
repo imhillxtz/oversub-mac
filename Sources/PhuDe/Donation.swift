@@ -263,7 +263,7 @@ struct DonateView: View {
                           systemImage: "text.bubble.fill")
                         .font(.caption.weight(.medium))
                         .padding(.horizontal, 10).padding(.vertical, 4)
-                        .background(.regularMaterial, in: Capsule())
+                        .glassEffect(.regular, in: Capsule())
                 }
             }
             Spacer(minLength: 0)
@@ -389,6 +389,7 @@ struct DonateView: View {
 
     // MARK: Thông tin chuyển khoản tay
 
+    /// Khung kính như ô chọn mức: vật liệu mờ mặc định phủ lên nền đào ở chế độ sáng thành màu be xám đục.
     private var details: some View {
         VStack(spacing: 0) {
             row(L("Người nhận", "Recipient"), "\(Donation.recipient) · \(Donation.wallet)")
@@ -397,7 +398,7 @@ struct DonateView: View {
             Divider().padding(.leading, 12)
             row(L("Nội dung", "Message"), Donation.note, copy: true)
         }
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private func row(_ title: String, _ value: String, copy: Bool = false) -> some View {
@@ -454,7 +455,7 @@ struct DonateView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private var footer: some View {
