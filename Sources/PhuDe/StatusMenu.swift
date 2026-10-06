@@ -108,6 +108,10 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         actions.removeAll()
         typealias A = HotkeyCenter.Action
         let e = engine, s = settings
+        if let r = Updater.shared.pending {
+            add(menu, L("Cập nhật lên bản \(r.version)…", "Update to version \(r.version)…")) { Updater.shared.updateNow() }
+            menu.addItem(.separator())
+        }
         add(menu, e.anyRunning ? L("Dừng", "Stop") : L("Bắt đầu", "Start"), key: A.toggleRunning) { e.toggleRunning() }
         add(menu, L("Phụ đề đè lên game", "Subtitles over the game"), key: A.toggleOverlay, on: s.overlayEnabled) { e.toggleOverlay() }
         add(menu, s.dubCharacters ? "Dub" : "Voice-over", key: A.toggleDub, on: s.speakEnabled) { e.toggleDub() }

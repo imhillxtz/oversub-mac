@@ -416,6 +416,7 @@ struct SettingsView: View {
                 }
                 .padding(.vertical, 6)
             }
+            UpdateSection()
             Section {
                 Picker(L("Ngôn ngữ giao diện", "Interface language"), selection: $settings.appLanguage) {
                     Text(L("Tự động theo máy", "Match system")).tag("auto")
@@ -1076,6 +1077,63 @@ struct SettingsView: View {
                 }
             } header: { Text(L("Vùng dịch màn hình", "Screen regions")) }
 
+        }
+    }
+}
+
+/// Mục Cập nhật ở Cài đặt → Chung.
+struct UpdateSection: View {
+    @ObservedObject private var u = Updater.shared
+
+    var body: some View {
+        Section {
+            LabeledContent(L("Phiên bản đang dùng", "Current version"), value: Updater.currentVersion)
+            LabeledContent(L("Bản mới", "Latest version")) { status }
+            if let r = u.pending, !r.notes.isEmpty {
+                DisclosureGroup(L("Có gì mới trong bản \(r.version)", "What's new in \(r.version)")) {
+                    Text(.init(r.notes)).font(.caption).textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Link(L("Xem trên GitHub", "View on GitHub"), destination: r.page).font(.caption)
+                }
+            }
+            Toggle(L("Tự kiểm tra bản mới", "Check for updates automatically"), isOn: $u.autoCheck)
+            Toggle(L("Tự tải bản mới và cài khi thoát app", "Download updates automatically and install when quitting"), isOn: $u.autoInstall)
+            Note(L("OverSub hỏi trang phát hành trên GitHub khoảng hai lần mỗi ngày, không gửi đi thông tin gì của bạn. Bản tải về được kiểm tra chữ ký số trước khi cài; cài đặt, key và quyền Ghi màn hình giữ nguyên. Bật tự cài thì bản mới được tải sẵn và thay vào lúc bạn thoát app, không làm gián đoạn lúc đang chơi.",
+                   "OverSub checks the GitHub releases page about twice a day and sends nothing about you. Downloads are verified with a digital signature before installing; your settings, keys and Screen Recording permission are kept. With automatic install on, the new version is downloaded in the background and swapped in when you quit, so it never interrupts a game."))
+        } header: { Text(L("Cập nhật", "Updates")) }
+    }
+
+    @ViewBuilder private var status: some View {
+        switch u.state {
+        case .checking:
+            HStack(spacing: 6) { ProgressView().controlSize(.small); Text(L("Đang kiểm tra…", "Checking…")).foregroundStyle(.secondary) }
+        case .available(let r):
+            HStack {
+                Text(L("Có bản \(r.version)", "Version \(r.version) available")).foregroundStyle(.secondary)
+                Button(L("Cập nhật", "Update")) { u.updateNow() }
+            }
+        case .downloading(_, let p):
+            HStack(spacing: 8) {
+                ProgressView(value: p).frame(width: 110)
+                Text(L("Đang tải \(Int(p * 100))%", "Downloading \(Int(p * 100))%")).monospacedDigit().foregroundStyle(.secondary)
+            }
+        case .ready(let r, _):
+            HStack {
+                Text(L("Đã tải bản \(r.version)", "Version \(r.version) downloaded")).foregroundStyle(.secondary)
+                Button(u.canInstallInPlace ? L("Cài và mở lại", "Install and relaunch") : L("Mở file cài", "Open installer")) { u.installNow() }
+            }
+        case .installing:
+            Text(L("Đang cài…", "Installing…")).foregroundStyle(.secondary)
+        case .upToDate, .idle, .failed:
+            HStack {
+                Group {
+                    if case .failed(let m) = u.state { Text(m).lineLimit(2) }
+                    else if case .upToDate = u.state { Text(L("Đang là bản mới nhất", "You're up to date")) }
+                    else if let t = u.lastChecked { Text(L("Kiểm tra lần cuối \(t.formatted(date: .abbreviated, time: .shortened))", "Last checked \(t.formatted(date: .abbreviated, time: .shortened))")) }
+                }
+                .font(.callout).foregroundStyle(.secondary)
+                Button(L("Kiểm tra ngay", "Check now")) { Task { await u.check(manual: true) } }
+            }
         }
     }
 }

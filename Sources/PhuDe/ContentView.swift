@@ -18,6 +18,7 @@ struct ContentView: View {
     @Environment(\.openWindow) private var openWindow
     @StateObject private var presetForm = PresetNameForm()
     @ObservedObject private var subtitles = SubtitleWindowState.shared
+    @ObservedObject private var updater = Updater.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -31,11 +32,25 @@ struct ContentView: View {
             footer
         }
         .animation(.smooth(duration: 0.3), value: engine.problem)
+        .animation(.smooth(duration: 0.3), value: updater.pending)
         .animation(.smooth(duration: 0.25), value: settings.speakEnabled)
-        .toolbar { toolbarContent }
-        .inspector(isPresented: $engine.showHistory.deduplicated) {
-            HistoryView().inspectorColumnWidth(min: 260, ideal: 320, max: 480)
+        // Lịch sử thoại nổi đè lên phía phải, không chiếm chỗ: trước đây là cột bên (inspector) ép nội dung chính co lại,
+        // cửa sổ hẹp thì thanh công cụ và chữ bị cắt.
+        .overlay(alignment: .topTrailing) {
+            if engine.showHistory {
+                HistoryView(onClose: { engine.showHistory = false })
+                    .frame(width: 340)
+                    .frame(maxHeight: .infinity)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.white.opacity(0.08)))
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .shadow(color: .black.opacity(0.35), radius: 24, y: 8)
+                    .padding(12)
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+            }
         }
+        .animation(.smooth(duration: 0.25), value: engine.showHistory)
+        .toolbar { toolbarContent }
         .sheet(isPresented: $presetForm.show.deduplicated) { PresetSaveSheet(form: presetForm) }
         .sheet(isPresented: Binding(get: { !settings.onboardingDone }, set: { if !$0 && !settings.onboardingDone { settings.onboardingDone = true } })) {
             OnboardingView()
@@ -119,6 +134,31 @@ struct ContentView: View {
         .help(L("Hồ sơ game: mỗi game một bộ cài đặt và trí nhớ riêng, tự lưu", "Game profiles: each game gets its own settings and memory, saved automatically"))
     }
 
+    /// Có bản mới: gói trong dòng trạng thái ở chân cửa sổ, không đẩy nội dung (thông báo nổi phía trên làm hàng chip bị cắt
+    /// khi cửa sổ thấp). Bấm Cập nhật là tải, kiểm chữ ký, cài và mở lại; "Để sau" thì không nhắc bản này nữa.
+    private func updateNotice(_ r: Updater.Release) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "arrow.down.circle.fill").foregroundStyle(.secondary)
+            Group {
+                if case .downloading(_, let p) = updater.state { Text(L("Đang tải bản \(r.version)… \(Int(p * 100))%", "Downloading \(r.version)… \(Int(p * 100))%")) }
+                else if case .installing = updater.state { Text(L("Đang cài bản \(r.version), app sẽ tự mở lại…", "Installing \(r.version); the app will reopen…")) }
+                else if case .failed(let m) = updater.state { Text(m) }
+                else { Text(L("Có bản mới \(r.version)", "Version \(r.version) is available")).fontWeight(.semibold) }
+            }
+            .lineLimit(1).monospacedDigit()
+            Link(L("Có gì mới", "What's new"), destination: r.page)
+            Button(L("Để sau", "Later")) { updater.dismissedVersion = r.version }.buttonStyle(.link)
+            Button { updater.updateNow() } label: {
+                Text(L("Cập nhật", "Update")).fontWeight(.semibold).foregroundStyle(.white)
+                    .padding(.horizontal, 10).padding(.vertical, 2)
+                    .background(Capsule().fill(Theme.gradient))
+            }
+            .buttonStyle(.plain)
+            .disabled({ if case .downloading = updater.state { return true }; if case .installing = updater.state { return true }; return false }())
+        }
+        .font(.caption)
+    }
+
     private func problemBanner(_ problem: String) -> some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
@@ -141,11 +181,16 @@ struct ContentView: View {
     private var footer: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Text(engine.status)
-                    .font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                    .contentTransition(.opacity)
-                    .animation(.smooth, value: engine.status)
+                if let r = updater.pending, updater.dismissedVersion != r.version {
+                    updateNotice(r).transition(.opacity)
+                } else {
+                    Text(engine.status)
+                        .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                        .contentTransition(.opacity)
+                        .animation(.smooth, value: engine.status)
+                }
             }
+            .frame(height: 18)
             GlassEffectContainer(spacing: 8) {
                 HStack(spacing: 8) {
                     engineChip

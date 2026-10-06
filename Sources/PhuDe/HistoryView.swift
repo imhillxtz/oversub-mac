@@ -1,9 +1,10 @@
 import SwiftUI
 import AppKit
 
-/// Bảng lịch sử thoại bên phải cửa sổ: xem lại các câu vừa qua, mới nhất ở trên, sao chép được.
+/// Bảng lịch sử thoại nổi bên phải cửa sổ: xem lại các câu vừa qua, mới nhất ở trên, sao chép được.
 struct HistoryView: View {
     @EnvironmentObject var engine: Engine
+    var onClose: () -> Void = {}
 
     var body: some View {
         VStack(spacing: 0) {
@@ -14,6 +15,9 @@ struct HistoryView: View {
                     .help(L("Sao chép tất cả", "Copy all")).disabled(engine.transcript.isEmpty)
                 Button { engine.clearTranscript() } label: { Image(systemName: "trash") }
                     .help(L("Xoá lịch sử", "Clear history")).disabled(engine.transcript.isEmpty)
+                Button { onClose() } label: { Image(systemName: "xmark").font(.system(size: 11, weight: .bold)) }
+                    .keyboardShortcut(.cancelAction)
+                    .help(L("Đóng lịch sử (Esc)", "Close history (Esc)"))
             }
             .buttonStyle(.borderless)
             .padding(12)
@@ -68,6 +72,7 @@ struct HistoryView: View {
                     }
                 }
                 .listStyle(.inset)
+                .scrollContentBackground(.hidden)   // nền kính mờ của thẻ nổi lộ ra, không phủ một khối xám
                 .animation(.smooth, value: engine.transcript.count)
             }
         }

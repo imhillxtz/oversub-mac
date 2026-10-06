@@ -83,7 +83,11 @@ Plus:
    - Go to **System Settings → Privacy & Security**, scroll down, click **Open Anyway** next to OverSub, and confirm.
 4. Follow the in-app guide. After granting **Screen Recording**, **quit OverSub completely (⌘Q) and open it again** so the permission takes effect.
 
-> To update: download the new `.dmg` and drag it over the old app in Applications. Your settings, keys and game profiles are kept.
+### Updates
+
+From version 1.1.42, OverSub **checks for new versions** on the Releases page (about twice a day). When one is out, the status line at the bottom of the main window shows **Version x is available · Update**: click it and the app downloads it, verifies its digital signature, replaces the old version and reopens. To avoid interruptions while playing, turn on **Download updates automatically and install when quitting** in **Settings → General**: the new version is swapped in when you quit OverSub. Settings, keys, game profiles and the Screen Recording permission are all kept.
+
+Versions 1.1.41 and earlier don't have this yet: download the new `.dmg` and drag it over the old app once.
 
 ---
 
@@ -253,6 +257,7 @@ Technical details (in Vietnamese): [Docs/DEVELOPMENT.md](Docs/DEVELOPMENT.md).
 - **Screenshots never leave your Mac.** Text recognition runs entirely on your Mac.
 - With an online translation service, **only text** is sent, and only to the service you chose: the line to translate, a few previous lines for context, and character names. With Apple Translation or Apple Intelligence nothing leaves your Mac.
 - OverSub has **no server of its own**, collects no analytics and shows no ads.
+- **Update checks** only query the public Releases page on GitHub and send nothing about you. A downloaded installer is only installed if its digital signature matches the author's key built into the app.
 - **API keys** are stored in `~/Library/Application Support/OverSub/keys.json`, readable only by your user account (permissions 0600).
 - App data: profiles, context and translation memory in `~/Library/Application Support/OverSub`. A diagnostic log is kept at `~/Library/Logs/OverSub/debug.log`; it contains text read from your games and can be deleted at any time.
 

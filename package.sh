@@ -21,4 +21,12 @@ DMG="dist/OverSub-$VERSION.dmg"
 rm -f "$DMG"
 hdiutil create -volname "OverSub $VERSION" -srcfolder "$STAGE" -ov -format UDZO "$DMG" >/dev/null
 rm -rf "$STAGE"
+# Ký file cài để app tự cập nhật nhận ra bản chính chủ (khoá bí mật chỉ nằm trên máy tác giả, ngoài kho mã).
+SIGNER=$(mktemp -d)/sign_update
+if swiftc -O -o "$SIGNER" Tools/sign_update.swift 2>/dev/null && "$SIGNER" "$DMG" > "$DMG.sig"; then
+  echo "Đã ký: $PWD/$DMG.sig"
+else
+  rm -f "$DMG.sig"; echo "Chưa ký được (thiếu khoá ký?): bản này không tự cập nhật được, chỉ cài tay."
+fi
+rm -rf "$(dirname "$SIGNER")"
 echo "Xong: $PWD/$DMG"

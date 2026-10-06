@@ -498,6 +498,29 @@ enum DebugSnapshot {
         }
     }
 
+    /// Thử tự cập nhật không cần phát hành thật (OVERSUB_UPDATE_TEST=1, kèm OVERSUB_UPDATE_FEED và OVERSUB_UPDATE_TARGET):
+    /// kiểm tra, tải, kiểm chữ ký, cài vào bản sao app; ghi kết quả vào nhật ký.
+    static func updateTestIfRequested() {
+        guard ProcessInfo.processInfo.environment["OVERSUB_UPDATE_TEST"] != nil else { return }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
+            let u = Updater.shared
+            DebugLog.write("=== Thử cập nhật ===")
+            await u.check(manual: true)
+            DebugLog.write("Thử cập nhật: sau kiểm tra = \(u.state)")
+            u.updateNow()
+            for _ in 0..<60 {
+                try? await Task.sleep(for: .seconds(0.5))
+                if case .downloading = u.state { continue }
+                if case .ready = u.state { u.installNow() }
+                if case .installing = u.state { break }
+                if case .failed = u.state { break }
+            }
+            DebugLog.write("Thử cập nhật: kết thúc = \(u.state)")
+            DebugLog.write("=== Hết thử cập nhật ===")
+        }
+    }
+
     static func dubTestIfRequested(engine: Engine) {
         guard ProcessInfo.processInfo.environment["OVERSUB_DUB_TEST"] != nil else { return }
         Task { @MainActor in
@@ -571,11 +594,31 @@ enum DebugSnapshot {
         guard let dir = ProcessInfo.processInfo.environment["OVERSUB_SNAPSHOT_DIR"] else { return }
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(2.5))
+            // Có nguồn cập nhật thử: kiểm tra trước để ảnh chụp có thông báo bản mới và mục Cập nhật.
+            if ProcessInfo.processInfo.environment["OVERSUB_UPDATE_FEED"] != nil { await Updater.shared.check(manual: true) }
+            try? await Task.sleep(for: .seconds(0.5))
             await shoot("main", dir: dir, window: mainWindow())
             if let sheet = mainWindow()?.attachedSheet {   // hướng dẫn lần đầu đang mở: chụp rồi thôi
                 await shoot("onboarding-\(UserDefaults.standard.integer(forKey: "onboardStep"))", dir: dir, window: sheet)
                 return
             }
+            // Lịch sử thoại nổi trên cửa sổ chính, có vài câu mẫu.
+            let savedTranscript = engine.transcript
+            engine.transcript = [
+                TranscriptItem(speaker: "Expert Farmer", source: "Back in the day, there used to be 100 Poogies around the vines.", translation: "Ngày trước, có tới cả trăm chú Poogie quanh mấy giàn nho ấy chứ."),
+                TranscriptItem(speaker: "Expert Farmer", source: "We called it Poogiecology!", translation: "Bọn ta gọi đó là Sinh thái học Poogie!"),
+                TranscriptItem(speaker: "Rudy", source: "It's a fairly potent Brute Wyvern egg.", translation: "Đó là một quả trứng Brute Wyvern khá mạnh đấy."),
+            ]
+            engine.showHistory = true
+            try? await Task.sleep(for: .seconds(0.8))
+            await shoot("history", dir: dir, window: mainWindow())
+            engine.showHistory = false
+            engine.transcript = []
+            engine.showHistory = true
+            try? await Task.sleep(for: .seconds(0.6))
+            await shoot("history-empty", dir: dir, window: mainWindow())
+            engine.showHistory = false
+            engine.transcript = savedTranscript
             let subs = SubtitleWindowState.shared
             let wasOpen = subs.isOpen
             subs.show()

@@ -83,7 +83,11 @@ Và còn:
    - Vào **Cài đặt hệ thống → Quyền riêng tư & Bảo mật**, kéo xuống dưới, bấm **Vẫn mở** (*Open Anyway*) cạnh dòng OverSub, rồi xác nhận.
 4. Làm theo hướng dẫn trong app. Sau khi cấp **quyền Ghi màn hình**, hãy **thoát hẳn OverSub (⌘Q) rồi mở lại** để quyền có hiệu lực.
 
-> Cập nhật bản mới: tải `.dmg` mới, kéo đè vào Applications. Cài đặt, key và hồ sơ game được giữ nguyên.
+### Cập nhật
+
+Từ bản 1.1.42, OverSub **tự kiểm tra bản mới** trên trang Releases (khoảng hai lần mỗi ngày). Có bản mới thì dòng trạng thái ở chân cửa sổ chính hiện **Có bản mới · Cập nhật**: bấm là app tải về, kiểm tra chữ ký số, thay bản cũ rồi tự mở lại. Muốn không bị gián đoạn khi đang chơi, bật **Tự tải bản mới và cài khi thoát app** ở **Cài đặt → Chung**: bản mới được thay vào lúc bạn thoát OverSub. Cài đặt, key, hồ sơ game và quyền Ghi màn hình đều giữ nguyên.
+
+Bản 1.1.41 trở về trước chưa có tính năng này: tải `.dmg` mới và kéo đè vào Applications một lần.
 
 ---
 
@@ -253,6 +257,7 @@ Chi tiết kỹ thuật: [Docs/DEVELOPMENT.md](Docs/DEVELOPMENT.md).
 - **Ảnh màn hình không rời khỏi máy.** Việc đọc chữ chạy hoàn toàn trên Mac của bạn.
 - Khi dùng dịch vụ dịch qua mạng, **chỉ chữ** được gửi tới đúng dịch vụ bạn chọn: câu cần dịch, vài câu trước làm ngữ cảnh và tên nhân vật. Dùng Dịch máy Apple hay Apple Intelligence thì không có gì được gửi ra ngoài.
 - OverSub **không có máy chủ riêng**, không thu thập thống kê, không quảng cáo.
+- **Kiểm tra cập nhật** chỉ hỏi trang Releases công khai trên GitHub, không gửi gì về bạn. File cài tải về phải có chữ ký số khớp khoá của tác giả nhúng trong app thì mới được cài.
 - **Key API** lưu trong `~/Library/Application Support/OverSub/keys.json`, chỉ tài khoản người dùng của bạn đọc được (quyền 0600).
 - Dữ liệu app: hồ sơ, ngữ cảnh và trí nhớ dịch ở `~/Library/Application Support/OverSub`. Nhật ký chẩn đoán ở `~/Library/Logs/OverSub/debug.log`; nhật ký có chứa chữ đọc được trong game, xoá được bất cứ lúc nào.
 

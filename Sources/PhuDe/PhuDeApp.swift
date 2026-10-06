@@ -31,11 +31,13 @@ final class AppModel {
         DebugSnapshot.quickTestIfRequested(engine: engine)
         DebugSnapshot.menuTestIfRequested()
         DebugSnapshot.progressiveTestIfRequested(engine: engine)
+        DebugSnapshot.updateTestIfRequested()
         #endif
         // Đợi AppModel dựng xong rồi mới mở lại Cửa sổ phụ đề (nó cần AppModel.shared).
         DispatchQueue.main.async { SubtitleWindowState.shared.restore() }
         // Biểu tượng thanh menu dựng bằng AppKit (xem StatusMenu).
         DispatchQueue.main.async { StatusMenu.shared.start(engine: self.engine, settings: self.settings) }
+        DispatchQueue.main.async { Updater.shared.start() }
     }
 }
 
@@ -72,6 +74,12 @@ struct OverSubCommands: Commands {
     let settings: AppSettings
 
     var body: some Commands {
+        CommandGroup(after: .appInfo) {
+            Button(L("Kiểm tra cập nhật…", "Check for Updates…")) {
+                engine.openSettings(.about)
+                Task { await Updater.shared.check(manual: true) }
+            }
+        }
         CommandMenu(L("Dịch", "Translate")) {
             Button(L("Bắt đầu / Dừng", "Start / Stop")) { engine.toggleRunning() }
                 .keyboardShortcut("r")
