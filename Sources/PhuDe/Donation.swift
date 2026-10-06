@@ -124,7 +124,10 @@ final class SupportPrompt: ObservableObject {
     private let d = UserDefaults.standard
     @Published private(set) var pending: Int?
     @Published var donated: Bool {
-        didSet { d.set(donated, forKey: "supportDonated"); if donated { pending = nil } }
+        didSet {
+            d.set(donated, forKey: "supportDonated")
+            if donated { pending = nil } else { check(Donation.linesTranslated) }   // hoàn tác thì nhắc lại như cũ
+        }
     }
 
     private init() {
@@ -505,8 +508,14 @@ struct DonateView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 // Đã ủng hộ thì thôi nhắc ở màn hình chính.
                 if prompt.donated {
-                    Text(L("Cảm ơn bạn đã ủng hộ! OverSub sẽ không nhắc nữa ♥", "Thank you for your support! OverSub won't remind you again ♥"))
-                        .font(.caption.weight(.medium))
+                    HStack(spacing: 8) {
+                        Text(L("Cảm ơn bạn đã ủng hộ! OverSub sẽ không nhắc nữa ♥", "Thank you for your support! OverSub won't remind you again ♥"))
+                            .font(.caption.weight(.medium))
+                        // Lỡ bấm nhầm thì bỏ được ngay, không phải đụng tới cài đặt ẩn.
+                        Button(L("Hoàn tác", "Undo")) { prompt.donated = false }
+                            .buttonStyle(.link)
+                            .font(.caption)
+                    }
                 } else {
                     Button(L("Mình đã ủng hộ rồi", "I've already donated")) { prompt.donated = true }
                         .buttonStyle(.link)
