@@ -35,6 +35,7 @@ OverSub đọc chữ trong game ngay trên màn hình, dịch bằng AI và hi�
 - [Câu hỏi thường gặp và xử lý sự cố](#câu-hỏi-thường-gặp-và-xử-lý-sự-cố)
 - [Giới hạn hiện tại](#giới-hạn-hiện-tại)
 - [Góp ý và báo lỗi](#góp-ý-và-báo-lỗi)
+- [Ủng hộ](#ủng-hộ)
 - [Bản quyền](#bản-quyền)
 
 ---
@@ -179,6 +180,11 @@ Bấm **⌃⌥Q** ở bất cứ đâu (không cần bấm Bắt đầu), kéo m
 
 - **Hồ sơ game** lưu mọi thứ cho từng game: vùng chọn, ngôn ngữ, giọng, thể loại, thuật ngữ, ngữ cảnh hội thoại và trí nhớ dịch. Mọi thay đổi tự lưu vào hồ sơ đang dùng. Mở game nào thì app tự chuyển sang hồ sơ của game đó; game console chơi qua app xem capture card thì chọn hồ sơ bằng tay.
 - **Lịch sử thoại** (⌘L, hoặc ⌃⌥L trong game): xem lại các câu vừa qua khi lỡ đọc không kịp, đọc lại, bỏ qua câu, giữ nguyên tên riêng.
+
+### Giao diện
+
+- **Sáng / tối**: **Cài đặt → Chung → Giao diện**, chọn *Theo hệ thống*, *Sáng* hoặc *Tối*. Cửa sổ phụ đề và chữ dịch đè lên game luôn nền tối cho dễ đọc.
+- Icon app đổi theo kiểu icon bạn chọn trong macOS (sáng, tối, nhuộm màu, trong suốt).
 
 ---
 
@@ -330,6 +336,20 @@ Mọi góp ý đều quý, nhất là từ người chơi các game khác nhau.
 - **Báo lỗi hoặc đề xuất tính năng**: mở một [Issue](https://github.com/imhillxtz/oversub-mac/issues). Ghi kèm phiên bản OverSub (**Cài đặt → Chung**), tên game, cách game hiện phụ đề, và nếu được thì một đoạn nhật ký quanh lúc gặp lỗi (`~/Library/Logs/OverSub/debug.log`; hãy xem lại trước khi gửi vì nhật ký có chứa chữ trong game).
 - **Báo game chạy tốt**: một Issue ngắn "game X chạy tốt với chế độ Y" cũng giúp người sau rất nhiều.
 - **Đóng góp mã**: mã nguồn được công khai để mọi người xem, nhưng bản quyền vẫn được bảo lưu. Muốn đóng góp mã, hãy mở Issue trao đổi trước.
+
+---
+
+## Ủng hộ
+
+OverSub miễn phí cho mọi người. Nếu app giúp bạn chơi game vui hơn, mời mình một ly cà phê để có thêm động lực làm tiếp nhé.
+
+<img src="Docs/images/donate-vietqr.png" width="180" align="right" alt="Mã VietQR ủng hộ OverSub">
+
+- **Trong nước**: quét mã VietQR bên cạnh bằng app ngân hàng, MoMo hoặc ZaloPay (người nhận TRINH NGOC HIEU, ví MoMo, nội dung "OverSub"). Trong app, bấm **♥ Ủng hộ** ở góc dưới cửa sổ chính để chọn nhanh mức 20.000đ, 50.000đ, 100.000đ.
+- **Quốc tế**: [paypal.me/ngochieuit](https://paypal.me/ngochieuit).
+- **Không tốn đồng nào**: gắn ⭐ cho kho này trên GitHub, hoặc giới thiệu OverSub cho bạn bè chơi game.
+
+<br clear="right">
 
 ---
 

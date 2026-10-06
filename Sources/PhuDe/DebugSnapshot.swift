@@ -611,6 +611,9 @@ enum DebugSnapshot {
             mainWindow()?.makeKeyAndOrderFront(nil)
             try? await Task.sleep(for: .seconds(1.2))
             await shoot("main", dir: dir, window: mainWindow())
+            // Ảnh thứ hai sau 0,7 giây: so hai ảnh để biết hoạt ảnh (ống năng lượng, nền) có đang chạy.
+            try? await Task.sleep(for: .seconds(0.7))
+            await shoot("main-later", dir: dir, window: mainWindow())
             if let sheet = mainWindow()?.attachedSheet {   // hướng dẫn lần đầu đang mở: chụp rồi thôi
                 await shoot("onboarding-\(UserDefaults.standard.integer(forKey: "onboardStep"))", dir: dir, window: sheet)
                 return
@@ -636,6 +639,15 @@ enum DebugSnapshot {
                 engine.running = wasRunning
                 engine.status = savedStatus
                 try? await Task.sleep(for: .seconds(0.3))
+            }
+            if ProcessInfo.processInfo.environment["OVERSUB_SNAPSHOT_DONATE"] != nil {
+                StatusMenu.openDonate?()
+                try? await Task.sleep(for: .seconds(1.5))
+                let w = NSApp.windows.first { $0.identifier?.rawValue.hasPrefix("donate") == true && $0.isVisible }
+                w?.makeKeyAndOrderFront(nil)
+                try? await Task.sleep(for: .seconds(0.5))
+                await shoot("donate", dir: dir, window: w)
+                w?.close()
             }
             if ProcessInfo.processInfo.environment["OVERSUB_SNAPSHOT_MAIN_ONLY"] != nil { DebugLog.write("snapshot xong: \(dir)"); return }
             // Lịch sử thoại nổi trên cửa sổ chính, có vài câu mẫu.

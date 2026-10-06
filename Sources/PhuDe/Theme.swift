@@ -102,57 +102,158 @@ struct SpeakingRipples: View {
 }
 
 /// Ống nối giữa nút Phụ đề và linh vật (giọng đọc): lời thoại "chảy" từ phụ đề sang giọng đọc. Ống kính mềm, bên trong có
-/// các vệt sáng trôi từ trái sang phải. Ba mức: chưa chạy (vệt trắng mờ, đứng yên để cửa sổ mở mà không tốn CPU), đang chạy
-/// (vệt cam trôi), đang đọc (sáng và nhanh nhất, ống phát sáng nhẹ).
+/// các vệt sáng luôn trôi từ trái sang phải. Ba mức: chưa chạy (vệt trắng mờ, trôi chậm), đang chạy (vệt cam, nhanh hơn),
+/// đang đọc (sáng và nhanh nhất, ống phát sáng nhẹ).
+///
+/// Vệt sáng chạy bằng Core Animation (hệ thống tự chạy, app không vẽ lại từng khung hình): bản vẽ bằng SwiftUI tốn khoảng 15%
+/// CPU suốt lúc cửa sổ mở. Đổi mức thì đổi tốc độ nhưng giữ nguyên vị trí vệt, không giật.
 struct EnergyLink: View {
     var enabled = true    // giọng đọc đang bật; tắt thì không có gì truyền sang: ống trống và mờ
     var active: Bool      // phiên đang chạy và giọng đọc đang bật
     var speaking: Bool    // đang phát tiếng
     @Environment(\.colorScheme) private var scheme
-    @Environment(\.homeAnimating) private var animating
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         let light = scheme == .light
-        let ink: Color = light ? .black : .white   // màu trung tính của ống và vệt lúc chưa chạy, theo nền
-        let level: Double = speaking ? 1 : active ? (light ? 0.8 : 0.6) : (light ? 0.3 : 0.22)
-        TimelineView(.animation(minimumInterval: 1 / 30, paused: !(active || speaking) || !animating)) { ctx in
-            let t = ctx.date.timeIntervalSinceReferenceDate
-            Canvas { g, size in
-                let h = size.height, w = size.width
-                // Thân ống: kính mờ, sáng ở mép trên, tối dần xuống dưới.
-                let tube = Path(roundedRect: CGRect(x: 0, y: 0, width: w, height: h), cornerRadius: h / 2)
-                g.fill(tube, with: .linearGradient(Gradient(colors: light ? [ink.opacity(0.05), ink.opacity(0.10)] : [ink.opacity(0.13), ink.opacity(0.04)]),
-                                                   startPoint: .zero, endPoint: CGPoint(x: 0, y: h)))
-                g.stroke(tube, with: .color(ink.opacity(light ? 0.12 : 0.10)), lineWidth: 0.6)
-                guard enabled else { return }
-                // Các vệt năng lượng: đầu sáng, đuôi mờ dần về phía sau; trôi từ phụ đề (trái) sang giọng đọc (phải).
-                g.clip(to: tube)
-                let speed = speaking ? 0.62 : active ? 0.42 : 0.16   // số vòng mỗi giây
-                let count = 3
-                let len = w * 0.34
-                let hot = active || speaking
-                let head: Color = hot ? Theme.orangeStart : ink
-                let tail: Color = hot ? Theme.orangeEnd : ink
-                for i in 0..<count {
-                    let p = (t * speed + Double(i) / Double(count)).truncatingRemainder(dividingBy: 1)
-                    let x = CGFloat(p) * (w + len) - len
-                    let rect = CGRect(x: x, y: h * 0.18, width: len, height: h * 0.64)
-                    g.fill(Path(roundedRect: rect, cornerRadius: rect.height / 2),
-                           with: .linearGradient(Gradient(colors: [tail.opacity(0), tail.opacity(0.55 * level), head.opacity(level)]),
-                                                 startPoint: CGPoint(x: rect.minX, y: 0), endPoint: CGPoint(x: rect.maxX, y: 0)))
-                    // Đầu vệt: một đốm sáng nhỏ.
-                    let dot = CGRect(x: rect.maxX - h * 0.5, y: h * 0.22, width: h * 0.56, height: h * 0.56)
-                    g.fill(Path(ellipseIn: dot), with: .color((hot ? Color.white : ink).opacity((hot ? 0.9 : 0.75) * level)))
+        let ink: Color = light ? .black : .white   // màu trung tính của ống, theo nền
+        Capsule()
+            // Thân ống: kính mờ, sáng ở mép trên, tối dần xuống dưới.
+            .fill(LinearGradient(colors: light ? [ink.opacity(0.05), ink.opacity(0.10)] : [ink.opacity(0.13), ink.opacity(0.04)],
+                                 startPoint: .top, endPoint: .bottom))
+            .overlay(Capsule().strokeBorder(ink.opacity(light ? 0.12 : 0.10), lineWidth: 0.6))
+            .overlay {
+                if enabled {
+                    LinkStreaks(light: light, active: active, speaking: speaking, still: reduceMotion)
+                        .clipShape(Capsule())
                 }
             }
+            // Ánh cam quanh ống khi đang chạy / đang đọc (lớp tĩnh, chỉ đổi khi đổi mức).
+            .background {
+                Capsule().fill(Theme.orangeEnd.opacity(speaking ? 0.5 : active ? 0.25 : 0))
+                    .blur(radius: speaking ? 7 : 4)
+            }
+            .frame(height: 10)
+            .opacity(enabled ? 1 : 0.5)
+            .animation(.smooth(duration: 0.4), value: enabled)
+            .animation(.smooth(duration: 0.5), value: active)
+            .animation(.smooth(duration: 0.4), value: speaking)
+            .allowsHitTesting(false)
+    }
+}
+
+private struct LinkStreaks: NSViewRepresentable {
+    var light: Bool
+    var active: Bool
+    var speaking: Bool
+    var still: Bool
+
+    func makeNSView(context: Context) -> StreakView { StreakView() }
+    func updateNSView(_ view: StreakView, context: Context) { view.configure(light: light, active: active, speaking: speaking, still: still) }
+}
+
+/// Ba vệt sáng (đầu sáng, đuôi mờ dần, đốm sáng ở đầu) trôi vòng trong ống.
+final class StreakView: NSView {
+    private struct Streak { let holder = CALayer(); let body = CAGradientLayer(); let dot = CALayer() }
+    private let lane = CALayer()
+    private var streaks: [Streak] = []
+    private var light = false, active = false, speaking = false, still = false
+    private var configured = false
+    private var builtWidth: CGFloat = -1
+    /// Một vòng trôi ở mức chậm nhất (giây); mức nhanh hơn chỉ tăng tốc độ của cả lớp.
+    private static let period: CFTimeInterval = 6.25
+
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        layer = CALayer()
+        wantsLayer = true
+        layer?.addSublayer(lane)
+        for _ in 0..<3 {
+            let s = Streak()
+            s.body.startPoint = CGPoint(x: 0, y: 0.5)
+            s.body.endPoint = CGPoint(x: 1, y: 0.5)
+            s.holder.addSublayer(s.body)
+            s.holder.addSublayer(s.dot)
+            lane.addSublayer(s.holder)
+            streaks.append(s)
         }
-        .frame(height: 10)
-        .opacity(enabled ? 1 : 0.5)
-        .animation(.smooth(duration: 0.4), value: enabled)
-        .shadow(color: Theme.orangeEnd.opacity(speaking ? 0.55 : active ? 0.3 : 0), radius: speaking ? 9 : 5)
-        .animation(.smooth(duration: 0.5), value: active)
-        .animation(.smooth(duration: 0.4), value: speaking)
-        .allowsHitTesting(false)
+    }
+    required init?(coder: NSCoder) { fatalError("init(coder:) không dùng") }
+
+    func configure(light: Bool, active: Bool, speaking: Bool, still: Bool) {
+        let rebuild = still != self.still
+        let animated = configured
+        (self.light, self.active, self.speaking, self.still) = (light, active, speaking, still)
+        configured = true
+        paint(animated: animated)
+        setSpeed()
+        if rebuild { builtWidth = -1; needsLayout = true }
+    }
+
+    override func layout() {
+        super.layout()
+        guard bounds.width > 1, abs(bounds.width - builtWidth) > 0.5 else { return }
+        build()
+    }
+
+    /// Đặt lại hình học và hoạt ảnh theo bề ngang hiện tại.
+    private func build() {
+        builtWidth = bounds.width
+        let w = bounds.width, h = bounds.height
+        let len = w * 0.34
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        lane.frame = bounds
+        for (i, s) in streaks.enumerated() {
+            s.holder.bounds = CGRect(x: 0, y: 0, width: len, height: h * 0.64)
+            s.holder.position = CGPoint(x: -len / 2, y: h / 2)
+            s.body.frame = s.holder.bounds
+            s.body.cornerRadius = h * 0.32
+            let d = h * 0.56
+            s.dot.frame = CGRect(x: len - h * 0.5, y: (h * 0.64 - d) / 2, width: d, height: d)
+            s.dot.cornerRadius = d / 2
+            s.holder.removeAllAnimations()
+            let phase = Double(i) / Double(streaks.count)
+            if still {
+                s.holder.position.x = -len / 2 + (w + len) * phase
+                continue
+            }
+            let a = CABasicAnimation(keyPath: "position.x")
+            a.fromValue = -len / 2
+            a.toValue = w + len / 2
+            a.duration = Self.period
+            a.repeatCount = .infinity
+            a.beginTime = s.holder.convertTime(CACurrentMediaTime(), from: nil) - phase * Self.period
+            s.holder.add(a, forKey: "flow")
+        }
+        CATransaction.commit()
+    }
+
+    /// Màu theo mức: chưa chạy thì trắng (đen trên nền sáng) mờ, chạy thì cam.
+    private func paint(animated: Bool) {
+        let level: CGFloat = speaking ? 1 : active ? (light ? 0.8 : 0.6) : (light ? 0.3 : 0.22)
+        let hot = active || speaking
+        let ink = light ? NSColor.black : NSColor.white
+        let head = hot ? NSColor(Theme.orangeStart) : ink
+        let tail = hot ? NSColor(Theme.orangeEnd) : ink
+        CATransaction.begin()
+        CATransaction.setAnimationDuration(animated ? 0.4 : 0)
+        CATransaction.setDisableActions(!animated)
+        for s in streaks {
+            s.body.colors = [tail.withAlphaComponent(0).cgColor, tail.withAlphaComponent(0.55 * level).cgColor, head.withAlphaComponent(level).cgColor]
+            s.dot.backgroundColor = (hot ? NSColor.white : ink).withAlphaComponent((hot ? 0.9 : 0.75) * level).cgColor
+        }
+        CATransaction.commit()
+    }
+
+    /// Đổi tốc độ cả lớp mà giữ nguyên vị trí các vệt: neo thời gian hiện tại rồi mới đổi.
+    private func setSpeed() {
+        let target: Float = speaking ? 3.9 : active ? 2.6 : 1
+        guard lane.speed != target else { return }
+        let now = CACurrentMediaTime()
+        lane.timeOffset = lane.convertTime(now, from: nil)
+        lane.beginTime = now
+        lane.speed = target
     }
 }
 

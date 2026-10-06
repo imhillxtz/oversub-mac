@@ -418,13 +418,30 @@ struct SettingsView: View {
             }
             UpdateSection()
             Section {
-                Picker(L("Ngôn ngữ giao diện", "Interface language"), selection: $settings.appLanguage) {
+                Picker(L("Sáng / tối", "Light / dark"), selection: $settings.appearance) {
+                    Text(L("Theo hệ thống", "System")).tag("system")
+                    Text(L("Sáng", "Light")).tag("light")
+                    Text(L("Tối", "Dark")).tag("dark")
+                }
+                .pickerStyle(.segmented)
+                Picker(L("Ngôn ngữ", "Language"), selection: $settings.appLanguage) {
                     Text(L("Tự động theo máy", "Match system")).tag("auto")
                     Text("Tiếng Việt").tag("vi")
                     Text("English").tag("en")
                 }
-                Note(L("Thanh menu và menu của app đổi theo sau khi mở lại OverSub.", "The menu bar and app menus update after you reopen OverSub."))
-            } header: { Text(L("Ngôn ngữ giao diện", "Interface language")) }
+                Note(L("Cửa sổ phụ đề và chữ dịch đè lên game luôn nền tối cho dễ đọc. Đổi ngôn ngữ thì thanh menu và menu của app đổi theo sau khi mở lại OverSub.", "The subtitle window and in-game translations always use a dark background for readability. After changing the language, the menu bar and app menus update once you reopen OverSub."))
+            } header: { Text(L("Giao diện", "Appearance")) }
+            Section {
+                LabeledContent {
+                    Button(L("Ủng hộ OverSub…", "Support OverSub…")) { openWindow(id: "donate") }
+                } label: {
+                    Label {
+                        Text(L("OverSub miễn phí. Thấy hữu ích thì mời mình một ly cà phê nhé.", "OverSub is free. If you find it useful, buy me a coffee."))
+                    } icon: {
+                        Image(systemName: "heart.fill").foregroundStyle(.pink)
+                    }
+                }
+            } header: { Text(L("Ủng hộ", "Support the developer")) }
             Section {
                 Toggle(L("Hiện biểu tượng trên thanh menu", "Show icon in the menu bar"), isOn: $settings.menuBarIcon)
                 Note(L("Điều khiển OverSub mà không cần mở cửa sổ: bật/tắt ba tính năng, bắt đầu, chọn vùng, đổi hồ sơ game, đổi ngôn ngữ dịch.", "Control OverSub without opening its window: toggle the three features, start, select a region, switch game profile, change the target language."))

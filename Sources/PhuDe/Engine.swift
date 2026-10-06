@@ -975,6 +975,7 @@ final class Engine: ObservableObject {
         if recentNames.count > 12 { recentNames.removeFirst(recentNames.count - 12) }
         let item = TranscriptItem(speaker: lastSpeaker, source: source, translation: translation)
         transcript.append(item)
+        Donation.countLine()
         if transcript.count > 300 { transcript.removeFirst(transcript.count - 300) }
         return item.id
     }

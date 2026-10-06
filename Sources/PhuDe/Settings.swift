@@ -582,6 +582,8 @@ final class AppSettings: ObservableObject {
     @Published var menuBarIcon: Bool { didSet { d.set(menuBarIcon, forKey: "menuBarIcon") } }
     /// Ngôn ngữ giao diện: "auto" (theo máy), "vi", "en".
     @Published var appLanguage: String { didSet { d.set(appLanguage, forKey: "appLanguage"); Lang.choice = appLanguage } }
+    /// Sáng / tối: "system" (theo máy), "light", "dark".
+    @Published var appearance: String { didSet { d.set(appearance, forKey: "appearance"); AppAppearance.apply(appearance) } }
     @Published var onboardingDone: Bool { didSet { d.set(onboardingDone, forKey: "onboardingDone") } }
     @Published var genre: GameGenre { didSet { d.set(genre.rawValue, forKey: "genre") } }
     @Published var smartNames: Bool { didSet { d.set(smartNames, forKey: "smartNames") } }
@@ -671,6 +673,7 @@ final class AppSettings: ObservableObject {
         globalHotkeys = d.object(forKey: "globalHotkeys") as? Bool ?? true
         menuBarIcon = d.object(forKey: "menuBarIcon") as? Bool ?? true
         appLanguage = d.string(forKey: "appLanguage") ?? "auto"
+        appearance = d.string(forKey: "appearance") ?? "system"
         // Người đã dùng bản trước (đã chọn vùng) thì không cần xem hướng dẫn lần đầu nữa.
         onboardingDone = d.object(forKey: "onboardingDone") as? Bool ?? (d.data(forKey: "region") != nil)
         if ProcessInfo.processInfo.environment["OVERSUB_ONBOARD"] != nil { onboardingDone = false }   // mở lại hướng dẫn để chụp kiểm tra
@@ -814,5 +817,16 @@ final class AppSettings: ObservableObject {
         let j = i + delta
         guard customOrder.indices.contains(j) else { return }
         customOrder.swapAt(i, j)
+    }
+}
+
+/// Giao diện sáng / tối của app (Cài đặt → Chung). Cửa sổ phụ đề và lớp dịch đè luôn tối, không theo lựa chọn này.
+enum AppAppearance {
+    @MainActor static func apply(_ choice: String) {
+        switch choice {
+        case "light": NSApp?.appearance = NSAppearance(named: .aqua)
+        case "dark": NSApp?.appearance = NSAppearance(named: .darkAqua)
+        default: NSApp?.appearance = nil
+        }
     }
 }

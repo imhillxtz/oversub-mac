@@ -10,6 +10,7 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     /// Hành động mở cửa sổ của SwiftUI, cửa sổ chính ghi lại lúc hiện lần đầu.
     static var openMain: (() -> Void)?
     static var openSettings: (() -> Void)?
+    static var openDonate: (() -> Void)?
 
     private var item: NSStatusItem?
     private var bag = Set<AnyCancellable>()
@@ -139,6 +140,7 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         add(menu, L("Mở cửa sổ OverSub", "Open OverSub window")) { Self.showMain() }
         add(menu, L("Lịch sử thoại", "Dialogue history"), key: A.history) { Self.showMain(); e.showHistory = true }
         add(menu, L("Cài đặt…", "Settings…")) { NSApp.activate(ignoringOtherApps: true); Self.openSettings?() }
+        add(menu, L("Ủng hộ OverSub…", "Support OverSub…")) { NSApp.activate(ignoringOtherApps: true); Self.openDonate?() }
         menu.addItem(.separator())
         add(menu, L("Thoát OverSub", "Quit OverSub")) { NSApp.terminate(nil) }
     }

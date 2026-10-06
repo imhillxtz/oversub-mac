@@ -35,6 +35,7 @@ OverSub reads the text in your game right off the screen, translates it with AI 
 - [FAQ and troubleshooting](#faq-and-troubleshooting)
 - [Known limitations](#known-limitations)
 - [Feedback and bug reports](#feedback-and-bug-reports)
+- [Support OverSub](#support-oversub)
 - [Copyright](#copyright)
 
 ---
@@ -179,6 +180,11 @@ Press **⌃⌥Q** anywhere (no need to click Start), drag a box around some text
 
 - **Game profiles** keep everything per game: regions, languages, voice, genre, glossary, dialogue context and translation memory. Changes save automatically to the active profile. Opening a game switches to its profile; for consoles played through a capture-card viewer, pick the profile by hand.
 - **Dialogue history** (⌘L, or ⌃⌥L in game): review recent lines you missed, replay them, ignore a line, or keep a name untranslated.
+
+### Appearance
+
+- **Light / dark**: **Settings → General → Appearance**, choose *System*, *Light* or *Dark*. The subtitle window and in-game translations always use a dark background for readability.
+- The app icon follows the icon style you pick in macOS (light, dark, tinted, clear).
 
 ---
 
@@ -330,6 +336,20 @@ All feedback is welcome, especially from players of different games.
 - **Bugs or feature ideas**: open an [Issue](https://github.com/imhillxtz/oversub-mac/issues). Include your OverSub version (**Settings → General**), the game, how it shows subtitles, and if possible part of the log around the problem (`~/Library/Logs/OverSub/debug.log`; review it before sending, as it contains text from your game).
 - **Games that work well**: a short Issue like "game X works well with mode Y" helps the next player a lot.
 - **Code contributions**: the source is public for everyone to read, but copyright is reserved. If you'd like to contribute code, please open an Issue to discuss it first.
+
+---
+
+## Support OverSub
+
+OverSub is free for everyone. If it makes your games more fun, buy me a coffee to keep it going.
+
+<img src="Docs/images/donate-vietqr.png" width="180" align="right" alt="VietQR code to support OverSub">
+
+- **International**: [paypal.me/ngochieuit](https://paypal.me/ngochieuit).
+- **In Vietnam**: scan the VietQR code with a banking app, MoMo or ZaloPay (recipient TRINH NGOC HIEU, MoMo wallet, message "OverSub"). In the app, click **♥ Support** at the bottom of the main window to pick an amount quickly.
+- **Free ways to help**: star this repository on GitHub, or tell a friend who plays games.
+
+<br clear="right">
 
 ---
 

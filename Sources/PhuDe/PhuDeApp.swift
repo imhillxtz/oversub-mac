@@ -14,6 +14,8 @@ final class AppModel {
         Speaker.setProcessLanguage(settings.target.base)
         hub = TranslationHub(settings: settings)
         engine = Engine(settings: settings, hub: hub)
+        let appearance = settings.appearance
+        DispatchQueue.main.async { AppAppearance.apply(appearance) }
         #if DEVTOOLS
         // Chụp kiểm tra ở chế độ sáng hoặc tối bất kể máy đang để gì.
         if let a = ProcessInfo.processInfo.environment["OVERSUB_APPEARANCE"] {
@@ -59,6 +61,13 @@ struct OverSubApp: App {
         .windowToolbarStyle(.unified(showsTitle: false))
         .commands { OverSubCommands(engine: model.engine, settings: model.settings) }
 
+        Window(L("Ủng hộ OverSub", "Support OverSub"), id: "donate") {
+            DonateView()
+        }
+        .windowStyle(.hiddenTitleBar)
+        .windowResizability(.contentSize)
+        .defaultPosition(.center)
+
         Settings {
             SettingsView()
                 .environmentObject(model.settings)
@@ -74,12 +83,15 @@ struct OverSubCommands: Commands {
     let engine: Engine
     let settings: AppSettings
 
+    @Environment(\.openWindow) private var openWindow
+
     var body: some Commands {
         CommandGroup(after: .appInfo) {
             Button(L("Kiểm tra cập nhật…", "Check for Updates…")) {
                 engine.openSettings(.about)
                 Task { await Updater.shared.check(manual: true) }
             }
+            Button(L("Ủng hộ OverSub…", "Support OverSub…")) { openWindow(id: "donate") }
         }
         CommandMenu(L("Dịch", "Translate")) {
             Button(L("Bắt đầu / Dừng", "Start / Stop")) { engine.toggleRunning() }

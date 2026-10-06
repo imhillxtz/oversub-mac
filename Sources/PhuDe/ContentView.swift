@@ -63,6 +63,7 @@ struct ContentView: View {
             // Menu trên thanh menu (AppKit) mượn hành động mở cửa sổ của SwiftUI.
             let window = openWindow, prefs = openSettings
             StatusMenu.openMain = { window(id: "main") }
+            StatusMenu.openDonate = { window(id: "donate") }
             StatusMenu.openSettings = { prefs() }
         }
         .onChange(of: engine.requestedSettingsPage) { _, page in
@@ -196,6 +197,18 @@ struct ContentView: View {
                         .contentTransition(.opacity)
                         .animation(.smooth, value: engine.status)
                 }
+                Spacer(minLength: 8)
+                // Lối vào cửa sổ Ủng hộ: luôn có nhưng nhỏ, không tranh chú ý với các nút chính.
+                Button { openWindow(id: "donate") } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "heart.fill").foregroundStyle(.pink)
+                        Text(L("Ủng hộ", "Support")).foregroundStyle(.secondary)
+                    }
+                    .font(.caption)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help(L("Ủng hộ OverSub: quét VietQR hoặc PayPal", "Support OverSub via VietQR or PayPal"))
             }
             .frame(height: 18)
             GlassEffectContainer(spacing: 8) {
