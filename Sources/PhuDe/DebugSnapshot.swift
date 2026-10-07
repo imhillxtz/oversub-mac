@@ -649,6 +649,9 @@ enum DebugSnapshot {
                 RestartNotice.shared.hide()
             }
             try? await Task.sleep(for: .seconds(0.6))
+            if let w = RestartNotice.shared.debugPanel {
+                DebugLog.write("Thử bảng báo: level=\(w.level.rawValue) allSpaces=\(w.collectionBehavior.contains(.canJoinAllSpaces)) fullScreenAux=\(w.collectionBehavior.contains(.fullScreenAuxiliary)) nonactivating=\(w.styleMask.contains(.nonactivatingPanel)) onActiveSpace=\(w.isOnActiveSpace)")
+            }
             if let dir { await shoot("restart-notice", dir: dir, window: RestartNotice.shared.debugPanel) }
         }
     }

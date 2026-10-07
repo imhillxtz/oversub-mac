@@ -1,9 +1,9 @@
 import AppKit
 import SwiftUI
 
-/// Hộp thoại báo trước khi app tự khởi động lại vì Vision treo (xem VisionGuard): nằm giữa màn hình, đếm ngược vài giây để
-/// người chơi biết chuyện gì đang xảy ra, không tưởng app tự tắt vì lỗi. Có nút khởi động lại ngay cho ai không muốn chờ.
-/// Hộp thoại không giành tiêu điểm của game; người chơi bằng tay cầm không cần làm gì.
+/// Hộp thoại báo trước khi app tự khởi động lại vì Vision treo (xem VisionGuard): nằm giữa màn hình có game, đếm ngược vài
+/// giây để người chơi biết chuyện gì đang xảy ra, không tưởng app tự tắt vì lỗi. Có nút khởi động lại ngay cho ai không muốn chờ.
+/// Hiện trên Space người chơi đang ở, kể cả game toàn màn hình (cùng cách đặt với lớp phụ đề); không giành tiêu điểm của game.
 @MainActor
 final class RestartNotice {
     static let shared = RestartNotice()
@@ -35,7 +35,8 @@ final class RestartNotice {
         p.isOpaque = false
         p.backgroundColor = .clear
         p.hasShadow = true
-        p.level = .floating
+        p.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()))
+        p.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         p.hidesOnDeactivate = false
         p.becomesKeyOnlyIfNeeded = true
         p.contentView = host
