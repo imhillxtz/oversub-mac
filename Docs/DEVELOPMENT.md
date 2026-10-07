@@ -57,6 +57,8 @@ Thử cập nhật mà không cần phát hành thật: `open --env OVERSUB_UPDA
 
 Mỗi nhịp, Vision đọc nhanh (khoảng 14 ms) để biết chữ có đổi không; chỉ khi khác mới đọc kỹ (khoảng 120 ms). Khung hình giống hệt nhịp trước thì bỏ qua cả bước đọc nhanh. Cỡ chữ phụ đề đè lên ước theo bề ngang dòng (`TextFit.fontSize`), lấy trung vị 9 câu gần nhất để chữ không nhảy to nhỏ.
 
+Vision có lúc treo hẳn: lần đo thực ngày 08/10/2026, đúng lúc giọng Siri mở Neural Engine để nạp giọng, ba lệnh nhận chữ đang chạy chờ mãi ở semaphore bên trong Vision; giọng đọc cũng mất cùng lúc, và mọi lệnh sau trong tiến trình xếp hàng chờ theo. Dừng rồi Bắt đầu không gỡ được. `VisionGuard` (trong `Capture.swift`) chạy mọi lệnh Vision trên luồng GCD riêng, để luồng bị treo không chiếm nhóm luồng của Swift concurrency, và không chờ quá 4 giây: quá hạn thì bỏ khung đó. Lệnh vẫn chưa xong sau 12 giây thì `Engine.relaunchAfterVisionStuck` hiện hộp thoại báo lỗi đếm ngược 5 giây (`RestartNotice`, có nút khởi động lại ngay), ghi `resumeAfterRelaunch`, chạy một lệnh shell chờ tiến trình thoát rồi `open -g` lại app, và bản mở lại tự bấm Bắt đầu. Chụp màn hình cũng chỉ chờ tối đa 5 giây mỗi lần.
+
 Nhãn tên người nói được tách khỏi câu thoại theo cỡ và màu chữ. Có lúc nhãn không tách được và dính vào đầu câu ("Experienced Farmer These vineyards..."); nếu dòng đầu trùng một tên vừa gặp (cho phép lệch một ký tự, như "Hill×") thì `Engine.splitKnownLabel` vẫn coi đó là nhãn. Không có bước này, app tưởng câu mới và đọc lại; đo thực có câu bị đọc 5 lần.
 
 ### Ba cách bắt thoại
@@ -246,6 +248,7 @@ Các móc thử chỉ có trong bản dựng `OVERSUB_DEV=1 ./build.sh` (`DebugS
 | `OVERSUB_APPEARANCE=light` hoặc `dark` | Ép giao diện sáng hoặc tối; thắng lựa chọn của người dùng. |
 | `OVERSUB_ONBOARD=1` kèm `--args -onboardStep <0–4>` | Mở hướng dẫn lần đầu ở bước chỉ định để chụp. |
 | `OVERSUB_PROG_TEST=1`, `cutscene`, `label`, `return`, `retalk` | Thử chữ chạy và giọng đọc bằng đoạn hội thoại lấy từ nhật ký thật (dịch, đọc thật); xem kết quả trong nhật ký. |
+| `OVERSUB_VISION_HANG=<n>` kèm `--args -resumeAfterRelaunch YES` | Lệnh Vision thứ n trở đi treo hẳn, như lần đo thực; app phải tự khởi động lại sau khoảng 12 giây và chạy tiếp. |
 | `OVERSUB_DUB_TEST=1`, `voiceover`, `gemini` | Thử ba đường phát giọng, một câu Voice-over, một câu Gemini (tốn một lượt). |
 | `OVERSUB_SCENE_TEST=1` | Chạy trọn quy trình dịch màn hình trên cảnh menu vẽ sẵn, lưu ảnh trước và sau. |
 | `OVERSUB_QUICK_TEST=x,y,w,h` (kèm `OVERSUB_QUICK_TEXT=1`) | Mở Dịch nhanh trên vùng chỉ định và chụp kết quả. |

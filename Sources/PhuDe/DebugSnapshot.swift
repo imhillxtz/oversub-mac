@@ -638,6 +638,21 @@ enum DebugSnapshot {
         }
     }
 
+    /// Chụp hộp thoại báo tự khởi động lại (OVERSUB_RESTART_NOTICE=1): hiện hộp thoại, chụp lúc đang đếm ngược, hết giờ chỉ ghi nhật ký.
+    static func restartNoticeTestIfRequested() {
+        guard ProcessInfo.processInfo.environment["OVERSUB_RESTART_NOTICE"] != nil else { return }
+        let dir = ProcessInfo.processInfo.environment["OVERSUB_SNAPSHOT_DIR"]
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
+            RestartNotice.shared.show(on: NSScreen.main, seconds: 5) {
+                DebugLog.write("Thử bảng báo: hết đếm ngược, bản thật sẽ khởi động lại lúc này")
+                RestartNotice.shared.hide()
+            }
+            try? await Task.sleep(for: .seconds(0.6))
+            if let dir { await shoot("restart-notice", dir: dir, window: RestartNotice.shared.debugPanel) }
+        }
+    }
+
     static func runIfRequested(engine: Engine) {
         guard let dir = ProcessInfo.processInfo.environment["OVERSUB_SNAPSHOT_DIR"] else { return }
         Task { @MainActor in

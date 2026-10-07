@@ -75,6 +75,72 @@ final class ScreenGrabber {
     }
 }
 
+// MARK: Canh chừng Vision
+
+/// Vision có lúc treo hẳn. Đo thực 08/10/2026: đúng lúc giọng Siri mở Neural Engine để nạp giọng, ba lệnh nhận chữ đang chạy
+/// chờ mãi ở semaphore bên trong Vision, và từ đó mọi lệnh sau trong cùng tiến trình xếp hàng chờ theo. Bấm Dừng rồi Bắt đầu
+/// không gỡ được, chỉ khởi động lại app mới gỡ được.
+/// Vì vậy mọi lệnh Vision chạy trên luồng GCD riêng (luồng bị treo không chiếm nhóm luồng của Swift concurrency) và không ai
+/// chờ quá `softLimit` giây. Lệnh vẫn chưa xong sau `hardLimit` giây thì coi như Vision đã treo và gọi `onStuck` một lần.
+enum VisionGuard {
+    static let softLimit: Double = 4
+    static let hardLimit: Double = 12
+    /// Việc cần làm khi Vision treo (Engine đặt: tự khởi động lại app). Chạy trên luồng chính.
+    @MainActor static var onStuck: (() -> Void)?
+    private static let reported = Once()
+
+    struct Timeout: LocalizedError {
+        var errorDescription: String? { L("Bộ nhận chữ của macOS không phản hồi.", "macOS text recognition is not responding.") }
+    }
+
+    #if DEVTOOLS
+    /// Thử tình huống Vision treo (OVERSUB_VISION_HANG=n): lệnh thứ n trở đi treo hẳn như lần đo thực.
+    private static let hangAfter = Int(ProcessInfo.processInfo.environment["OVERSUB_VISION_HANG"] ?? "")
+    private static let calls = Counter()
+    #endif
+
+    static func run<T>(_ label: String, _ work: @escaping () throws -> T) async throws -> T {
+        let gate = Once(), done = Once()
+        return try await withCheckedThrowingContinuation { (cont: CheckedContinuation<T, Error>) in
+            DispatchQueue.global(qos: .userInitiated).async {
+                #if DEVTOOLS
+                if let n = hangAfter, calls.next() >= n { while true { Thread.sleep(forTimeInterval: 60) } }
+                #endif
+                let result = Result { try work() }
+                _ = done.set()
+                if gate.set() { cont.resume(with: result) }
+            }
+            DispatchQueue.global().asyncAfter(deadline: .now() + softLimit) {
+                guard gate.set() else { return }
+                DebugLog.write("Vision: \(label) chưa trả về sau \(Int(softLimit)) giây, bỏ qua lần này")
+                cont.resume(throwing: Timeout())
+                DispatchQueue.global().asyncAfter(deadline: .now() + hardLimit - softLimit) {
+                    guard !done.isSet, reported.set() else { return }
+                    DebugLog.write("Vision: \(label) vẫn chưa trả về sau \(Int(hardLimit)) giây, bộ nhận chữ của macOS đã treo")
+                    DispatchQueue.main.async { MainActor.assumeIsolated { onStuck?() } }
+                }
+            }
+        }
+    }
+}
+
+/// Cờ bật đúng một lần, dùng được từ nhiều luồng.
+final class Once: @unchecked Sendable {
+    private let lock = NSLock()
+    private var flag = false
+    /// true nếu lần gọi này là lần bật cờ.
+    func set() -> Bool { lock.lock(); defer { lock.unlock() }; if flag { return false }; flag = true; return true }
+    var isSet: Bool { lock.lock(); defer { lock.unlock() }; return flag }
+}
+
+#if DEVTOOLS
+final class Counter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var n = 0
+    func next() -> Int { lock.lock(); defer { lock.unlock() }; n += 1; return n }
+}
+#endif
+
 /// Dấu vân tay nhỏ của khung hình, để bỏ qua OCR khi vùng phụ đề không đổi.
 enum FrameSignature {
     private static let w = 64, h = 16
@@ -247,7 +313,7 @@ enum OCR {
 
     /// Đọc nhanh: chuỗi dấu hiệu (để biết chữ có đổi không) và vị trí từng mẩu chữ (để biết chữ có di chuyển không).
     static func quickScan(_ image: CGImage, language: String) async -> (sig: String, obs: [QuickObs]) {
-        await Task.detached(priority: .utility) { () -> (sig: String, obs: [QuickObs]) in
+        let r = try? await VisionGuard.run("đọc nhanh") { () -> (sig: String, obs: [QuickObs]) in
             let request = VNRecognizeTextRequest()
             request.recognitionLevel = .fast
             request.usesLanguageCorrection = false
@@ -265,7 +331,8 @@ enum OCR {
             let raw = obs.map(\.0).joined(separator: " ").lowercased()
             let sig = String(raw.unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) || ".!?…".unicodeScalars.contains($0) })
             return (sig, obs.map { (String($0.0.lowercased().unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) }), $0.1) })
-        }.value
+        }
+        return r ?? ("", [])
     }
 
     /// Dấu hiệu chữ của một vùng dịch màn hình, để biết chữ có đổi không (không cần đọc đúng, chỉ cần khung nào cũng ra
@@ -323,7 +390,7 @@ enum OCR {
     /// Tự tìm khung phụ đề trên ảnh cả màn hình: khối chữ lớn nhất ở nửa dưới, ưu tiên nằm giữa và nhiều chữ,
     /// rồi nới rộng thêm phía trên (chỗ nhãn tên người nói) và hai bên. Trả về toạ độ chuẩn hoá, gốc ở góc trên trái.
     static func detectSubtitleArea(_ image: CGImage, language: String) async -> CGRect? {
-        await Task.detached(priority: .userInitiated) { () -> CGRect? in
+        let r = try? await VisionGuard.run("tự tìm phụ đề") { () -> CGRect? in
             let request = VNRecognizeTextRequest()
             request.recognitionLevel = .fast
             request.usesLanguageCorrection = false
@@ -351,12 +418,13 @@ enum OCR {
             let minX = max(0, box.minX - padX), maxX = min(1, box.maxX + padX)
             let minY = max(0, box.minY - lineH * 0.8), maxY = min(1, box.maxY + lineH * 1.8)
             return CGRect(x: minX, y: 1 - maxY, width: maxX - minX, height: maxY - minY)
-        }.value
+        }
+        return r ?? nil
     }
 
     /// `keepAll`: giữ mọi dòng theo thứ tự đọc (vùng phụ như bảng nhiệm vụ), không tách nhãn tên hay chọn khối lời thoại.
     static func recognize(_ image: CGImage, language: String, keepAll: Bool = false) async throws -> OCRResult {
-        try await Task.detached(priority: .utility) {
+        try await VisionGuard.run(keepAll ? "đọc vùng dịch màn hình" : "đọc kỹ") { () -> OCRResult in
             let request = VNRecognizeTextRequest()
             request.recognitionLevel = .accurate
             request.usesLanguageCorrection = true
@@ -384,6 +452,6 @@ enum OCR {
             }
             let (body, speaker) = split(pieces, image: image)
             return OCRResult(lines: body, speaker: speaker)
-        }.value
+        }
     }
 }

@@ -127,6 +127,7 @@ final class Engine: ObservableObject {
         if let id = settings.activePresetID { history = ContextStore.lines(for: id, target: settings.targetLanguage) }
         speaker.probeSiriGender(language: settings.target.speech)
         speaker.warmUp(language: settings.target.speech)
+        VisionGuard.onStuck = { [weak self] in self?.relaunchAfterVisionStuck() }
         speaker.$siriGender.removeDuplicates().sink { [weak self] _ in self?.reassignCast() }.store(in: &bag)
         settings.$outputMode.dropFirst().removeDuplicates().sink { [weak self] mode in
             guard let self else { return }
@@ -929,9 +930,80 @@ final class Engine: ObservableObject {
     }
 
     /// Chụp vùng đã chọn. Trả về ảnh và vùng (để đặt lớp phủ).
+    /// Chờ ScreenCaptureKit tối đa 5 giây: một lần chụp không trả lời thì bỏ qua nhịp đó, không để cả vòng quét đứng theo.
     private func capture() async throws -> (CGImage, CaptureRegion) {
         guard let r = settings.region else { throw AppError(L("Chưa chọn vùng phụ đề.", "No subtitle region selected.")) }
-        return (try await grabber.grab(r), r)
+        let grabber = self.grabber
+        let image: CGImage = try await withCheckedThrowingContinuation { cont in
+            let gate = Once()
+            Task { @MainActor in
+                do { let img = try await grabber.grab(r); if gate.set() { cont.resume(returning: img) } }
+                catch { if gate.set() { cont.resume(throwing: error) } }
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                guard gate.set() else { return }
+                MainActor.assumeIsolated { grabber.invalidate() }
+                DebugLog.write("Chụp màn hình chưa trả về sau 5 giây, bỏ qua lần này")
+                cont.resume(throwing: CaptureTimeout())
+            }
+        }
+        return (image, r)
+    }
+
+    struct CaptureTimeout: LocalizedError {
+        var errorDescription: String? { L("Chụp màn hình không phản hồi.", "Screen capture is not responding.") }
+    }
+
+    /// Vision treo thì chỉ khởi động lại tiến trình mới gỡ được (xem VisionGuard). Hiện hộp thoại đếm ngược 5 giây, ghi nhớ đang chạy hay không, mở lại app bằng một lệnh chờ tiến trình này thoát hẳn, rồi thoát. Bản mở lại tự bấm
+    /// Bắt đầu nếu trước đó đang chạy.
+    private var relaunching = false
+    func relaunchAfterVisionStuck() {
+        guard !relaunching else { return }
+        relaunching = true
+        let resume = anyRunning
+        UserDefaults.standard.set(resume, forKey: "resumeAfterRelaunch")
+        status = L("Bộ nhận chữ của macOS bị treo. OverSub sẽ tự khởi động lại.", "macOS text recognition stopped responding. OverSub will restart itself.")
+        DebugLog.write("Vision treo: báo người dùng, 5 giây nữa tự khởi động lại" + (resume ? ", mở lại xong sẽ chạy tiếp" : ""))
+        hideOverlay()
+        let screen = settings.region.flatMap { resolveScreen(for: $0) }
+        RestartNotice.shared.show(on: screen, seconds: 5) { [weak self] in self?.performRelaunch() }
+    }
+
+    private func performRelaunch() {
+        DebugLog.write("Tự khởi động lại để gỡ Vision bị treo")
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/bin/sh")
+        // open -g: mở ở nền, không giành tiêu điểm của game.
+        p.arguments = ["-c", "while /bin/kill -0 \(ProcessInfo.processInfo.processIdentifier) 2>/dev/null; do sleep 0.2; done; /usr/bin/open -g \"$1\"",
+                       "sh", Bundle.main.bundlePath]
+        do { try p.run() } catch {
+            DebugLog.write("Không mở lại được app: \(error.localizedDescription)")
+            RestartNotice.shared.hide()
+            status = L("Bộ nhận chữ của macOS bị treo. Vui lòng thoát hẳn OverSub (⌘Q) rồi mở lại.", "macOS text recognition stopped responding. Please quit OverSub (⌘Q) and open it again.")
+            relaunching = false
+            return
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { NSApp.terminate(nil) }
+        // Có gì chặn việc thoát (hộp thoại đang mở...) thì vẫn thoát, để lệnh mở lại chạy được.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) { exit(0) }
+    }
+
+    /// Gọi lúc mở app: lần trước app tự khởi động lại vì Vision treo trong lúc đang chạy thì chạy tiếp.
+    func resumeAfterRelaunchIfNeeded() {
+        let d = UserDefaults.standard
+        guard d.object(forKey: "resumeAfterRelaunch") != nil else { return }
+        let resume = d.bool(forKey: "resumeAfterRelaunch")
+        d.removeObject(forKey: "resumeAfterRelaunch")
+        guard resume else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+            guard let self, !self.anyRunning else { return }
+            DebugLog.write("Đã mở lại sau khi Vision bị treo, chạy tiếp")
+            self.startAll()
+            if self.running {
+                self.status = L("OverSub vừa tự khởi động lại vì bộ nhận chữ của macOS bị treo. Đang nhận phụ đề…",
+                                "OverSub restarted itself because macOS text recognition stopped responding. Watching for subtitles…")
+            }
+        }
     }
 
     /// Cập nhật vùng của lớp phủ.
@@ -1264,6 +1336,8 @@ final class Engine: ObservableObject {
         } catch {
             // Máy vừa khoá (hay màn hình vừa tắt) đúng lúc đang chụp: không phải lỗi, nhịp sau sẽ tạm ngưng êm.
             if let away = screenAway() { DebugLog.write("Không chụp được vì \(away), bỏ qua"); return }
+            // Chụp hay nhận chữ quá hạn: đã ghi nhật ký; bỏ khung này, nhịp sau thử lại. Vision treo hẳn thì VisionGuard lo.
+            if error is VisionGuard.Timeout || error is CaptureTimeout { return }
             report(error)
         }
     }

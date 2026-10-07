@@ -35,6 +35,7 @@ final class AppModel {
         DebugSnapshot.progressiveTestIfRequested(engine: engine)
         DebugSnapshot.updateTestIfRequested()
         DebugSnapshot.hideTestIfRequested()
+        DebugSnapshot.restartNoticeTestIfRequested()
         DebugSnapshot.screenRectIfRequested()
         if let s = ProcessInfo.processInfo.environment["OVERSUB_FRONT_TEST"], let n = Int(s) {
             let engine = engine
@@ -43,6 +44,8 @@ final class AppModel {
         // Thẻ cảm ơn theo mốc, chỉ để chụp giao diện (không ghi vào cài đặt).
         if ProcessInfo.processInfo.environment["OVERSUB_SUPPORT_TEST"] != nil { SupportPrompt.shared.debugShow(1_000) }
         #endif
+        // Lần trước app tự khởi động lại vì Vision treo giữa lúc đang chạy: chạy tiếp.
+        DispatchQueue.main.async { self.engine.resumeAfterRelaunchIfNeeded() }
         // Đợi AppModel dựng xong rồi mới mở lại Cửa sổ phụ đề (nó cần AppModel.shared).
         DispatchQueue.main.async { SubtitleWindowState.shared.restore() }
         // Biểu tượng thanh menu dựng bằng AppKit (xem StatusMenu).
