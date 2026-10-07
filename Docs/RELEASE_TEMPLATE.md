@@ -1,30 +1,50 @@
 <!--
-Mẫu ghi chú bản phát hành OverSub trên GitHub. Chép ra file tạm, điền phần <...>, rồi:
+Mẫu ghi chú bản phát hành OverSub trên GitHub. Chép ra tệp tạm, điền phần <...>, rồi:
   gh release create v<phiên bản> dist/OverSub-<phiên bản>.dmg dist/OverSub-<phiên bản>.dmg.sig \
-     --repo imhillxtz/oversub-mac --target main --title "OverSub <phiên bản>" --notes-file <file>
-Thiếu file .sig thì app không tự cập nhật được. Giữ nguyên mục "Ủng hộ · Support" ở cuối.
-Mục "Có gì mới" và "Sửa lỗi" không liệt kê các thay đổi liên quan tới Ủng hộ (cửa sổ Ủng hộ, VietQR, PayPal, bảng cảm ơn…).
+     --repo imhillxtz/oversub-mac --target main --title "OverSub <phiên bản>" --notes-file <tệp>
+Thiếu tệp .sig thì app không tự cập nhật được.
+
+Cách viết (tránh văn kiểu AI, xem Wikipedia:Signs of AI writing): mỗi thay đổi một câu bình thường, nói người dùng sẽ thấy gì khác; không in đậm tên tính
+năng, không emoji, không câu tóm tắt kiểu "nhanh hơn, mượt hơn và ổn định hơn". Mục Có gì mới và Sửa lỗi không liệt kê
+thay đổi liên quan tới Ủng hộ (cửa sổ Ủng hộ, VietQR, PayPal, bảng cảm ơn); chỉ giữ mục Ủng hộ cố định ở cuối mỗi khối.
+Bản chỉ có thay đổi nhỏ thì ghi ngắn, đừng kéo dài cho đủ mục. Bỏ mục nào không có nội dung.
 -->
-<Một câu tóm tắt tiếng Việt> · <One-sentence summary in English>.
+## Tiếng Việt
 
-## Tải về · Download
+<Một câu nói việc chính của bản này.>
 
-**`OverSub-<phiên bản>.dmg`** ở mục *Assets* bên dưới · in *Assets* below.
+### Tải về
 
-Cần macOS 26 trở lên, máy Mac chip Apple (M1 trở lên) · Requires macOS 26 or later on Apple silicon (M1 or later).
+Tải `OverSub-<phiên bản>.dmg` ở mục Assets bên dưới. Cần macOS 26 trở lên trên máy Mac chip Apple (M1 trở lên). Máy đang dùng bản 1.1.44 trở lên sẽ tự báo có bản mới; bản 1.1.41 thì tải và cài tay một lần.
 
-Đang dùng bản 1.1.44 trở lên thì app tự báo và cập nhật · On 1.1.44 or later, the app offers the update itself.
+### Có gì mới
 
-## Có gì mới · What's new
+- <Thay đổi người dùng thấy được, viết thành câu.>
 
-- **<Tính năng>**: <mô tả> · **<Feature>**: <description>
+### Sửa lỗi
 
-## Sửa lỗi · Fixes
+- <Lỗi đã sửa: trước đây gặp chuyện gì, giờ thế nào.>
 
-- <lỗi đã sửa> · <fix>
+### Ủng hộ
 
-## Ủng hộ · Support
+OverSub miễn phí cho mọi người. Thấy hữu ích thì bấm Ủng hộ ở góc dưới cửa sổ chính, hoặc gắn sao cho kho này. Gặp lỗi hay có góp ý thì mở một [Issue](https://github.com/imhillxtz/oversub-mac/issues).
 
-OverSub miễn phí cho mọi người. Thấy hữu ích thì bấm **♥ Ủng hộ** ở góc dưới cửa sổ chính, hoặc gắn ⭐ cho kho này · OverSub is free for everyone. If you find it useful, click **♥ Support** at the bottom of the main window, donate at [paypal.me/ngochieuit](https://paypal.me/ngochieuit), or star this repository.
+## English
 
-Gặp lỗi hay có góp ý? Mở một [Issue](https://github.com/imhillxtz/oversub-mac/issues) · Found a bug or have an idea? Open an [Issue](https://github.com/imhillxtz/oversub-mac/issues).
+<One sentence on the main change in this version.>
+
+### Download
+
+Download `OverSub-<version>.dmg` from Assets below. Requires macOS 26 or later on a Mac with Apple silicon (M1 or later). On 1.1.44 or later the app offers the update itself; on 1.1.41, download and install it by hand once.
+
+### What's new
+
+- <A change people will notice, written as a sentence.>
+
+### Fixes
+
+- <What used to go wrong and what happens now.>
+
+### Support
+
+OverSub is free for everyone. If you find it useful, click Support at the bottom of the main window, donate at [paypal.me/ngochieuit](https://paypal.me/ngochieuit), or star this repository. Found a bug or have an idea? Open an [Issue](https://github.com/imhillxtz/oversub-mac/issues).

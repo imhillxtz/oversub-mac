@@ -485,7 +485,7 @@ struct DonateView: View {
             .font(.caption.weight(.semibold))
             .foregroundStyle(.secondary)
             if names.isEmpty {
-                Text(L("Chưa có tên nào. Bạn có thể là người đầu tiên ♥", "No names yet. You could be the first ♥"))
+                Text(L("Chưa có tên nào. Bạn có thể là người đầu tiên.", "No names yet. You could be the first."))
                     .font(.callout).foregroundStyle(.secondary)
             } else {
                 Text(names.prefix(limit).joined(separator: " · ")
@@ -509,7 +509,7 @@ struct DonateView: View {
                 // Đã ủng hộ thì thôi nhắc ở màn hình chính.
                 if prompt.donated {
                     HStack(spacing: 8) {
-                        Text(L("Cảm ơn bạn đã ủng hộ! OverSub sẽ không nhắc nữa ♥", "Thank you for your support! OverSub won't remind you again ♥"))
+                        Text(L("Cảm ơn bạn đã ủng hộ. OverSub sẽ không nhắc nữa.", "Thank you for your support. OverSub won't remind you again."))
                             .font(.caption.weight(.medium))
                         // Lỡ bấm nhầm thì bỏ được ngay, không phải đụng tới cài đặt ẩn.
                         Button(L("Hoàn tác", "Undo")) { prompt.donated = false }

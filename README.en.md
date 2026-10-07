@@ -4,22 +4,20 @@
 
 # OverSub
 
-**Translated subtitles, voice-over and on-screen translation for any game on your Mac.**
+Vietnamese subtitles, voice and screen translation for any game on your Mac.
 
-OverSub reads the text in your game right off the screen, translates it with AI and lays the translation over the original text, reads dialogue aloud with a Siri voice, and translates menus and quest logs in place.
+OverSub reads the text in your game from the screen, translates it with AI and draws the translation over the original text. It reads dialogue aloud with a Siri voice and translates menus and quest logs in place.
 
-[![Download the latest version](https://img.shields.io/github/v/release/imhillxtz/oversub-mac?label=download&color=F96B3F)](https://github.com/imhillxtz/oversub-mac/releases/latest)
+[![Download the latest version](https://img.shields.io/github/v/release/imhillxtz/oversub-mac?label=Download&color=F96B3F)](https://github.com/imhillxtz/oversub-mac/releases/latest)
 ![macOS 26+](https://img.shields.io/badge/macOS-26%2B-555)
 ![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-M1%2B-555)
 ![All rights reserved](https://img.shields.io/badge/license-all%20rights%20reserved-555)
 
-[Tiếng Việt](README.md) · **English**
+[Tiếng Việt](README.md) · English
 
 <img src="Docs/images/en/main.png" width="820" alt="OverSub main window">
 
 </div>
-
----
 
 ## Contents
 
@@ -38,97 +36,88 @@ OverSub reads the text in your game right off the screen, translates it with AI 
 - [Support OverSub](#support-oversub)
 - [Copyright](#copyright)
 
----
-
 ## What OverSub does
 
-OverSub works with **any game shown on your Mac's screen**: Mac games, Windows games through CrossOver or Whisky, cloud gaming, or consoles (Switch, PlayStation…) played through a capture card and a viewer app such as OBS or VisionRelay. It never touches the game; it only looks at the screen, like you do.
+OverSub works with any game shown on your Mac's screen: Mac games, Windows games through CrossOver or Whisky, cloud gaming, and consoles (Switch, PlayStation) played through a capture card with a viewer app such as OBS or VisionRelay. It doesn't touch the game. It only looks at the screen, the same way you do.
 
-Three main features, each turned on or off independently in the main window: the Subtitles button on the left, the OverSub mascot in the middle (the voice; click it to turn the voice on or off, and it moves its mouth while speaking), and the Screen translation button on the right:
+The main window has three switches: Subtitles on the left, the OverSub mascot in the middle (the voice; it moves its mouth while speaking) and Screen translation on the right.
 
-| | Feature | What it does |
-|---|---|---|
-| 💬 | **Subtitles** | Reads dialogue in the region you select, translates it and shows the translation right over the original subtitle: same position, same text colour, same alignment. Or read it in a separate **subtitle window**. |
-| 🔊 | **Voice-over / Dub** | Reads the translated dialogue aloud. *Voice-over*: one Siri voice for every line. *Dub (beta)*: a voice per character, by gender and age. The voice follows the emotion of each line and speeds up when dialogue comes fast. |
-| 🖼️ | **Screen translation** | Translates non-dialogue text in place: menus, quest logs, item descriptions, letters. The original text is erased by rebuilding the game's background, and the translation uses the same colour and fits inside the box. Up to 3 regions. |
+| Feature | What it does |
+|---|---|
+| Subtitles | Reads dialogue in the region you select, translates it and shows the translation over the original subtitle, in the same position, colour and alignment. You can read it in a separate subtitle window instead. |
+| Voice-over / Dub | Reads the translated dialogue aloud. Voice-over uses one Siri voice for every line. Dub (beta) gives each character a voice by gender and age. The pace follows the emotion of each line and speeds up when dialogue comes fast. |
+| Screen translation | Translates non-dialogue text in place: menus, quest logs, item descriptions, letters. The original text is erased by rebuilding the game's background; the translation uses the same colour and fits inside the box. Up to 3 regions. |
 
-Plus:
+Other features:
 
-- **Quick translate** (⌃⌥Q): press the shortcut anywhere, drag a box around some text, and the translation appears in place when you let go. A button copies the original text so you can look it up.
-- **Subtitle window**: a floating window with just the dialogue. Pin it above every Space (including full-screen games), shrink it to a thin strip so it doesn't cover the game; the text lights up as it's read aloud.
-- **Many translation services**: Gemini, Groq, Cerebras, Mistral, OpenRouter (all with free tiers), any paid OpenAI-style service (OpenAI, DeepSeek, xAI…), and Apple's two on-device engines, which need no internet. OverSub measures each service's speed and switches automatically when one is slow or out of quota.
-- **Translations that fit the game**: pick a genre (Medieval Europe, Wuxia, Anime/JRPG, Street…) so the AI chooses the right forms of address and tone, or describe the setting yourself with the *Custom* genre. Each character keeps consistent forms of address, proper names stay as they are, and there is a glossary.
-- **Game profiles**: each game keeps its own settings (regions, voice, genre, glossary, translation memory), switched automatically when you open the game.
-- **Global shortcuts** that work in full-screen games (customisable), and **game controller** control.
-- Interface in **Vietnamese and English**. Translates into 12 languages; Vietnamese has its own tuned guide for forms of address and style.
+- Quick translate (⌃⌥Q): press the shortcut anywhere, drag a box around some text and let go to see the translation in place. A button copies the original text so you can look it up.
+- Subtitle window: a floating window with just the dialogue. It stays above every Space, including full-screen games, and shrinks to a thin strip so it doesn't cover the game. The text lights up as it's read aloud.
+- Translation services: Gemini, Groq, Cerebras, Mistral and OpenRouter (all with free plans), paid OpenAI-style services (OpenAI, DeepSeek, xAI), and Apple's two on-device engines, which work offline. The app measures each service's speed and moves to another one when a service is slow or out of quota.
+- Game genres: pick Medieval Europe, Wuxia, Anime/JRPG, Street and so on, and the AI uses forms of address and tone to match, or describe the setting yourself with the Custom genre. Each pair of characters keeps the same forms of address, proper names stay as they are, and there's a glossary.
+- Game profiles: each game keeps its own settings (regions, voice, genre, glossary, translation memory). Opening a game switches to its profile.
+- Global shortcuts that work in full-screen games and can be changed. Game controller support.
+- Interface in Vietnamese and English. Translates into 12 languages; Vietnamese has its own guide for forms of address and style.
 
 <div align="center">
 <img src="Docs/images/en/subtitles.png" width="620" alt="Subtitle window"><br>
 <sub>The subtitle window, with controls shown on hover</sub>
 </div>
 
----
-
 ## Requirements
 
-- **macOS 26 or later** on a **Mac with Apple silicon** (M1 or later).
-- **Screen Recording permission** (macOS asks the first time).
-- A **free API key** from Gemini or Groq is recommended for the best translations. Without one, OverSub still translates with Apple Translation and Apple Intelligence (if Apple Intelligence is turned on on your Mac).
-- For natural Vietnamese speech, download a **Vietnamese Siri voice** in System Settings. The app includes a step-by-step guide.
+- macOS 26 or later on a Mac with Apple silicon (M1 or later).
+- Screen Recording permission. macOS asks the first time.
+- A free API key from Gemini or Groq is recommended for the best translations. Without one, OverSub translates with Apple Translation and Apple Intelligence (if Apple Intelligence is turned on on your Mac).
+- For natural Vietnamese speech, download a Vietnamese Siri voice in System Settings. The app walks you through it.
 
 ## Installation
 
-1. Go to [**Releases**](https://github.com/imhillxtz/oversub-mac/releases/latest) and download `OverSub-x.y.z.dmg`.
-2. Open the `.dmg` and drag **OverSub** into **Applications**.
-3. Open OverSub. The first time, macOS blocks it because the app isn't notarized by Apple yet. This is normal for apps shared outside the App Store by an author without a paid Apple developer account.
-   - Go to **System Settings → Privacy & Security**, scroll down, click **Open Anyway** next to OverSub, and confirm.
-4. Follow the in-app guide. After granting **Screen Recording**, **quit OverSub completely (⌘Q) and open it again** so the permission takes effect.
+1. Go to [Releases](https://github.com/imhillxtz/oversub-mac/releases/latest) and download `OverSub-x.y.z.dmg`.
+2. Open the `.dmg` and drag OverSub into Applications.
+3. Open OverSub. The first time, macOS blocks it because the app isn't notarized by Apple; that happens to any app shared outside the App Store by an author without a paid Apple developer account. Go to System Settings → Privacy & Security, scroll down, click **Open Anyway** next to OverSub and confirm.
+4. Follow the in-app guide. After granting Screen Recording, quit OverSub completely (⌘Q) and open it again so the permission takes effect.
 
 ### Updates
 
-From version 1.1.42, OverSub **checks for new versions** on the Releases page (about twice a day). When one is out, the status line at the bottom of the main window shows **Version x is available · Update**: click it and the app downloads it, verifies its digital signature, replaces the old version and reopens. To avoid interruptions while playing, turn on **Download updates automatically and install when quitting** in **Settings → General**: the new version is swapped in when you quit OverSub. Settings, keys, game profiles and the Screen Recording permission are all kept.
+Since version 1.1.42, OverSub checks the Releases page for new versions about twice a day. When one is out, the status line at the bottom of the main window shows "Version x is available · Update". Click Update and the app downloads it, verifies its digital signature, replaces the old version and reopens. If you don't want an interruption while you play, turn on "Download updates automatically and install when quitting" in Settings → General; the new version is then swapped in when you quit OverSub. Settings, keys, game profiles and the Screen Recording permission are kept.
 
-Versions 1.1.41 and earlier don't have this yet: download the new `.dmg` and drag it over the old app once.
-
----
+Versions 1.1.41 and earlier can't update themselves. For those, download the new `.dmg` and drag it over the old app once.
 
 ## Get started in 5 minutes
 
-1. **Follow the first-run guide** (5 steps): permission, game language and target language, features, Siri voice, region.
-2. **Add a free key** (recommended): get one from [Google AI Studio](https://aistudio.google.com/apikey) or [Groq](https://console.groq.com/keys), then go to **Settings → Translation services**, paste it and click **Check & add**. Only working keys are added.
-3. **Select the subtitle region**: open your game at a point with dialogue, click **Select subtitle region** (⌘K, or ⌃⌥K in game) and drag a box around where subtitles appear. Include the **character name label** if the game has one. Click **Done**, check the text that was read, then **Save**.
-4. **Click Start** (⌘R, or ⌃⌥S in game).
-5. Turn **Subtitles**, **Voice-over** (click the mascot in the middle) and **Screen translation** on or off as you like.
-
----
+1. Follow the first-run guide (5 steps): permission, game language and target language, features, Siri voice, region.
+2. Add a free key (recommended): get one from [Google AI Studio](https://aistudio.google.com/apikey) or [Groq](https://console.groq.com/keys), go to Settings → Translation services, paste it and click Check & add. Only keys that work are added.
+3. Select the subtitle region: open your game at a point with dialogue, click Select subtitle region (⌘K, or ⌃⌥K in game) and drag a box around where subtitles appear. Include the character name label if the game has one. Click Done, check the text that was read, then click Save.
+4. Click Start (⌘R, or ⌃⌥S in game).
+5. Turn Subtitles, Voice-over (click the mascot in the middle) and Screen translation on or off as you like.
 
 ## Detailed guide
 
+The sections below follow the order you'll meet things in: selecting regions, choosing how dialogue is captured, then subtitles, voice and style.
+
 ### Selecting regions
 
-The region picker opens on a **live view** of the screen. Click **Freeze frame** (or press Space) to select on a still image when subtitles go by too fast.
+The region picker opens on a live view of the screen. If subtitles go by too fast, click Freeze frame (or press Space) and select on a still image.
 
-- **Subtitle region** (one): where dialogue appears. There's a **Find subtitles** button.
-- **Screen regions** (up to 3): around menus, quest logs, item description boxes. Click **Add screen region** in the toolbar.
-- Drag to move, drag a corner to resize, Delete removes a region. Click **Done** (Enter) to review the text read in every region, then **Save** or **Save & start**.
-- When regions overlap, subtitles take priority, so you never get two translation layers on top of each other.
+The subtitle region (only one) is where dialogue appears; the Find subtitles button can guess it for you. Screen regions (up to 3) go around menus, quest logs or item description boxes; add one with Add screen region in the toolbar.
+
+Drag to move, drag a corner to resize, press Delete to remove a region. Click Done (Enter) to review the text read in every region, then Save or Save & start. When regions overlap, subtitles take priority, so two translation layers never sit on top of each other.
 
 ### Dialogue capture
 
-In **Settings → Subtitles**, pick the mode that matches how the game shows text:
+Pick a mode in Settings → Subtitles, depending on how the game shows text:
 
 | Mode | Best for |
 |---|---|
-| **Typewriter text** | Games that reveal text letter by letter (many RPGs). Each finished phrase is translated as it appears and read as soon as a sentence is complete, without waiting for the whole passage. Also handles fast-changing cutscene subtitles well. |
-| **Balanced** | Subtitles that appear a whole line at a time. Translated after two identical reads. |
-| **Wait for full line** | Text that keeps changing and needs to settle before translating. |
+| Typewriter text | Games that reveal text letter by letter (many RPGs). Each finished phrase is translated as it appears, and the voice starts as soon as a sentence is complete instead of waiting for the whole passage. Fast-changing cutscene subtitles aren't missed. |
+| Balanced | Subtitles that appear a whole line at a time. The line is translated after two identical reads. |
+| Wait for full line | Text that keeps changing and has to settle before it's translated. |
 
 ### Subtitles over the game and the subtitle window
 
-- **Subtitles over the game**: the translation covers the original subtitle exactly. In **Settings → Subtitles**: background style, text size, alignment, position offset, showing the original line too.
-- **Subtitle window** (⌘J): a separate floating window, great on a second display or when you want the game image untouched. Hover to show the controls:
-  - left edge: **Start / Stop** and **Ignore this line**;
-  - right edge: **Pin** (float above every Space, including full-screen games; it opens pinned), **One line** (shrink to a thin strip that fits the black bar under the game), **Background** (blur, darkness), **A− / A+**.
+Subtitles over the game cover the original subtitle exactly. Background style, text size, alignment, position and whether to show the original line are in Settings → Subtitles.
+
+The subtitle window (⌘J) is a separate floating window, handy on a second display or when you want the game image left alone. Hover over it to show the controls. The left edge has Start / Stop and Ignore this line. The right edge has Pin (stays above every Space, including full-screen games; it opens pinned), One line (shrinks to a thin strip that fits the black bar under the game), Background (blur and darkness) and A− / A+.
 
 <div align="center">
 <img src="Docs/images/en/subtitles-1line.png" width="760" alt="Subtitle window in one-line mode"><br>
@@ -139,12 +128,13 @@ In **Settings → Subtitles**, pick the mode that matches how the game shows tex
 
 <img src="Docs/images/en/settings-dub.png" width="560" align="right" alt="Voice settings">
 
-- **Voice-over**: one Siri voice reads every line, fast and consistent. It reads only **dialogue in the subtitle region**, never text in screen regions.
-- **Dub (beta)**: each character (recognised from the name label on the dialogue box) gets a voice by gender and age; monsters and robots get their own voice. The cast and their voices are in **Settings → Characters** (shown when Dub is selected).
-- **Siri voice**: macOS only lets other apps use the Siri voice selected in **System Settings → Accessibility → Spoken Content**. Click **Change Siri voice…** in the app (in **Settings → Voice** or the Siri voice step of the first-run guide): a guide panel sits next to System Settings and ticks off each step as you complete it.
-- **Pacing**: speed adapts to the pace of the dialogue, lines that fall too far behind are dropped so the voice keeps up with the screen, and the voice follows emotion (shouting or excited lines are read faster, hesitant or sad lines slower and quieter).
-- **Audio**: choose separate speakers or headphones for the voice; optionally lower the game's own volume while the voice is speaking.
-- Replay the last line: ⌃⌥R.
+Voice-over uses one Siri voice for every line. It reads only dialogue in the subtitle region, never text in screen regions.
+
+Dub (beta) gives each character a voice by gender and age. Characters are recognised from the name label on the dialogue box, and monsters and robots get their own voice. The cast and their voices are in Settings → Characters, which appears when Dub is selected.
+
+macOS only lets other apps use the Siri voice selected in System Settings → Accessibility → Spoken Content. Click Change Siri voice... in the app (in Settings → Voice, or the Siri voice step of the first-run guide) and a guide panel opens next to System Settings, ticking off each step as you finish it.
+
+The reading speed follows the pace of the dialogue. Lines that fall too far behind are dropped so the voice keeps up with the screen. Shouted or excited lines are read faster, hesitant or sad ones slower and quieter. You can send the voice to separate speakers or headphones and have the game's volume lowered while it speaks. Replay the last line with ⌃⌥R.
 
 <br clear="right">
 
@@ -152,66 +142,60 @@ In **Settings → Subtitles**, pick the mode that matches how the game shows tex
 
 <img src="Docs/images/en/settings-screen.png" width="560" align="right" alt="Screen translation settings">
 
-Translates interface text in place. Each piece of text (menu item, button, description) is replaced on its own: the original is erased by rebuilding the background from the surrounding pixels, and the translation uses the same colour, a size estimated from the original, and always stays inside its box.
+Translates interface text in place. Each piece of text (a menu item, a button, a description) is replaced on its own: the original is erased by rebuilding the background from the surrounding pixels, and the translation gets the same colour, a size estimated from the original, and always stays inside its box.
 
-- Three speed modes: **Instant** (Apple Translation), **Instant, then refined by AI** (default), **Wait for AI**.
-- Text seen before is remembered and shown instantly at no cost. Lines with numbers like "Gold 120" are stored as a template, so a new number is filled in without asking the AI.
-- Proper names, brands and button symbols (A, B, ZL…) are kept as they are.
+There are three speed modes: Instant (Apple Translation), Instant then refined by AI (the default), and Wait for AI. Text seen before comes back instantly at no cost. Lines with numbers like "Gold 120" are stored as a template, so a new number is filled in without asking the AI. Proper names, brands and button symbols (A, B, ZL) are kept as they are.
 
 <br clear="right">
 
 ### Quick translate
 
-Press **⌃⌥Q** anywhere (no need to click Start), drag a box around some text, and the translation appears in place when you let go. Three buttons sit below the box: **show as text** (with a button to copy the translation), **copy the original**, **close**. Keys: ⌘C copies the original, ⇧⌘C the translation, Esc closes. The screen is frozen while you select by default; turn that off in **Settings → Screen translation**.
+Press ⌃⌥Q anywhere (you don't need to click Start), drag a box around some text and let go; the translation appears in place. Below the box are buttons to show it as text (with a button to copy the translation), copy the original, and close. ⌘C copies the original, ⇧⌘C the translation, Esc closes. The screen freezes while you select; you can turn that off in Settings → Screen translation.
 
 ### Style, forms of address and proper names
 
 <img src="Docs/images/en/settings-general.png" width="560" align="right" alt="Language and genre settings">
 
-- **Game genre** decides forms of address and tone, e.g. Medieval Europe uses "my lord" and rank-based address in Vietnamese, Wuxia uses classical forms, School uses casual forms.
-- **Custom**: describe the game's setting, characters and relationships, forms of address, tone, formality, profanity, honorifics and any other instructions, and preview the guide sent to the AI.
-- **Consistent forms of address**: the speaker's name and the last few lines are sent along, so each pair of characters keeps one way of addressing each other.
-- **Proper names and glossary**: character, place, monster and skill names stay as in the original; add them to the list to make sure, or set a fixed translation.
-- **Ignore this line**: when the app translates a logo or fixed on-screen text, click the button with the text-and-× icon (main window, subtitle window or History). That text is never translated or read again.
+The game genre decides forms of address and tone. In Vietnamese, Medieval Europe uses "my lord" and address based on rank, Wuxia uses classical forms and School uses casual ones. With the Custom genre you describe the setting, the characters and how they relate, forms of address, tone, formality, profanity, honorifics and anything else, and you can preview the guide that will be sent to the AI.
+
+The app sends the speaker's name and the last few lines along with each line, so each pair of characters keeps one way of addressing each other. Character, place, monster and skill names stay as in the original; add them to the list to make sure, or give one a fixed translation.
+
+If the app translates a logo or fixed on-screen text, click Ignore this line (the text-and-× icon) in the main window, the subtitle window or History. That text won't be translated or read again.
 
 <br clear="right">
 
 ### Game profiles and history
 
-- **Game profiles** keep everything per game: regions, languages, voice, genre, glossary, dialogue context and translation memory. Changes save automatically to the active profile. Opening a game switches to its profile; for consoles played through a capture-card viewer, pick the profile by hand.
-- **Dialogue history** (⌘L, or ⌃⌥L in game): review recent lines you missed, replay them, ignore a line, or keep a name untranslated.
+A game profile keeps everything for one game: regions, languages, voice, genre, glossary, dialogue context and translation memory. Every change is saved to the active profile. Opening a game switches to its profile. Consoles played through a capture-card viewer all show up as the same app, so for those you pick the profile by hand.
+
+Dialogue history (⌘L, or ⌃⌥L in game) shows recent lines you missed. From there you can replay a line, ignore it, or keep a name untranslated.
 
 ### Appearance
 
-- **Light / dark**: **Settings → General → Appearance**, choose *System*, *Light* or *Dark*. The subtitle window and in-game translations always use a dark background for readability.
-- The app icon follows the icon style you pick in macOS (light, dark, tinted, clear).
-
----
+Choose light, dark or system in Settings → General → Appearance. The subtitle window and in-game translations always use a dark background so they stay readable. The app icon follows the icon style you pick in macOS (light, dark, tinted or clear).
 
 ## Translation services and API keys
 
-Add keys in **Settings → Translation services**. You can add several keys and several services: when a quota runs out the app moves to the next key or service, and a slow or failing service drops to the back of the queue.
+Add keys in Settings → Translation services. You can add several keys and several services. When a key runs out of quota, the app moves to the next key or service, and a slow or failing service drops to the back of the queue.
 
 | Service | Cost | Notes |
 |---|---|---|
-| **Gemini** | Free, with quotas | The best translations among the free options. Quota is **per Google Cloud project**, not per key: two keys from one project share the same quota. For a backup, add a key from another service. [Get a key](https://aistudio.google.com/apikey) |
-| **Groq** | Free, with quotas | Very fast (about 0.3–0.5 seconds per line). [Get a key](https://console.groq.com/keys) |
-| **Cerebras** | Free, with quotas | About as fast as Groq, with a daily token quota. [Get a key](https://cloud.cerebras.ai) |
-| **Mistral** | Free, with quotas | Generous free plan but one request per second; a good backup. [Get a key](https://console.mistral.ai/api-keys) |
-| **OpenRouter** | Some free models | One key for many models; free models end in `:free`. [Get a key](https://openrouter.ai/keys) |
-| **Custom service** | Paid by usage | Any OpenAI-style API: OpenAI, DeepSeek, xAI (Grok), Together, Fireworks… Enter the address, model name and key. |
-| **Apple Intelligence** | Free, on device | No internet needed; requires Apple Intelligence to be turned on. |
-| **Apple Translation** | Free, on device | Fastest, no internet needed; doesn't follow instructions about forms of address. Needs a language pack (the app has a download button). |
+| Gemini | Free, with quotas | The best translations among the free options. Quota is per Google Cloud project, not per key, so two keys from one project share the same quota. For a backup, add a key from another service. [Get a key](https://aistudio.google.com/apikey) |
+| Groq | Free, with quotas | About 0.3–0.5 seconds per line. [Get a key](https://console.groq.com/keys) |
+| Cerebras | Free, with quotas | About as fast as Groq, with a daily token quota. [Get a key](https://cloud.cerebras.ai) |
+| Mistral | Free, with quotas | A large free quota but only one request per second, so it works best as a backup. [Get a key](https://console.mistral.ai/api-keys) |
+| OpenRouter | Some free models | One key for many models; free models end in `:free`. [Get a key](https://openrouter.ai/keys) |
+| Custom service | Paid by usage | Any OpenAI-style API: OpenAI, DeepSeek, xAI (Grok), Together, Fireworks. Enter the address, model name and key. |
+| Apple Intelligence | Free, on device | Works offline; Apple Intelligence has to be turned on. |
+| Apple Translation | Free, on device | The fastest and works offline, but it ignores instructions about forms of address. Needs a language pack (the app has a download button). |
 
-> Free quotas are set by each provider and change over time; check the provider's site for the exact numbers on your account.
+Free quotas are set by each provider and change over time; check the provider's site for the numbers on your account.
 
-**Priority order**: *Balanced* (default), *Prefer quality*, *Prefer speed* or *Custom* (your own order). The app measures each service's real speed (median of the last 20 requests, penalised when it fails often) to order them. If the first service hasn't answered after 1 second, the next one is asked in parallel and whichever answers first is used.
-
----
+The order is set under Priority: Balanced (default), Prefer quality, Prefer speed, or Custom for your own order. The app orders services by their measured speed (the median of the last 20 requests, with a penalty for frequent failures). If the first service hasn't answered after 1 second, the next one is asked in parallel and whichever answers first wins.
 
 ## Shortcuts and controller
 
-Global shortcuts work even when the game is full screen, with no Accessibility permission needed. **Change them** in **Settings → Shortcuts & controller**: click a shortcut and press the new combination.
+Global shortcuts work even when the game is full screen and don't need Accessibility permission. Change them in Settings → Shortcuts & controller: click a shortcut and press the new combination.
 
 | Default | Action |
 |---|---|
@@ -226,11 +210,9 @@ Global shortcuts work even when the game is full screen, with no Accessibility p
 
 In the OverSub window: ⌘R start/stop, ⌘K select region, ⌘J subtitle window, ⌘E quick translate, ⌘L history, ⇧⌘H subtitles, ⇧⌘D voice, ⇧⌘T screen translation.
 
-**Controller** (Xbox, PlayStation, Switch Pro…): hold **View / Share** and press **Y (△)** to replay the last line, **X (□)** to turn the voice on or off, **B (○)** to hide or show subtitles.
+With a controller (Xbox, PlayStation, Switch Pro), hold View / Share and press Y (△) to replay the last line, X (□) to turn the voice on or off, or B (○) to hide or show subtitles.
 
-The controller icon in the menu bar also controls everything without opening a window.
-
----
+The controller icon in the menu bar controls everything without opening a window.
 
 ## How it works
 
@@ -242,39 +224,42 @@ flowchart LR
     C -- yes --> D[Translation memory<br/>lines seen before]
     D -- not found --> E[Translation service<br/>Gemini · Groq · Apple…]
     D -- found --> F
-    E --> F[Show translation<br/>over the game / subtitle window]
+    E --> F[Show the translation<br/>over the game / subtitle window]
     F --> G[Voice queue<br/>Siri]
 ```
 
-- **Screen capture** uses ScreenCaptureKit and *excludes OverSub itself*, so a translation that was just drawn is never captured and read back.
-- **Text recognition runs entirely on your Mac** with Apple Vision. Each tick does a fast read (about 14 ms) to see whether the text changed; only then does it do an accurate read (about 120 ms). Moving backgrounds don't trigger constant re-reads.
-- **Speaker labels** are separated from dialogue by their size and colour; names seen before are remembered so they're recognised even when stuck to the start of a line.
-- **Typewriter text**: each finished phrase (up to a comma or full stop, or a few words) is translated as it appears; phrases of the same line are translated in order to keep context. Translation runs separately, so the capture loop never waits for the AI and doesn't miss cutscene subtitles.
-- **Translation**: the game profile's translation memory is checked first; otherwise the line is sent with a few previous lines, the speaker's name, the genre and glossary terms to the first service in line, and to the next one in parallel if the first is slow. Proper names are swapped for placeholder codes before sending so the AI can't translate them away.
-- **The voice** queues lines and never cuts one off; a line that waited too long while newer ones arrived is dropped so the voice keeps up; the same line is never read twice when OCR flickers or when you switch apps and come back.
-- **Screen translation** detects changes by text content (not pixels), rebuilds the background under the original text in about 10 ms, and squeezes text slightly before shrinking it so the translation fits its box.
+Screen capture uses ScreenCaptureKit and leaves OverSub's own windows out, so a translation that was just drawn is never captured and read back.
+
+Text recognition runs entirely on your Mac with Apple Vision. Each tick does a fast read (about 14 ms) to see whether the text changed, and only then an accurate read (about 120 ms). A moving background doesn't cause constant re-reads.
+
+Speaker labels are told apart from dialogue by their size and colour. Names seen before are remembered, so they're recognised even when stuck to the start of a line.
+
+In Typewriter text mode, each finished phrase (up to a comma or full stop, or a few words) is translated as it appears, and phrases of the same line are translated in order to keep context. Translation runs on its own, so the capture loop never waits for the AI and doesn't miss cutscene subtitles.
+
+To translate, the app checks the game profile's translation memory first. If the line isn't there, it sends the line with a few previous lines, the speaker's name, the genre and glossary terms to the first service in line, and to the next one in parallel if the first is slow. Proper names are swapped for placeholder codes before sending so the AI can't translate them away.
+
+The voice queues lines and never cuts one off. A line that waited too long while newer ones arrived is dropped. The same line isn't read twice when OCR flickers or when you switch apps and come back.
+
+Screen translation compares the recognised text to decide whether something changed, so a moving background doesn't trigger a new translation. It rebuilds the background under the original text in about 10 ms and squeezes the translation slightly before it has to shrink the text.
 
 Technical details (in Vietnamese): [Docs/DEVELOPMENT.md](Docs/DEVELOPMENT.md).
 
----
-
 ## Privacy and data
 
-- **Screenshots never leave your Mac.** Text recognition runs entirely on your Mac.
-- With an online translation service, **only text** is sent, and only to the service you chose: the line to translate, a few previous lines for context, and character names. With Apple Translation or Apple Intelligence nothing leaves your Mac.
-- OverSub has **no server of its own**, collects no analytics and shows no ads.
-- **Update checks** only query the public Releases page on GitHub and send nothing about you. A downloaded installer is only installed if its digital signature matches the author's key built into the app.
-- **API keys** are stored in `~/Library/Application Support/OverSub/keys.json`, readable only by your user account (permissions 0600).
-- App data: profiles, context and translation memory in `~/Library/Application Support/OverSub`. A diagnostic log is kept at `~/Library/Logs/OverSub/debug.log`; it contains text read from your games and can be deleted at any time.
+Screenshots never leave your Mac; text recognition runs entirely on it.
 
----
+With an online translation service, only text is sent, and only to the service you chose: the line to translate, a few previous lines for context, and character names. With Apple Translation or Apple Intelligence nothing leaves your Mac.
+
+OverSub has no server of its own, collects no analytics and shows no ads. Update checks only query the public Releases page on GitHub and send nothing about you. A downloaded installer is only installed if its digital signature matches the author's key built into the app.
+
+API keys are stored in `~/Library/Application Support/OverSub/keys.json`, readable only by your user account (permissions 0600). Profiles, context and translation memory are in `~/Library/Application Support/OverSub`. The diagnostic log at `~/Library/Logs/OverSub/debug.log` contains text read from your games and can be deleted at any time.
 
 ## FAQ and troubleshooting
 
 <details>
 <summary><b>macOS won't open OverSub</b></summary>
 
-The app isn't notarized by Apple, so it's blocked the first time. Go to **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to OverSub.
+The app isn't notarized by Apple, so it's blocked the first time. Go to System Settings → Privacy & Security, scroll down and click Open Anyway next to OverSub.
 </details>
 
 <details>
@@ -286,59 +271,53 @@ macOS applies a new permission only after the app restarts. Quit OverSub complet
 <details>
 <summary><b>The voice isn't a Siri voice</b></summary>
 
-Go to **Settings → Voice**, click **Change Siri voice…** and follow the guide: download a Siri voice for your language and select it under *Spoken Content* in System Settings.
+Go to Settings → Voice, click Change Siri voice... and follow the guide: download a Siri voice for your language and select it under Spoken Content in System Settings.
 </details>
 
 <details>
 <summary><b>Translations are slow, or suddenly switch to machine translation</b></summary>
 
-Usually a key has run out of quota. See **Settings → Translation services** for each key's status (and when it will work again) and the service switch log. Add a key from another service (Groq, Cerebras…) as a backup.
+Usually a key has run out of quota. Settings → Translation services shows each key's status (and when it will work again) and a log of service switches. Add a key from another service, such as Groq or Cerebras, as a backup.
 </details>
 
 <details>
 <summary><b>The app doesn't pick up subtitles, or reads them wrong</b></summary>
 
-- Re-select the subtitle region to fit snugly, ideally including the character name label.
-- Try another **Dialogue capture** mode (*Typewriter text* for games that reveal text letter by letter).
-- Check that **Game language** matches the subtitle language.
-- With *Pause while the game is hidden or covered* on, the app pauses when the game is minimized, you switch desktops, or another window covers the subtitle region. If you click another app but the game is still visible in the subtitle region, translation and voice keep going.
-- *Keep the screen on while running* (on by default): with a controller your Mac sees no input and tends to turn off the screen or lock partway through; while OverSub runs, the screen stays on, and clicking Stop brings everything back to normal.
+- Re-select the subtitle region so it fits snugly, ideally including the character name label.
+- Try another dialogue capture mode; for games that reveal text letter by letter, use Typewriter text.
+- Check that Game language matches the language of the subtitles.
+- "Pause while the game is hidden or covered" (on by default) pauses the app when the game is minimized, when you switch desktops, or when another window covers the subtitle region. If you click another app but the game is still visible in the subtitle region, translation and voice keep going.
+- "Keep the screen on while running" (on by default): with a controller your Mac sees no input and tends to turn off the screen or lock partway through. While OverSub runs, the screen stays on; click Stop and everything goes back to normal.
 </details>
 
 <details>
 <summary><b>The app translates a logo or fixed on-screen text</b></summary>
 
-Click **Ignore this line** (the text-and-× icon). The list of ignored lines can be reviewed and cleared in **Settings → Style & glossary**.
+Click Ignore this line (the text-and-× icon). You can review and clear the list of ignored lines in Settings → Style & glossary.
 </details>
 
 <details>
 <summary><b>Character names get translated</b></summary>
 
-Turn on **Keep proper names as is** and add the names in **Settings → Style & glossary**, or click **Keep a name untranslated…** in the main window to pick names from the current line.
+Turn on Keep proper names as is and add the names in Settings → Style & glossary, or click Keep a name untranslated... in the main window to pick names from the current line.
 </details>
-
----
 
 ## Known limitations
 
-- Runs only on **macOS 26 or later** on **Apple silicon** Macs.
-- The app is **not notarized by Apple** yet, so you need *Open Anyway* the first time.
-- Reading **Japanese, Korean and Chinese** text hasn't been tested thoroughly on real games.
-- Regions are stored as screen coordinates: re-select them after changing resolution or displays.
-- Dub uses Apple voices; Gemini voices are turned off for now because they're still slow (4–8 seconds per line).
-- Cerebras, Mistral, OpenRouter and custom services have been tested for connectivity, not yet in long play sessions.
-
----
+- Runs only on macOS 26 or later, on Macs with Apple silicon.
+- The app isn't notarized by Apple yet, so you have to click Open Anyway the first time.
+- Reading Japanese, Korean and Chinese text hasn't been tested much on real games.
+- Regions are stored as screen coordinates; re-select them after changing resolution or displays.
+- Dub uses Apple voices. Gemini voices are turned off for now because they're still slow (4–8 seconds per line).
+- Cerebras, Mistral, OpenRouter and custom services have been tested for connectivity, not in long play sessions.
 
 ## Feedback and bug reports
 
-All feedback is welcome, especially from players of different games.
+For bugs or feature ideas, open an [Issue](https://github.com/imhillxtz/oversub-mac/issues). Include your OverSub version (shown in Settings → General), the game, how it shows subtitles, and if you can, part of the log around the problem (`~/Library/Logs/OverSub/debug.log`). Read the log before sending, since it contains text from your game.
 
-- **Bugs or feature ideas**: open an [Issue](https://github.com/imhillxtz/oversub-mac/issues). Include your OverSub version (**Settings → General**), the game, how it shows subtitles, and if possible part of the log around the problem (`~/Library/Logs/OverSub/debug.log`; review it before sending, as it contains text from your game).
-- **Games that work well**: a short Issue like "game X works well with mode Y" helps the next player a lot.
-- **Code contributions**: the source is public for everyone to read, but copyright is reserved. If you'd like to contribute code, please open an Issue to discuss it first.
+Games that work well are worth reporting too. A short Issue like "game X works with mode Y" saves the next player some trial and error.
 
----
+The source is public for anyone to read, but copyright is reserved. If you'd like to contribute code, open an Issue to discuss it first.
 
 ## Support OverSub
 
@@ -346,25 +325,23 @@ OverSub is free for everyone. If it makes your games more fun, buy me a coffee t
 
 <img src="Docs/images/donate-vietqr.png" width="180" align="right" alt="VietQR code to support OverSub">
 
-- **International**: [paypal.me/ngochieuit](https://paypal.me/ngochieuit).
-- **In Vietnam**: scan the VietQR code with a banking app, MoMo or ZaloPay (recipient TRINH NGOC HIEU, MoMo wallet, message "OverSub"). In the app, click **♥ Support** at the bottom of the main window to pick an amount quickly and add your name to the code.
-- **Free ways to help**: star this repository on GitHub, or tell a friend who plays games.
+- International: [paypal.me/ngochieuit](https://paypal.me/ngochieuit).
+- In Vietnam: scan the VietQR code with a banking app, MoMo or ZaloPay (recipient TRINH NGOC HIEU, MoMo wallet, message "OverSub"). In the app, click Support at the bottom of the main window to pick an amount and add your name to the code.
+- Without spending anything: star this repository on GitHub, or tell a friend who plays games.
 
 <br clear="right">
 
 ### Thank-you list
 
-Thank you to everyone who has supported OverSub. To have your name here (and in the app's Support window), type a name or nickname in the **Your name** field of the Support window: the QR code adds it to the transfer message (many banking apps don't let you edit the message after scanning). For a manual transfer, use the message "OverSub your-name"; with PayPal, put your name in the note. Leave it out to stay anonymous.
+Thank you to everyone who has supported OverSub. To have your name here (and in the app's Support window), type a name or nickname in the Your name field of the Support window. The QR code adds it to the transfer message, because many banking apps don't let you edit the message after scanning. For a manual transfer, use the message "OverSub your-name"; with PayPal, put your name in the note. Leave it out to stay anonymous.
 
 <!-- Newest first; the in-app list comes from Docs/supporters.json -->
-*No names yet. You could be the first ♥*
-
----
+No names yet.
 
 ## Copyright
 
-© 2026 imhillxtz. **All rights reserved.**
+© 2026 imhillxtz. All rights reserved.
 
-The source code is public so anyone can read it and check what the app does on their Mac. **This is not open-source software**: copying, modifying, redistributing or commercial use is not permitted without the author's written permission. The official builds on the Releases page are free to use. See [LICENSE](LICENSE).
+The source code is public so anyone can read it and check what the app does on their Mac. It is not open-source software: copying, modifying, redistributing or commercial use isn't allowed without the author's written permission. The official builds on the Releases page are free to use. See [LICENSE](LICENSE).
 
-Game names and trademarks mentioned belong to their respective owners. OverSub uses services and technologies from Apple, Google, Groq, Cerebras, Mistral and OpenRouter under each provider's terms.
+Game names and trademarks mentioned here belong to their owners. OverSub uses services and technologies from Apple, Google, Groq, Cerebras, Mistral and OpenRouter under each provider's terms.

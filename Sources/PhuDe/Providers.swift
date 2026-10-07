@@ -412,7 +412,7 @@ enum Providers {
             req = URLRequest(url: URL(string: "https://generativelanguage.googleapis.com/v1beta/models?pageSize=200")!)
             req.setValue(key, forHTTPHeaderField: "x-goog-api-key")
         default:
-            throw Failure.unavailable(L("Engine này không có danh sách model.", "This engine has no model list."))
+            throw Failure.unavailable(L("Dịch vụ này không có danh sách model.", "This service has no model list."))
         }
         let (data, http) = try await send(req, name: engine.title)
         guard http.statusCode == 200 else {

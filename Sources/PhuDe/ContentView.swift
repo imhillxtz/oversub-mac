@@ -132,7 +132,7 @@ struct ContentView: View {
             }
             Divider()
             Button(L("Tạo hồ sơ mới cho game khác…", "New profile for another game…")) {
-                presetForm.name = settings.gameAppName.map { L("\($0) – mới", "\($0) – new") } ?? L("Hồ sơ \(settings.presets.count + 1)", "Profile \(settings.presets.count + 1)")
+                presetForm.name = settings.gameAppName.map { L("\($0) (mới)", "\($0) (new)") } ?? L("Hồ sơ \(settings.presets.count + 1)", "Profile \(settings.presets.count + 1)")
                 presetForm.show = true
             }
             Button(L("Quản lý hồ sơ…", "Manage profiles…")) { engine.openSettings(.presets) }
@@ -174,7 +174,7 @@ struct ContentView: View {
     private func supportNotice(_ m: Int) -> some View {
         HStack(spacing: 10) {
             Image(systemName: "heart.fill").foregroundStyle(.pink)
-            (Text(L("OverSub đã dịch hơn \(Donation.count(m)) câu thoại cho bạn! ", "OverSub has translated over \(Donation.count(m)) lines for you! ")).fontWeight(.semibold)
+            (Text(L("OverSub đã dịch hơn \(Donation.count(m)) câu thoại cho bạn. ", "OverSub has translated over \(Donation.count(m)) lines for you. ")).fontWeight(.semibold)
              + Text(L("Thấy hữu ích thì mời mình một ly cà phê nhé.", "If it's been useful, consider buying me a coffee.")).foregroundStyle(.secondary))
                 .lineLimit(1)
             Button(L("Để sau", "Later")) { support.dismiss() }.buttonStyle(.link)
@@ -292,7 +292,7 @@ struct ContentView: View {
             .footerChip()
         }
         .buttonStyle(.plain)
-        .help(L("Engine đang dịch. Bấm để xem trạng thái các engine.", "The engine translating right now. Click to see the status of all engines."))
+        .help(L("Dịch vụ đang dịch. Bấm để xem trạng thái các dịch vụ.", "The service translating right now. Click to see the status of every service."))
     }
 
     private func chipMenu<Content: View>(icon: String, text: String, @ViewBuilder content: () -> Content) -> some View {
@@ -661,9 +661,9 @@ struct PresetSaveSheet: View {
                 .font(.title3)
             VStack(alignment: .leading, spacing: 8) {
                 Text(L("Lấy từ cài đặt hiện tại", "Copied from current settings")).font(.callout.weight(.semibold))
-                row("viewfinder", settings.region.map { L("Khung \(Int($0.w))×\(Int($0.h))", "Region \(Int($0.w))×\(Int($0.h))") + (settings.gameAppName.map { " · \($0)" } ?? "") } ?? L("Chưa chọn khung", "No region selected"))
+                row("viewfinder", settings.region.map { L("Khung \(Int($0.w))×\(Int($0.h))", "Region \(Int($0.w))×\(Int($0.h))") + (settings.gameAppName.map { " · \($0)" } ?? "") } ?? L("Chưa chọn vùng", "No region selected"))
                 row("globe", L("Dịch sang \(settings.target.displayName)", "Translate to \(settings.target.displayName)") + " · \(settings.genre.title.components(separatedBy: " (").first ?? "")")
-                row("captions.bubble", L("Phụ đề, giọng đọc, bắt thoại, engine", "Subtitles, voice, dialogue capture, engines"))
+                row("captions.bubble", L("Phụ đề, giọng đọc, bắt thoại, dịch vụ dịch", "Subtitles, voice, dialogue capture, translation services"))
                 Divider().padding(.vertical, 2)
                 Text(L("Bắt đầu trống", "Starts empty")).font(.callout.weight(.semibold))
                 row("brain", L("Ngữ cảnh hội thoại, dàn diễn viên, thuật ngữ, câu luôn bỏ qua, bộ nhớ dịch", "Conversation context, cast, glossary, ignored lines, translation memory"))

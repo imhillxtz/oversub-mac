@@ -187,7 +187,7 @@ final class TranslationHub: ObservableObject {
                     // Gọi được danh sách model nghĩa là key hợp lệ; chỉ là không chọn được model.
                     if (try? await Providers.listModels(provider, key: secret)) != nil {
                         _ = accept(nil)
-                        return (true, L("Key hợp lệ và đã thêm, nhưng app chưa chọn được model phù hợp. Vào Engine dịch → Nâng cao để nhập tên model.", "The key is valid and was added, but the app couldn't pick a suitable model. Go to Translation services → Advanced to enter a model name."))
+                        return (true, L("Key hợp lệ và đã thêm, nhưng app chưa chọn được model phù hợp. Vào Cài đặt → Dịch vụ dịch → Nâng cao để nhập tên model.", "The key is valid and was added, but the app couldn't pick a suitable model. Go to Settings → Translation services → Advanced to enter a model name."))
                     }
                     return (false, L("Key được nhận nhưng không dùng được model nào để dịch.", "The key was accepted, but no model is available for translation."))
                 }
@@ -233,7 +233,7 @@ final class TranslationHub: ObservableObject {
         case .gemini: return try await Providers.gemini(key: key, model: settings.geminiModel, system: system, user: user, maxTokens: maxTokens, onPartial: onPartial)
         case .groq, .cerebras, .mistral, .openRouter, .custom:
             return try await Providers.openAI(engine, key: key, model: settings.model(for: engine), system: system, user: user, maxTokens: maxTokens, onPartial: onPartial)
-        default: throw Failure.unavailable(L("Engine này không dùng key.", "This engine doesn't use an API key."))
+        default: throw Failure.unavailable(L("Dịch vụ này không dùng key.", "This service doesn't use an API key."))
         }
     }
 
@@ -394,7 +394,7 @@ final class TranslationHub: ObservableObject {
         let summary = failed.map { "\($0.0.title): \($0.1)" }.joined(separator: "; ")
         activeLabel = L("Không dịch vụ nào dịch được", "No service could translate")
         activeOK = false
-        throw AppError(summary.isEmpty ? L("Chưa bật engine dịch nào. Vào Cài đặt → Dịch vụ dịch.", "No translation engine is turned on. Go to Settings → Translation services.") : summary)
+        throw AppError(summary.isEmpty ? L("Chưa bật dịch vụ dịch nào. Vào Cài đặt → Dịch vụ dịch.", "No translation service is turned on. Go to Settings → Translation services.") : summary)
     }
 
     /// Dịch vụ đầu chưa ra chữ nào sau 1 giây thì gửi song song cho dịch vụ kế tiếp, ai ra chữ trước thì dùng.

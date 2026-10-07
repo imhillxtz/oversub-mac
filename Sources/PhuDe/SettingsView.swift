@@ -290,7 +290,7 @@ struct SettingsView: View {
             Section {
                 HStack {
                     TextField(L("Tên hồ sơ", "Profile name"), text: Binding(get: { nav.presetName }, set: { nav.presetName = $0 }),
-                              prompt: Text(settings.gameAppName.map { L("\($0) – mới", "\($0) – new") } ?? L("Tên game", "Game name")))
+                              prompt: Text(settings.gameAppName.map { L("\($0) (mới)", "\($0) (new)") } ?? L("Tên game", "Game name")))
                         .labelsHidden()
                     Button(L("Tạo hồ sơ mới", "Create profile")) {
                         let p = engine.createProfile(named: nav.presetName)
@@ -802,7 +802,7 @@ struct SettingsView: View {
         styleField(L("Nhân vật & quan hệ", "Characters & relationships"), \.characters,
                    L("Vd: Link là nam chính, ít nói; Zelda là công chúa, bạn thân của Link", "E.g. Link is the quiet hero; Zelda is the princess and his close friend"))
         styleField(L("Xưng hô", "Forms of address"), \.address,
-                   L("Vd: Link – Zelda xưng tớ – cậu; với vua thì thưa bệ hạ", "E.g. Link and Zelda speak informally; address the king as Your Majesty"))
+                   L("Vd: Link với Zelda xưng tớ – cậu; với vua thì thưa bệ hạ", "E.g. Link and Zelda speak informally; address the king as Your Majesty"))
         styleField(L("Giọng văn", "Tone"), \.tone,
                    L("Vd: nhẹ nhàng, hơi cổ, không dùng tiếng lóng", "E.g. gentle, slightly archaic, no slang"))
         Picker(L("Mức trang trọng", "Formality"), selection: $settings.customStyle.formality) {
@@ -839,7 +839,7 @@ struct SettingsView: View {
                     ForEach(TargetLanguage.all) { Text($0.displayName).tag($0.code) }
                 }
                 if !settings.target.isVietnamese {
-                    Note(L("Xưng hô và văn phong theo thể loại được tinh chỉnh kỹ nhất cho tiếng Việt; các ngôn ngữ khác dùng bộ hướng dẫn chung.", "Forms of address and genre style are tuned most carefully for Vietnamese; other languages use a general guide."))
+                    Note(L("Chỉ dẫn xưng hô và văn phong theo thể loại được viết riêng cho tiếng Việt; các ngôn ngữ khác dùng bộ chỉ dẫn chung.", "The guides for forms of address and genre style are written specifically for Vietnamese; other languages use a general guide."))
                 }
                 applePackNotice
             } header: { Text(L("Ngôn ngữ", "Languages")) }

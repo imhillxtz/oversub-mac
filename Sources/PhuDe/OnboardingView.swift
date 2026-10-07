@@ -302,7 +302,7 @@ struct OnboardingView: View {
         VStack(alignment: .leading, spacing: 14) {
             card { SiriVoiceGuide().padding(16) }
             Text(settings.speakEnabled
-                 ? L("Giọng Siri tự nhiên hơn hẳn giọng mặc định. Đổi lại bất cứ lúc nào ở nút tuỳ chọn trên thanh giọng đọc.", "Siri voices sound far more natural than the default. Change it any time from the options button on the voice bar.")
+                 ? L("Giọng Siri nghe tự nhiên hơn giọng mặc định. Đổi lại lúc nào cũng được, ở nút tuỳ chọn trên thanh giọng đọc.", "Siri voices sound more natural than the default voice. You can change it any time from the options button on the voice bar.")
                  : L("Bạn đang tắt Giọng đọc nên có thể bỏ qua bước này.", "Voice is turned off, so you can skip this step."))
                 .font(.caption).foregroundStyle(.secondary).padding(.horizontal, 4).fixedSize(horizontal: false, vertical: true)
         }

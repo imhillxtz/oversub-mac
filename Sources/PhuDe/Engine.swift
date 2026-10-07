@@ -991,7 +991,7 @@ final class Engine: ObservableObject {
         let hasScreen = settings.screenTranslateEnabled && !settings.secondaryRegions.isEmpty
         guard hasMain || hasScreen else {
             status = settings.secondaryRegions.isEmpty ? L("Chưa có vùng nào. Bấm Chọn vùng phụ đề hoặc Thêm dịch màn hình.", "No regions yet. Click Select subtitle region or Add screen translation.")
-                                                       : L("Dịch màn hình đang tắt và chưa có khung phụ đề. Bật nút Dịch màn hình hoặc chọn vùng phụ đề.", "Screen translation is off and there's no subtitle region. Turn on Screen translation or select a subtitle region.")
+                                                       : L("Dịch màn hình đang tắt và chưa có vùng phụ đề. Bật nút Dịch màn hình hoặc chọn vùng phụ đề.", "Screen translation is off and there's no subtitle region. Turn on Screen translation or select a subtitle region.")
             return
         }
         if hasMain { start() }

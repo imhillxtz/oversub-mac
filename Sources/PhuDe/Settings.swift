@@ -378,10 +378,10 @@ enum EnginePreference: String, CaseIterable, Identifiable {
     }
     var detail: String {
         switch self {
-        case .quality: return L("Dịch vụ AI qua mạng trước (Gemini đứng đầu vì dịch hay nhất), Apple làm dự phòng. Engine bị chậm hoặc lỗi sẽ tự xuống cuối.", "Online AI services first (Gemini leads for quality), Apple as backup. A slow or failing engine drops to the end automatically.")
-        case .speed: return L("Engine trả lời nhanh nhất (theo độ trễ đo thực tế trong bảng trạng thái) đứng trước. Engine bị chậm hoặc lỗi sẽ tự xuống cuối.", "The fastest engine (by measured latency in the status table) goes first. A slow or failing engine drops to the end automatically.")
-        case .balanced: return L("Cân giữa chất lượng và độ trễ đo thực tế. Engine bị chậm hoặc lỗi sẽ tự xuống cuối.", "Balances quality against measured latency. A slow or failing engine drops to the end automatically.")
-        case .custom: return L("Theo đúng thứ tự bạn sắp xếp, chỉ bỏ qua engine đang lỗi.", "Uses exactly the order you set, skipping only engines that are failing.")
+        case .quality: return L("Dịch vụ AI qua mạng trước (Gemini đứng đầu vì dịch hay nhất), Apple làm dự phòng. Dịch vụ chậm hoặc lỗi tự xuống cuối.", "Online AI services first (Gemini leads for quality), Apple as backup. A slow or failing service drops to the end automatically.")
+        case .speed: return L("Dịch vụ trả lời nhanh nhất (theo độ trễ đo được trong bảng trạng thái) đứng trước. Dịch vụ chậm hoặc lỗi tự xuống cuối.", "The fastest service (by measured latency in the status table) goes first. A slow or failing service drops to the end automatically.")
+        case .balanced: return L("Cân giữa chất lượng và độ trễ đo được. Dịch vụ chậm hoặc lỗi tự xuống cuối.", "Balances quality against measured latency. A slow or failing service drops to the end automatically.")
+        case .custom: return L("Theo đúng thứ tự bạn sắp xếp, chỉ bỏ qua dịch vụ đang lỗi.", "Uses exactly the order you set, skipping only services that are failing.")
         }
     }
     var order: [EngineKind]? {
@@ -411,7 +411,7 @@ enum CaptureMode: String, CaseIterable, Identifiable {
     var detail: String {
         switch self {
         case .balanced: return L("Dịch cả câu khi chữ đã đứng yên một nhịp (khoảng 0,7 giây). Hợp với hầu hết game.", "Translates the whole line once the text has held still for a beat (about 0.7 seconds). Works for most games.")
-        case .progressive: return L("Cho game chữ hiện từng ký tự hoặc thoại dồn dập: chữ hiện xong cụm nào (dấu phẩy, dấu chấm, đủ vài từ) thì dịch và đọc cụm đó ngay, cụm đã dịch không dịch lại. Phụ đề có sớm nhất, đổi lại các cụm dịch riêng nên có thể kém mượt hơn.", "For games where text appears letter by letter or dialogue comes fast: each phrase is translated and read as soon as it finishes appearing (a comma, a period, or a few words), and translated phrases are never redone. Subtitles arrive soonest, but phrases are translated separately so they may read less smoothly.")
+        case .progressive: return L("Cho game hiện chữ từng ký tự hoặc thoại dồn dập. Chữ hiện xong cụm nào (tới dấu phẩy, dấu chấm, hoặc đủ vài từ) thì dịch cụm đó ngay, đủ câu thì đọc. Phụ đề hiện sớm nhất; đổi lại câu được dịch theo từng cụm nên đôi khi kém liền ý hơn dịch cả câu.", "For games that reveal text letter by letter or where dialogue comes fast. Each phrase is translated as soon as it finishes appearing (at a comma, a full stop, or after a few words), and read once the sentence is complete. Subtitles appear soonest, but because a line is translated phrase by phrase it can read a little less smoothly than a whole-line translation.")
         case .complete: return L("Chờ chữ đứng yên khoảng 1 giây rồi mới dịch cả câu. Chậm hơn một chút nhưng hầu như không dịch dở dang.", "Waits for the text to hold still for about 1 second, then translates the whole line. Slightly slower, but almost never translates a half-finished line.")
         }
     }
@@ -470,8 +470,8 @@ enum ScreenSpeed: String, CaseIterable, Identifiable {
     var detail: String {
         switch self {
         case .instant: return L("Dịch máy Apple ngay trên máy: khoảng 0,2 đến 0,5 giây, không tốn lượt API, không cần mạng. Câu chữ đôi khi cứng.", "Apple Translation on your Mac: about 0.2 to 0.5 seconds, no API requests, no network needed. Wording can be stiff at times.")
-        case .balanced: return L("Hiện ngay bản Dịch máy Apple, khoảng 1 đến 2 giây sau thay bằng bản AI mượt hơn. Chữ đã gặp thì hiện bản AI ngay từ trí nhớ.", "Shows the Apple Translation result right away, then replaces it with a smoother AI version 1 to 2 seconds later. Text seen before shows the AI version instantly from memory.")
-        case .quality: return L("Chỉ hiện bản AI (Gemini, Groq): chậm hơn 1 đến 3 giây nhưng văn mượt, đúng thuật ngữ game. Chữ đã gặp thì hiện ngay từ trí nhớ.", "Shows only the AI version (Gemini, Groq): 1 to 3 seconds slower, but smoother and true to the game's terms. Text seen before shows instantly from memory.")
+        case .balanced: return L("Hiện ngay bản Dịch máy Apple, khoảng 1 đến 2 giây sau thay bằng bản AI tự nhiên hơn. Chữ đã gặp thì hiện bản AI ngay từ trí nhớ.", "Shows the Apple Translation result right away, then replaces it with the more natural AI version 1 to 2 seconds later. Text seen before shows the AI version instantly from memory.")
+        case .quality: return L("Chỉ hiện bản AI (Gemini, Groq): chậm hơn 1 đến 3 giây nhưng câu văn tự nhiên, đúng thuật ngữ game. Chữ đã gặp thì hiện ngay từ trí nhớ.", "Shows only the AI version (Gemini, Groq): 1 to 3 seconds slower, but more natural and true to the game's terms. Text seen before shows instantly from memory.")
         }
     }
 }

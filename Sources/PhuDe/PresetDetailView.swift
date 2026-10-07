@@ -110,14 +110,14 @@ struct PresetDetailView: View {
 
             Section {
                 LabeledContent("Game", value: s.gameAppName ?? L("Chưa nhận diện", "Not detected"))
-                LabeledContent(L("Khung phụ đề", "Subtitle region"), value: s.region.map { L("\(Int($0.w)) × \(Int($0.h)) tại (\(Int($0.x)), \(Int($0.y)))", "\(Int($0.w)) × \(Int($0.h)) at (\(Int($0.x)), \(Int($0.y)))") } ?? L("Chưa chọn", "Not set"))
+                LabeledContent(L("Vùng phụ đề", "Subtitle region"), value: s.region.map { L("\(Int($0.w)) × \(Int($0.h)) tại (\(Int($0.x)), \(Int($0.y)))", "\(Int($0.w)) × \(Int($0.h)) at (\(Int($0.x)), \(Int($0.y)))") } ?? L("Chưa chọn", "Not set"))
                 LabeledContent(L("Dịch màn hình", "Screen translation"), value: { let n = (s.secondaryRegions ?? s.secondaryRegion.map { [$0] } ?? []).count; return n == 0 ? L("Không có vùng", "No regions") : L("\(n) vùng", "\(n) regions") }())
                 LabeledContent(L("Dịch", "Translation"), value: "\(SourceLanguage.find(s.sourceLanguage ?? f.sourceLanguage!).displayName) → \(TargetLanguage.find(s.targetLanguage ?? f.targetLanguage!).displayName)")
                 LabeledContent(L("Phụ đề đè lên game", "Subtitles over the game"), value: (s.overlayEnabled ?? true)
                                ? L("\(styleTitle), cỡ \(Int(s.overlayFontScale ?? 100))%", "\(styleTitle), size \(Int(s.overlayFontScale ?? 100))%") : L("Tắt", "Off"))
                 LabeledContent(L("Giọng đọc", "Voice"), value: speaks
                                ? ((s.dubCharacters ?? false) ? L("Dub, giọng theo nhân vật", "Dub, per-character voices") : L("Voice-over, một giọng Siri", "Voice-over, one Siri voice")) + ((s.duckEnabled ?? false) ? L(", giảm tiếng game", ", game audio lowered") : "") : L("Tắt", "Off"))
-                LabeledContent("Engine", value: EnginePreference(rawValue: s.enginePreference ?? "")?.title ?? L("Cân bằng", "Balanced"))
+                LabeledContent(L("Dịch vụ dịch", "Translation services"), value: EnginePreference(rawValue: s.enginePreference ?? "")?.title ?? L("Cân bằng", "Balanced"))
                 LabeledContent(L("Chất lượng dịch", "Translation quality"), value: [
                     (s.smartSubtitleOnly ?? true) ? L("lọc phụ đề", "subtitle filter") : nil, (s.smartPronouns ?? true) ? L("giữ xưng hô", "consistent forms of address") : nil,
                     (s.smartNames ?? true) ? L("giữ tên riêng", "names kept") : nil,
@@ -167,7 +167,7 @@ struct PresetDetailView: View {
                 LabeledContent(L("Thuật ngữ / luôn bỏ qua", "Glossary terms / always ignored"), value: "\(s.glossary?.count ?? 0) / \(s.ignoreList?.count ?? 0)")
                 contextPreview(p)
             } header: { Text(L("Trí nhớ game", "Game memory")) } footer: {
-                Text(L("Trí nhớ giúp giữ xưng hô, giọng nhân vật, tên riêng, và đọc ngay câu đã gặp. Tự lưu theo hồ sơ.", "Memory keeps forms of address, character voices and names consistent, and reads lines it has seen before right away. Saved automatically per profile."))
+                Text(L("Trí nhớ lưu cách xưng hô, giọng nhân vật, tên riêng và các câu đã dịch; câu gặp lại được đọc ngay. Tự lưu theo hồ sơ.", "Memory stores forms of address, character voices, names and lines already translated; a line seen before is read right away. Saved automatically per profile."))
             }
 
             Section {
@@ -188,7 +188,7 @@ struct PresetDetailView: View {
                 state.tick += 1
             }
         } message: {
-            Text(L("Dịch, phụ đề, giọng đọc, bắt thoại, engine về như lúc mới cài OverSub. Giữ khung phụ đề, vùng dịch màn hình, game đã nhận diện và trí nhớ game.", "Translation, subtitles, voice, dialogue capture and engine go back to how they were when OverSub was first installed. The subtitle region, screen regions, detected game and game memory are kept."))
+            Text(L("Dịch, phụ đề, giọng đọc, bắt thoại và dịch vụ dịch trở về như lúc mới cài OverSub. Vùng phụ đề, vùng dịch màn hình, game đã nhận diện và trí nhớ game được giữ.", "Translation, subtitles, voice, dialogue capture and translation services go back to how they were when OverSub was first installed. The subtitle region, screen regions, detected game and game memory are kept."))
         }
         .confirmationDialog(L("Xoá trí nhớ game của \"\(p.name)\"?", "Clear game memory for \"\(p.name)\"?"), isPresented: $state.confirmClearMemory) {
             Button(L("Xoá trí nhớ", "Clear memory"), role: .destructive) {
@@ -203,7 +203,7 @@ struct PresetDetailView: View {
             Button(L("Xoá", "Delete"), role: .destructive) { engine.deleteProfile(id); onBack() }
         } message: {
             Text(isLast
-                 ? L("Đây là hồ sơ cuối cùng. Xoá thì OverSub tạo lại một hồ sơ \"Mặc định\" với cài đặt ban đầu (giữ khung phụ đề).", "This is the last profile. If you delete it, OverSub creates a new \"Default\" profile with default settings (keeping the subtitle region).")
+                 ? L("Đây là hồ sơ cuối cùng. Xoá thì OverSub tạo lại một hồ sơ \"Mặc định\" với cài đặt ban đầu (giữ vùng phụ đề).", "This is the last profile. If you delete it, OverSub creates a new \"Default\" profile with default settings (keeping the subtitle region).")
                  : L("Xoá cả trí nhớ game của hồ sơ này. Không hoàn tác được.", "This also deletes the profile's game memory. This can't be undone."))
         }
     }
