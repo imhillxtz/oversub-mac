@@ -301,7 +301,7 @@ Usually a key has run out of quota. See **Settings → Translation services** fo
 - Re-select the subtitle region to fit snugly, ideally including the character name label.
 - Try another **Dialogue capture** mode (*Typewriter text* for games that reveal text letter by letter).
 - Check that **Game language** matches the subtitle language.
-- With *Run only while the game is in front* on, the app pauses when you switch to another app.
+- With *Pause while the game is hidden or covered* on, the app pauses when the game is minimized, you switch desktops, or another window covers the subtitle region. If you click another app but the game is still visible in the subtitle region, translation and voice keep going.
 </details>
 
 <details>

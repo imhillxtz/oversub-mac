@@ -36,6 +36,10 @@ final class AppModel {
         DebugSnapshot.updateTestIfRequested()
         DebugSnapshot.hideTestIfRequested()
         DebugSnapshot.screenRectIfRequested()
+        if let s = ProcessInfo.processInfo.environment["OVERSUB_FRONT_TEST"], let n = Int(s) {
+            let engine = engine
+            Task { @MainActor in try? await Task.sleep(for: .seconds(2)); await engine.debugFrontCheck(seconds: n) }
+        }
         // Thẻ cảm ơn theo mốc, chỉ để chụp giao diện (không ghi vào cài đặt).
         if ProcessInfo.processInfo.environment["OVERSUB_SUPPORT_TEST"] != nil { SupportPrompt.shared.debugShow(1_000) }
         #endif

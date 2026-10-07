@@ -83,6 +83,7 @@ final class Engine: ObservableObject {
     private var pendingRaw = ""
     private var speakerMisses = 0         // số lần đọc liên tiếp không thấy nhãn tên
     private var knownSpeakers: [String] = []   // tên người nói đã nhận được gần đây (để nhận ra khi tên bị dính vào câu)
+    private var behindNote: String?   // trạng thái game sau app khác đã ghi nhật ký gần nhất (để chỉ ghi khi đổi)
     private var recentDubs: [SpokenLine] = []   // các câu vừa đọc, để không đọc lại cùng một câu
     private struct SpokenLine { var norm: String; var source: String; var speaker: String; var at: Date }
     private var quickSawNothing = false   // lần quét này bộ đọc nhanh cũng không thấy chữ
@@ -834,10 +835,52 @@ final class Engine: ObservableObject {
         settings.gameBundleID = nil
     }
 
-    /// Game có đang ở phía trước không. Chưa nhận diện được game hoặc đã tắt tuỳ chọn thì luôn coi là có.
+    /// Game có đang hiện ở vùng phụ đề không. Chưa nhận diện được game hoặc đã tắt tuỳ chọn thì luôn coi là có.
+    /// Trước đây chỉ xét app đang được chọn: chơi console qua app xem capture (VisionRelay) bằng tay cầm, bấm sang app khác để
+    /// gõ việc gì đó là OverSub ngừng hẳn dù game vẫn chạy và thoại vẫn hiện (nhật ký 07/10: 224 lần tạm ngưng, nhiều lần lỡ thoại).
+    /// Giờ game không được chọn mà cửa sổ game vẫn nằm trên cùng ở vùng phụ đề thì vẫn đọc; chỉ tạm ngưng khi game bị ẩn hoặc
+    /// cửa sổ app khác che vùng phụ đề (lúc đó vùng chọn chứa chữ của app khác).
     private func isGameInFront() -> Bool {
         guard settings.pauseWhenGameHidden, let bundle = settings.gameBundleID else { return true }
-        return NSWorkspace.shared.frontmostApplication?.bundleIdentifier == bundle
+        if NSWorkspace.shared.frontmostApplication?.bundleIdentifier == bundle {
+            behindNote = nil
+            return true
+        }
+        let (visible, cover) = gameVisibleInRegion(bundle: bundle)
+        // Ghi nhật ký khi đổi trạng thái: đang chọn app nào, game còn hiện ở vùng phụ đề không, nếu bị che thì do app nào.
+        let front = NSWorkspace.shared.frontmostApplication?.localizedName ?? "?"
+        let note = visible ? "Đang chọn \(front), game vẫn hiện ở vùng phụ đề: vẫn đọc" : "Đang chọn \(front), vùng phụ đề \(cover.map { "bị \($0) che" } ?? "không thấy game")"
+        if note != behindNote { behindNote = note; DebugLog.write(note) }
+        return visible
+    }
+
+    /// Cửa sổ trên cùng chiếm vùng phụ đề có phải của game không. Xét các cửa sổ thường (từ trên xuống), bỏ qua cửa sổ của
+    /// chính OverSub (ảnh chụp đã loại trừ chúng): gặp cửa sổ game trước thì game đang hiện; gặp cửa sổ app khác che từ một
+    /// phần tư vùng trở lên thì coi là bị che. Trả kèm tên app che (để ghi nhật ký).
+    private func gameVisibleInRegion(bundle: String) -> (Bool, String?) {
+        guard let region = settings.region, let screen = resolveScreen(for: region) else { return (false, nil) }
+        let f = screen.frame
+        let mainH = NSScreen.screens.first?.frame.height ?? f.height
+        // Toạ độ toàn cục gốc trên trái, như CGWindowList dùng.
+        let rect = CGRect(x: f.minX + region.x, y: mainH - (f.maxY - region.y), width: region.w, height: region.h)
+        let area = max(1, rect.width * rect.height)
+        let me = ProcessInfo.processInfo.processIdentifier
+        let windows = (CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]) ?? []
+        for info in windows {   // xếp từ trên xuống dưới
+            guard (info[kCGWindowLayer as String] as? Int) == 0,
+                  let ownerPID = info[kCGWindowOwnerPID as String] as? Int32, ownerPID != me,
+                  (info[kCGWindowAlpha as String] as? Double ?? 1) > 0.05,
+                  let dict = info[kCGWindowBounds as String] as? NSDictionary,
+                  let b = CGRect(dictionaryRepresentation: dict as CFDictionary) else { continue }
+            let overlap = b.intersection(rect)
+            guard !overlap.isNull, overlap.width * overlap.height > 0 else { continue }
+            let app = NSRunningApplication(processIdentifier: ownerPID)
+            if app?.bundleIdentifier == bundle { return (true, nil) }
+            if overlap.width * overlap.height >= area * 0.25 {
+                return (false, app?.localizedName ?? info[kCGWindowOwnerName as String] as? String)
+            }
+        }
+        return (false, nil)
     }
 
     /// Chụp vùng đã chọn. Trả về ảnh và vùng (để đặt lớp phủ).
@@ -1081,9 +1124,9 @@ final class Engine: ObservableObject {
         let front = isGameInFront()
         if front != gameInFront {
             gameInFront = front
-            DebugLog.write(front ? "Game trở lại phía trước, đọc tiếp" : "Game không ở phía trước, tạm ngưng đọc")
+            DebugLog.write(front ? "Game hiện lại ở vùng phụ đề, đọc tiếp" : "Game bị ẩn hoặc bị che ở vùng phụ đề, tạm ngưng đọc")
             if !front { hideOverlay(); lastSignature = nil }
-            status = front ? L("Đang nhận phụ đề…", "Watching for subtitles…") : L("Tạm ngưng: \(settings.gameAppName ?? "game") không ở phía trước.", "Paused: \(settings.gameAppName ?? "game") isn't in front.")
+            status = front ? L("Đang nhận phụ đề…", "Watching for subtitles…") : L("Tạm ngưng: \(settings.gameAppName ?? "game") đang bị ẩn hoặc bị cửa sổ khác che.", "Paused: \(settings.gameAppName ?? "the game") is hidden or covered by another window.")
         }
         guard front else { return }
         do {
@@ -1360,6 +1403,16 @@ final class Engine: ObservableObject {
     /// Thử chế độ chữ chạy không cần game: đưa lần lượt từng lần "đọc chữ" vào đúng đường xử lý. Sau mỗi lần đọc, nghỉ `wait`
     /// giây; trong lúc nghỉ thì giả lập khung hình đứng yên như vòng quét thật (mỗi nhịp 0,25 giây).
     /// Như vòng quét thật sau bước OCR: tách nhãn tên đã biết, giữ tên người nói, rồi xử lý chữ theo chế độ chữ chạy.
+    /// Thử nhận biết game có đang hiện ở vùng phụ đề (OVERSUB_FRONT_TEST=giây): ghi kết quả mỗi giây vào nhật ký.
+    func debugFrontCheck(seconds: Int) async {
+        for _ in 0..<seconds {
+            let front = NSWorkspace.shared.frontmostApplication?.localizedName ?? "?"
+            DebugLog.write("Thử game ở vùng phụ đề: đang chọn \(front) → \(isGameInFront() ? "đọc" : "tạm ngưng")")
+            try? await Task.sleep(for: .seconds(1))
+        }
+        DebugLog.write("=== Hết thử game ở vùng phụ đề ===")
+    }
+
     func debugRead(_ lines: [String], speaker: String?, wait: Double) async {
         let ocr = lines.map { OCRLine(text: $0, box: .zero) }
         let (body, name) = Self.splitKnownLabel(ocr, speaker: speaker, known: knownSpeakers)
@@ -1434,6 +1487,7 @@ final class Engine: ObservableObject {
         var finishWhenDone = false   // chữ đã đứng yên hoặc câu đã bị thay: ghép xong các cụm đang dịch thì đọc nốt
         var boost: Double?           // tốc độ đọc tính một lần cho cả câu, các cụm đọc cùng một nhịp
         var lastTask: Task<Void, Never>?   // cụm gửi dịch gần nhất: cụm sau chờ cụm trước để có bản dịch của nó làm ngữ cảnh
+        var earlyFlush: Task<Void, Never>?   // hẹn đọc trước phần đã dịch khi phần sau của câu tới chậm
         var firstSeen = 0            // số ký tự lần đầu thấy câu này
         var typedIn = false          // câu được game gõ ra dần trên màn hình (chữ dài thêm hẳn so với lần đầu thấy)
         var pending: Int { nextSeq - applied }
@@ -1548,10 +1602,28 @@ final class Engine: ObservableObject {
     /// Xét dấu kết thúc ở cả chữ gốc lẫn bản dịch: với cụm nối tiếp, AI hay bỏ dấu chấm cuối bản dịch dù câu gốc đã hết
     /// ("...grew side-by-side." → "...lớn lên cùng nhau"), nếu chỉ xét bản dịch thì câu nằm chờ tới khi câu sau hiện ra.
     private func queueLineDub(_ line: ProgLine, text: String, source: String, stable: Bool) {
+        line.earlyFlush?.cancel()
+        line.earlyFlush = nil
         line.dub += (line.dub.isEmpty ? "" : " ") + text
         line.dubSource += (line.dubSource.isEmpty ? "" : " ") + source
         func ends(_ s: String) -> Bool { s.trimmingCharacters(in: .whitespaces).last.map { ".!?…。！？\"”".contains($0) } ?? false }
-        if ends(text) || ends(source) || stable { flushLineDub(line) }
+        if ends(text) || ends(source) || stable { flushLineDub(line); return }
+        // Phần đầu câu đã dịch mà phần sau chưa tới (AI chậm, hoặc game còn đang gõ): chờ một chút, chưa có thì đọc trước phần
+        // đã có, phần sau đọc nối khi dịch xong. Trước đây giọng chờ đủ cả câu: phụ đề hiện nửa đầu rồi 5–6 giây sau mới nghe đọc
+        // (nhật ký 07/10 21:32, cả Gemini lẫn Groq cùng chậm). Ngắt ở dấu phẩy nghe tự nhiên nên chờ ngắn; ngắt giữa cụm từ thì
+        // chờ lâu hơn và chỉ khi phần sau đang dịch dở (còn chờ game gõ tiếp thì để cơ chế chữ đứng yên lo).
+        func pause(_ s: String) -> Bool { s.trimmingCharacters(in: .whitespaces).last.map { ",;:—–".contains($0) } ?? false }
+        // Cụm sau thường dịch xong sau 1–1,7 giây (Gemini, hoặc Groq khi Gemini quá 1 giây): chờ quá mức đó mới tách, không thì
+        // câu bị đọc thành hai đoạn rời mà chẳng nhanh hơn bao nhiêu (đo thử: chờ 0,8 giây thì "Ngày trước," bị đọc riêng, cụm sau
+        // tới chỉ chậm hơn 0,15 giây). Những lần chậm thật (4–6 giây) thì vẫn đọc sớm được vài giây.
+        let wait: Double? = pause(text) || pause(source) ? 1.8 : (line.pending > 0 ? 2.5 : nil)
+        guard let wait else { return }
+        line.earlyFlush = Task { [weak self, weak line] in
+            try? await Task.sleep(for: .seconds(wait))
+            guard !Task.isCancelled, let self, let line, !line.dub.isEmpty else { return }
+            DebugLog.write(String(format: "Lồng tiếng: phần sau của câu chưa tới sau %.1f s, đọc trước phần đã dịch", wait))
+            self.flushLineDub(line)
+        }
     }
 
     private func flushLineDub(_ line: ProgLine) {

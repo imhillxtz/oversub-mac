@@ -858,8 +858,8 @@ struct SettingsView: View {
                 LabeledContent(L("Game đang nhận", "Detected game")) {
                     Text(settings.gameAppName ?? L("Chưa nhận. Chọn vùng khi game đang mở.", "None yet. Select a region while the game is open.")).foregroundStyle(.secondary)
                 }
-                Toggle(L("Chỉ chạy khi game đang ở phía trước", "Run only while the game is in front"), isOn: $settings.pauseWhenGameHidden)
-                Note(L("Lúc chọn vùng, app nằm dưới vùng được nhận là game. Chuyển sang app hay màn hình làm việc khác thì OverSub tạm ngưng và ẩn bản dịch; quay lại game là chạy tiếp.", "When you select a region, the app beneath it is taken as the game. Switch to another app or desktop and OverSub pauses and hides translations; come back to the game and it resumes."))
+                Toggle(L("Tạm ngưng khi game bị ẩn hoặc bị che", "Pause while the game is hidden or covered"), isOn: $settings.pauseWhenGameHidden)
+                Note(L("Lúc chọn vùng, app nằm dưới vùng được nhận là game. Bấm sang app khác mà game vẫn hiện ở vùng phụ đề (vd. chơi console bằng tay cầm, gõ việc khác ở cửa sổ bên cạnh) thì vẫn dịch và đọc. Game bị thu nhỏ, chuyển màn hình làm việc, hay cửa sổ khác che vùng phụ đề thì tạm ngưng và ẩn bản dịch.", "When you select a region, the app beneath it is taken as the game. If you click another app but the game is still visible in the subtitle region (e.g. playing a console with a controller while typing in a window beside it), translation and voice keep going. If the game is minimized, you switch desktops, or another window covers the subtitle region, OverSub pauses and hides translations."))
             } header: { Text("Game") }
         }
         .task(id: settings.sourceLanguage + ">" + settings.targetLanguage) {

@@ -348,19 +348,23 @@ final class Speaker: NSObject, ObservableObject, NSSpeechSynthesizerDelegate {
     // MARK: Phát
 
     private var isEngineJobPlaying = false
+    private var lastGroup: ObjectIdentifier?   // nhóm (câu) của đoạn vừa đọc
 
     private func advance() {
         guard current == nil else { return }
         guard !queue.isEmpty else { setSpeaking(nil); currentText = nil; scheduleRelease(); scheduleIdleStop(); return }
         let job = queue.removeFirst()
-        // Câu đã quá cũ mà còn câu mới hơn đang chờ: bỏ, để giọng không trễ xa so với màn hình.
-        if settings.dropStaleLines, !job.line.force, !queue.isEmpty, Date().timeIntervalSince(job.line.created) > 6 {
+        // Câu đã quá cũ mà còn câu mới hơn đang chờ: bỏ, để giọng không trễ xa so với màn hình. Phần nối tiếp của câu vừa đọc
+        // (cùng nhóm, đọc trước phần đầu khi phần sau dịch chậm) thì không bỏ, không thì câu bị cụt giữa chừng.
+        let continuing = job.line.group != nil && job.line.group == lastGroup
+        if settings.dropStaleLines, !job.line.force, !continuing, !queue.isEmpty, Date().timeIntervalSince(job.line.created) > 6 {
             job.task?.cancel()
             DebugLog.write("Lồng tiếng: bỏ câu đã trễ \(Int(Date().timeIntervalSince(job.line.created))) giây: \(job.line.text.prefix(40))")
             advance()
             return
         }
         current = job
+        lastGroup = job.line.group
         isEngineJobPlaying = false
         setSpeaking(job.line.speaker ?? "")
         duck(true)

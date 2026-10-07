@@ -301,7 +301,7 @@ Thường là key đã hết hạn mức. Xem **Cài đặt → Dịch vụ dị
 - Chọn lại vùng phụ đề cho vừa khít, nên bao cả nhãn tên nhân vật.
 - Thử đổi **Cách bắt thoại** (game hiện từng chữ thì chọn *Chữ chạy*).
 - Kiểm tra **Ngôn ngữ trong game** đúng với ngôn ngữ phụ đề.
-- Nếu bật *Chỉ chạy khi game đang ở phía trước*, app tạm ngưng khi bạn chuyển sang app khác.
+- Nếu bật *Tạm ngưng khi game bị ẩn hoặc bị che*, app tạm ngưng khi game bị thu nhỏ, bạn chuyển màn hình làm việc, hay cửa sổ khác che vùng phụ đề. Bấm sang app khác mà game vẫn hiện ở vùng phụ đề thì app vẫn dịch và đọc.
 </details>
 
 <details>
