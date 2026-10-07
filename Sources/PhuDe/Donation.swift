@@ -254,7 +254,7 @@ struct DonateView: View {
                     if state.channel == .vietQR { details } else { paypalButton }
                     Text(state.channel == .vietQR
                          ? L("Tên được thêm sẵn vào nội dung chuyển khoản trong mã QR để mình ghi vào bảng cảm ơn. Để trống nếu muốn ẩn danh.", "Your name is added to the transfer message in the QR code so it can go on the thank-you list. Leave it empty to stay anonymous.")
-                         : L("Muốn có tên trong bảng cảm ơn? Ghi tên vào lời nhắn PayPal.", "Want your name on the thank-you list? Add it to the PayPal note."))
+                         : L("Để có tên trong bảng cảm ơn, ghi tên của bạn vào lời nhắn PayPal nhé.", "To get your name on the thank-you list, add it to the PayPal note."))
                         .font(.caption).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
