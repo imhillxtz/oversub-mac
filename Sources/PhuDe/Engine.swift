@@ -83,6 +83,7 @@ final class Engine: ObservableObject {
     private var pendingRaw = ""
     private var speakerMisses = 0         // số lần đọc liên tiếp không thấy nhãn tên
     private var knownSpeakers: [String] = []   // tên người nói đã nhận được gần đây (để nhận ra khi tên bị dính vào câu)
+    private var awakeToken: NSObjectProtocol?   // đang giữ màn hình sáng (bỏ khi dừng hay tắt tuỳ chọn)
     private var behindNote: String?   // trạng thái game sau app khác đã ghi nhật ký gần nhất (để chỉ ghi khi đổi)
     private var recentDubs: [SpokenLine] = []   // các câu vừa đọc, để không đọc lại cùng một câu
     private struct SpokenLine { var norm: String; var source: String; var speaker: String; var at: Date }
@@ -162,6 +163,12 @@ final class Engine: ObservableObject {
         }.store(in: &bag)
         hub.warmUp()
         settings.$globalHotkeys.removeDuplicates().sink { [weak self] on in self?.setHotkeys(on) }.store(in: &bag)
+        // Giữ màn hình sáng trong lúc chạy: chơi bằng tay cầm thì Mac không nhận thao tác, tự tắt màn hình hay khoá máy giữa chừng.
+        Publishers.CombineLatest3(settings.$keepScreenAwake, $running, $screenTranslateOn)
+            .map { keep, running, screen in keep && (running || screen) }
+            .removeDuplicates()
+            .sink { [weak self] want in self?.setKeepAwake(want) }
+            .store(in: &bag)
         gamepad.onReplay = { [weak self] in self?.replayLast() }
         gamepad.onToggleVoice = { [weak self] in self?.toggleDub() }
         gamepad.onToggleSubtitles = { [weak self] in self?.toggleOverlay() }
@@ -859,6 +866,20 @@ final class Engine: ObservableObject {
         let note = visible ? "Đang chọn \(front), game vẫn hiện ở vùng phụ đề: vẫn đọc" : "Đang chọn \(front), vùng phụ đề \(cover.map { "bị \($0) che" } ?? "không thấy game")"
         if note != behindNote { behindNote = note; DebugLog.write(note) }
         return visible
+    }
+
+    /// Giữ (hoặc thôi giữ) màn hình sáng: không tắt màn hình, không chạy bảo vệ màn hình nên cũng không tự khoá máy.
+    /// Dùng cơ chế chuẩn của macOS như trình xem phim; app thoát thì hệ thống tự bỏ.
+    private func setKeepAwake(_ on: Bool) {
+        if on, awakeToken == nil {
+            awakeToken = ProcessInfo.processInfo.beginActivity(options: [.idleDisplaySleepDisabled, .idleSystemSleepDisabled],
+                                                               reason: "OverSub đang đọc phụ đề trên màn hình")
+            DebugLog.write("Giữ màn hình luôn sáng trong lúc chạy")
+        } else if !on, let token = awakeToken {
+            ProcessInfo.processInfo.endActivity(token)
+            awakeToken = nil
+            DebugLog.write("Thôi giữ màn hình sáng")
+        }
     }
 
     /// Màn hình không dùng được lúc này (khoá máy, bảo vệ màn hình, màn hình tắt, đang ở phiên người dùng khác): trả lý do.

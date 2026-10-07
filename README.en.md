@@ -302,6 +302,7 @@ Usually a key has run out of quota. See **Settings → Translation services** fo
 - Try another **Dialogue capture** mode (*Typewriter text* for games that reveal text letter by letter).
 - Check that **Game language** matches the subtitle language.
 - With *Pause while the game is hidden or covered* on, the app pauses when the game is minimized, you switch desktops, or another window covers the subtitle region. If you click another app but the game is still visible in the subtitle region, translation and voice keep going.
+- *Keep the screen on while running* (on by default): with a controller your Mac sees no input and tends to turn off the screen or lock partway through; while OverSub runs, the screen stays on, and clicking Stop brings everything back to normal.
 </details>
 
 <details>

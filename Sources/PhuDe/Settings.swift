@@ -609,6 +609,8 @@ final class AppSettings: ObservableObject {
     }
     @Published var activePresetID: UUID? { didSet { d.set(activePresetID?.uuidString, forKey: "activePresetID") } }
     @Published var pauseWhenGameHidden: Bool { didSet { d.set(pauseWhenGameHidden, forKey: "pauseWhenGameHidden") } }
+    /// Giữ màn hình luôn sáng (không tắt, không bảo vệ màn hình, không tự khoá) trong lúc OverSub đang chạy.
+    @Published var keepScreenAwake: Bool { didSet { d.set(keepScreenAwake, forKey: "keepScreenAwake") } }
     /// Vùng dịch màn hình (tối đa 3): dịch tại chỗ chữ ngoài lời thoại (bảng nhiệm vụ, mô tả vật phẩm...), chạy riêng với phụ đề.
     /// Giữ tên khoá cũ "secondaryRegions" để không mất vùng đã lưu.
     @Published var secondaryRegions: [CaptureRegion] {
@@ -694,6 +696,7 @@ final class AppSettings: ObservableObject {
         gameAppName = d.string(forKey: "gameAppName")
         gameBundleID = d.string(forKey: "gameBundleID")
         pauseWhenGameHidden = d.object(forKey: "pauseWhenGameHidden") as? Bool ?? true
+        keepScreenAwake = d.object(forKey: "keepScreenAwake") as? Bool ?? true
         presets = d.data(forKey: "presets").flatMap { try? JSONDecoder().decode([Preset].self, from: $0) } ?? []
         activePresetID = d.string(forKey: "activePresetID").flatMap(UUID.init(uuidString:))
         // Bản trước chỉ có một vùng phụ ("secondaryRegion").

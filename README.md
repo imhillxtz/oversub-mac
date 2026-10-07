@@ -302,6 +302,7 @@ Thường là key đã hết hạn mức. Xem **Cài đặt → Dịch vụ dị
 - Thử đổi **Cách bắt thoại** (game hiện từng chữ thì chọn *Chữ chạy*).
 - Kiểm tra **Ngôn ngữ trong game** đúng với ngôn ngữ phụ đề.
 - Nếu bật *Tạm ngưng khi game bị ẩn hoặc bị che*, app tạm ngưng khi game bị thu nhỏ, bạn chuyển màn hình làm việc, hay cửa sổ khác che vùng phụ đề. Bấm sang app khác mà game vẫn hiện ở vùng phụ đề thì app vẫn dịch và đọc.
+- *Giữ màn hình luôn sáng khi đang chạy* (bật sẵn): chơi bằng tay cầm thì Mac không nhận thao tác nào nên hay tự tắt màn hình hoặc khoá máy giữa chừng; trong lúc OverSub chạy, màn hình luôn sáng, bấm Dừng là trở lại bình thường.
 </details>
 
 <details>
