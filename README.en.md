@@ -74,14 +74,14 @@ Other features:
 
 1. Go to [Releases](https://github.com/imhillxtz/oversub-mac/releases/latest) and download `OverSub-x.y.z.dmg`.
 2. Open the `.dmg` and drag OverSub into Applications.
-3. Open OverSub. The first time, macOS blocks it because the app isn't notarized by Apple. I don't have a paid Apple developer account yet, so I can't notarize it; any app shared outside the App Store in that situation gets blocked the same way, and the source is right here for you to check. Go to System Settings → Privacy & Security, scroll down, click **Open Anyway** next to OverSub and confirm.
+3. Open OverSub. The first time, macOS blocks it because the app isn't notarized by Apple. OverSub is distributed outside the App Store without a paid Apple developer account, so it can't be notarized yet; any app in that situation is blocked the same way. The source code is public here if you'd like to check it. Go to System Settings → Privacy & Security, scroll down, click **Open Anyway** next to OverSub and confirm.
 4. Follow the in-app guide. After granting Screen Recording, quit OverSub completely (⌘Q) and open it again so the permission takes effect.
 
 ### Updates
 
 Since version 1.1.42, OverSub checks the Releases page for new versions about twice a day. When one is out, the status line at the bottom of the main window shows "Version x is available · Update". Click Update and the app downloads it, verifies its digital signature, replaces the old version and reopens. If you don't want an interruption while you play, turn on "Download updates automatically and install when quitting" in Settings → General; the new version is then swapped in when you quit OverSub. Settings, keys, game profiles and the Screen Recording permission are kept.
 
-Versions 1.1.41 and earlier can't update themselves. If you're on one of those, download the new `.dmg` and drag it over the old app once; after that, updates happen in the app.
+Versions 1.1.41 and earlier can't update themselves. If you're on one of those, download the new `.dmg` and drag it over the old app once; later versions update themselves.
 
 ## Get started in 5 minutes
 
@@ -313,37 +313,37 @@ Turn on Keep proper names as is and add the names in Settings → Style & glossa
 
 ## Feedback and bug reports
 
-If you run into a bug or have an idea for a feature, please open an [Issue](https://github.com/imhillxtz/oversub-mac/issues). To help me track it down, include your OverSub version (shown in Settings → General), the game, how it shows subtitles, and if you can, part of the log around the problem (`~/Library/Logs/OverSub/debug.log`). Please read the log before sending it, since it contains text from your game.
+If you run into a bug or have an idea for a feature, please open an [Issue](https://github.com/imhillxtz/oversub-mac/issues). To help track it down, include your OverSub version (shown in Settings → General), the game, how it shows subtitles, and if you can, part of the log around the problem (`~/Library/Logs/OverSub/debug.log`). Please read the log before sending it, since it contains text from your game.
 
-If a game works well, I'd love to hear that too. A short Issue like "game X works with mode Y" saves the next player some trial and error.
+Reports of games that work well are welcome too. A short Issue like "game X works with mode Y" saves the next player some trial and error.
 
-The source is public for anyone to read, but copyright is reserved. If you'd like to contribute code, please open an Issue so we can talk it over first.
+The source is public for anyone to read, but copyright is reserved. If you'd like to contribute code, please open an Issue to discuss it first.
 
 ## Support OverSub
 
-OverSub is free for everyone. I made it so anyone playing games on a Mac can follow the story, even when the game isn't in their language. If OverSub makes your games more fun, I'd be grateful if you bought me a coffee. Every donation, big or small, gives me more time to fix bugs, support more games and add new features.
+OverSub is free for everyone. It was made so that anyone playing games on a Mac can follow the story, even when the game isn't in their language. If you find it useful, you can buy me a coffee to support its development. Every contribution, large or small, helps fund bug fixes, support for more games and new features.
 
 <img src="Docs/images/donate-vietqr.png" width="180" align="right" alt="VietQR code to support OverSub">
 
 - International: [paypal.me/ngochieuit](https://paypal.me/ngochieuit).
 - In Vietnam: scan the VietQR code with a banking app, MoMo or ZaloPay (recipient TRINH NGOC HIEU, MoMo wallet, message "OverSub"). In the app, click Support at the bottom of the main window to pick an amount and add your name to the code.
-- If donating isn't an option right now, starring this repository or telling a friend who plays games helps a lot too.
+- Starring this repository or recommending OverSub to a friend is another way to help.
 
 <br clear="right">
 
 ### Thank-you list
 
-Thank you to everyone who has supported OverSub. I read every message and add your names here myself.
+Thank you to everyone who has supported OverSub. This list is updated after each donation that includes a name.
 
-To have your name here and in the app's Support window, just type a name or nickname in the Your name field before scanning the code. It goes into the transfer message, because many banking apps don't let you edit the message after scanning. For a manual transfer, use the message "OverSub your-name"; with PayPal, put your name in the note. If you'd rather stay anonymous, leave it empty.
+To have your name listed here and in the app's Support window, enter a name or nickname in the Your name field before scanning the code. It goes into the transfer message, because many banking apps don't let you edit the message after scanning. For a manual transfer, please use the message "OverSub your-name"; with PayPal, add your name to the note. To stay anonymous, leave the field empty.
 
 <!-- Newest first; the in-app list comes from Docs/supporters.json -->
-No names yet. Maybe yours will be the first.
+The list will be updated after the first donation.
 
 ## Copyright
 
 © 2026 imhillxtz. All rights reserved.
 
-I've made the source public so you can check for yourself what the app does on your Mac. OverSub isn't open-source software, so please don't copy, modify, redistribute or reuse the code in another product without my written permission. The official builds on the Releases page are yours to use for free. The details are in [LICENSE](LICENSE).
+The source code is public so you can check for yourself what the app does on your Mac. OverSub is not open-source software: copying, modifying, redistributing or reusing the code in another product requires the author's written permission. The official builds on the Releases page are free to use. See [LICENSE](LICENSE) for details.
 
 Game names and trademarks mentioned here belong to their owners. OverSub uses services and technologies from Apple, Google, Groq, Cerebras, Mistral and OpenRouter under each provider's terms.

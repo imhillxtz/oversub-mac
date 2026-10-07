@@ -130,7 +130,7 @@ struct PresetDetailView: View {
                     .padding(.vertical, 4)
                 HStack {
                     Note(RegionThumbs.image(for: p.id) == nil
-                         ? L("Chưa có ảnh xem trước. Bạn bấm Chỉnh vùng rồi lưu lại để có ảnh màn hình kèm các vùng.", "No preview yet. Click Edit regions and save to capture a screenshot with the regions.")
+                         ? L("Chưa có ảnh xem trước. Bấm Chỉnh vùng rồi lưu lại để có ảnh màn hình kèm các vùng.", "No preview yet. Click Edit regions and save to capture a screenshot with the regions.")
                          : L("Ảnh màn hình lúc lưu vùng. Viền trắng là vùng phụ đề, viền cam là vùng dịch màn hình.", "Screenshot from when the regions were saved. The white outline is the subtitle region; orange outlines are screen regions."))
                     Spacer()
                     Button(L("Chỉnh vùng…", "Edit regions…")) { engine.editRegions(forProfile: id) }

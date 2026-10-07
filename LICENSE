@@ -36,27 +36,26 @@ Mistral, OpenRouter and others) are used under their own terms.
 
 Bản quyền (c) 2026 imhillxtz. Bảo lưu mọi quyền.
 
-Mình công khai mã nguồn để bạn tự xem được OverSub làm gì trên máy bạn, cho
-yên tâm. OverSub không phải phần mềm mã nguồn mở, nên có vài điều mình mong
-bạn giữ giúp.
+Mã nguồn được công khai để bạn có thể tự kiểm tra OverSub làm gì trên máy
+của mình. OverSub không phải phần mềm mã nguồn mở; phạm vi sử dụng được
+quy định như sau.
 
-Bạn cứ thoải mái làm những việc này, không cần hỏi:
+Bạn được phép, không cần xin phép trước:
   - xem và đọc mã nguồn trên GitHub;
   - fork kho này trên GitHub, trong phạm vi Điều khoản dịch vụ của GitHub
-    cho kho công khai;
-  - tải và dùng miễn phí các bản cài chính thức ở trang Releases của kho
+    dành cho kho công khai;
+  - tải và sử dụng miễn phí các bản cài chính thức ở trang Releases của kho
     này, giữ nguyên không chỉnh sửa, cho mục đích cá nhân.
 
-Những việc sau cần có sự đồng ý bằng văn bản của mình (người giữ bản quyền)
-trước:
-  - sao chép, sửa đổi, gộp hay dịch mã nguồn, toàn bộ hay một phần;
-  - dựng, phát hành, phân phối, cấp phép lại hay bán phần mềm, hoặc sản
-    phẩm phái sinh từ nó;
-  - dùng mã nguồn, dù chỉ một phần, trong sản phẩm hay dịch vụ khác, dù có
-    nhằm mục đích thương mại hay không.
+Các việc sau cần có sự đồng ý bằng văn bản của tác giả (người giữ bản
+quyền):
+  - sao chép, sửa đổi, gộp hoặc dịch mã nguồn, toàn bộ hay một phần;
+  - dựng, phát hành, phân phối, cấp phép lại hoặc bán phần mềm, hay sản
+    phẩm phái sinh từ phần mềm;
+  - sử dụng mã nguồn, dù chỉ một phần, trong sản phẩm hoặc dịch vụ khác,
+    dù có nhằm mục đích thương mại hay không.
 
-Nếu bạn muốn làm một trong những việc trên, cứ mở một Issue trên kho này để
-trao đổi với mình nhé.
+Để xin phép, vui lòng mở một Issue trên kho này.
 
-Phần mềm được cung cấp "nguyên trạng", không kèm bảo đảm nào. Nếu hai bản
-có chỗ hiểu khác nhau, bản tiếng Anh ở trên là bản có hiệu lực.
+Phần mềm được cung cấp "nguyên trạng", không kèm bất kỳ bảo đảm nào. Nếu
+có khác biệt giữa hai bản, bản tiếng Anh ở trên là bản có hiệu lực.

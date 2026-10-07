@@ -37,8 +37,8 @@ struct OnboardingView: View {
         case 0: return L("OverSub nhận chữ trong game ngay trên màn hình và dịch tại chỗ.", "OverSub reads in-game text right off the screen and translates it in place.")
         case 1: return L("Đổi lại bất cứ lúc nào trong Cài đặt.", "You can change this any time in Settings.")
         case 2: return L("Ba tính năng bật tắt độc lập, bằng ba nút tròn ở cửa sổ chính.", "Three independent features, toggled with the three round buttons in the main window.")
-        case 3: return L("OverSub đọc bằng giọng Siri bạn chọn trong macOS. Chọn một lần là xong.", "OverSub reads with the Siri voice you choose in macOS. You only do this once.")
-        default: return L("Bạn mở game lên rồi kéo một khung quanh chỗ cần dịch. Mỗi game chỉ cần làm một lần.", "Open your game and drag a box around the text. Once per game.")
+        case 3: return L("OverSub đọc bằng giọng Siri bạn chọn trong macOS. Chỉ cần chọn một lần.", "OverSub reads with the Siri voice you choose in macOS. You only do this once.")
+        default: return L("Mở game, rồi kéo một khung quanh chỗ cần dịch. Mỗi game chỉ cần làm một lần.", "Open your game and drag a box around the text. Once per game.")
         }
     }
 
@@ -180,7 +180,7 @@ struct OnboardingView: View {
                 } else {
                     VStack(alignment: .leading, spacing: 1) {
                         Text(L("Cần quyền Ghi màn hình để nhận chữ", "Screen Recording is needed to read the text")).font(.callout.weight(.medium))
-                        Text(L("Bạn bật OverSub trong danh sách, rồi thoát hẳn và mở lại app. Ảnh màn hình không rời khỏi máy.", "Turn on OverSub in the list, then quit and reopen the app. Screenshots never leave your Mac."))
+                        Text(L("Bật OverSub trong danh sách, sau đó thoát hẳn và mở lại app. Ảnh màn hình không rời khỏi máy.", "Turn on OverSub in the list, then quit and reopen the app. Screenshots never leave your Mac."))
                             .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer(minLength: 8)
@@ -290,7 +290,7 @@ struct OnboardingView: View {
                     L("Menu, bảng nhiệm vụ, mô tả vật phẩm được dịch tại chỗ.", "Menus, quest logs and item text are translated in place."),
                     toggle: $settings.screenTranslateEnabled)
             }
-            Text(L("Nếu chỉ muốn nghe mà không cần chữ, bạn tắt Phụ đề và giữ Giọng đọc; giọng vẫn đọc lời thoại trong vùng phụ đề.",
+            Text(L("Nếu chỉ muốn nghe mà không cần chữ, hãy tắt Phụ đề và giữ Giọng đọc; giọng vẫn đọc lời thoại trong vùng phụ đề.",
                    "Just want to listen? Turn off Subtitles and keep Voice: it still reads the dialogue in the subtitle region."))
                 .font(.caption).foregroundStyle(.secondary).padding(.horizontal, 4).fixedSize(horizontal: false, vertical: true)
         }

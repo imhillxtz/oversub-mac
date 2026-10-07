@@ -51,7 +51,7 @@ final class ScreenGrabber {
         guard let screen = resolveScreen(for: region), let id = displayIDOf( screen),
               let display = content.displays.first(where: { $0.displayID == id }) else {
             cached = nil
-            throw AppError(L("Không tìm thấy màn hình bạn đã chọn. Bạn chọn lại vùng giúp nhé.", "The selected display wasn't found. Select the region again."))
+            throw AppError(L("Không tìm thấy màn hình đã chọn. Vui lòng chọn lại vùng.", "The selected display wasn't found. Select the region again."))
         }
         // Loại trừ cả ứng dụng OverSub, không liệt kê từng cửa sổ: lớp bản dịch ẩn hiện liên tục, cửa sổ nào vừa hiện lại hay
         // vừa tạo sau lúc lấy danh sách cũng không lọt vào ảnh. Lọt vào thì app đọc lại chính bản dịch của mình và chớp liên tục.

@@ -27,7 +27,7 @@ Tải `OverSub-<phiên bản>.dmg` ở mục Assets bên dưới. Cần macOS 26
 
 ### Ủng hộ
 
-OverSub miễn phí cho mọi người. Nếu app giúp bạn chơi game vui hơn, mong bạn mời mình một ly cà phê qua nút Ủng hộ ở góc dưới cửa sổ chính. Mỗi lượt ủng hộ đều giúp mình có thêm thời gian sửa lỗi và làm tính năng mới. Gắn sao cho kho này hay giới thiệu OverSub cho bạn bè cũng giúp mình rất nhiều. Gặp lỗi hay có góp ý, bạn cứ mở một [Issue](https://github.com/imhillxtz/oversub-mac/issues) để mình biết nhé.
+OverSub miễn phí cho mọi người. Nếu thấy app hữu ích, bạn có thể mời mình một ly cà phê qua nút Ủng hộ ở góc dưới cửa sổ chính; mỗi khoản ủng hộ giúp OverSub tiếp tục được sửa lỗi và có thêm tính năng mới. Gắn sao cho kho này hoặc giới thiệu OverSub với bạn bè cũng là một cách ủng hộ. Nếu gặp lỗi hoặc có góp ý, vui lòng mở một [Issue](https://github.com/imhillxtz/oversub-mac/issues).
 
 ## English
 
@@ -47,4 +47,4 @@ Download `OverSub-<version>.dmg` from Assets below. Requires macOS 26 or later o
 
 ### Support
 
-OverSub is free for everyone. If it makes your games more fun, I'd be grateful if you bought me a coffee: click Support at the bottom of the main window, or use [paypal.me/ngochieuit](https://paypal.me/ngochieuit). Every donation gives me more time to fix bugs and build new features. Starring this repository or telling a friend about OverSub helps a lot too. Found a bug or have an idea? Please open an [Issue](https://github.com/imhillxtz/oversub-mac/issues) and let me know.
+OverSub is free for everyone. If you find it useful, you can buy me a coffee: click Support at the bottom of the main window, or use [paypal.me/ngochieuit](https://paypal.me/ngochieuit). Every contribution helps keep OverSub improving with bug fixes and new features. Starring this repository or recommending OverSub to a friend is another way to help. If you run into a bug or have a suggestion, please open an [Issue](https://github.com/imhillxtz/oversub-mac/issues).

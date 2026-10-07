@@ -239,7 +239,7 @@ private final class QuickView: NSView {
     private func finish(_ out: QuickTranslator.Output?) {
         guard let out, !out.pieces.isEmpty else {
             phase = .empty
-            setHint(out == nil ? L("Chưa dịch được. Bạn bấm Esc rồi thử lại nhé.", "Couldn't translate. Press Esc and try again.")
+            setHint(out == nil ? L("Chưa dịch được. Vui lòng bấm Esc và thử lại.", "Couldn't translate. Press Esc and try again.")
                                : L("Không thấy chữ cần dịch trong vùng này · Esc để thoát", "No text to translate in this area · Esc to exit"))
             needsDisplay = true
             return

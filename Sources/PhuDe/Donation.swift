@@ -253,8 +253,8 @@ struct DonateView: View {
                     tierGrid
                     if state.channel == .vietQR { details } else { paypalButton }
                     Text(state.channel == .vietQR
-                         ? L("Tên của bạn được ghi sẵn vào nội dung chuyển khoản trong mã QR để mình đưa vào bảng cảm ơn. Muốn ẩn danh thì bạn cứ để trống.", "Your name goes into the transfer message in the QR code so I can add you to the thank-you list. If you'd rather stay anonymous, leave it empty.")
-                         : L("Để có tên trong bảng cảm ơn, ghi tên của bạn vào lời nhắn PayPal nhé.", "To be on the thank-you list, just add your name to the PayPal note."))
+                         ? L("Tên của bạn được ghi sẵn vào nội dung chuyển khoản trong mã QR để đưa vào bảng cảm ơn. Để trống nếu bạn muốn ẩn danh.", "Your name goes into the transfer message in the QR code so it can be added to the thank-you list. Leave it empty to stay anonymous.")
+                         : L("Để có tên trong bảng cảm ơn, hãy ghi tên của bạn vào phần lời nhắn khi chuyển qua PayPal.", "To appear on the thank-you list, add your name to the PayPal note."))
                         .font(.caption).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -277,8 +277,8 @@ struct DonateView: View {
             Mascot(mood: .idle, size: 64)
             VStack(alignment: .leading, spacing: 6) {
                 Text(L("Ủng hộ OverSub", "Support OverSub")).font(.title2.weight(.bold))
-                Text(L("OverSub miễn phí cho mọi người. Nếu app giúp bạn chơi game vui hơn, mong bạn mời mình một ly cà phê. Mỗi lượt ủng hộ đều giúp mình có thêm thời gian sửa lỗi và làm tính năng mới.",
-                       "OverSub is free for everyone. If it makes your games more fun, I'd be grateful for a coffee. Every donation gives me more time to fix bugs and build new features."))
+                Text(L("OverSub miễn phí cho mọi người. Nếu thấy app hữu ích, bạn có thể mời mình một ly cà phê. Mỗi khoản ủng hộ giúp OverSub tiếp tục được sửa lỗi và có thêm tính năng mới.",
+                       "OverSub is free for everyone. If you find it useful, you can buy me a coffee. Every contribution helps keep OverSub improving with bug fixes and new features."))
                     .font(.callout).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 if lines >= 10 {
@@ -485,7 +485,7 @@ struct DonateView: View {
             .font(.caption.weight(.semibold))
             .foregroundStyle(.secondary)
             if names.isEmpty {
-                Text(L("Chưa có tên nào. Mong bạn sẽ là người đầu tiên.", "No names yet. Maybe yours will be the first."))
+                Text(L("Danh sách sẽ được cập nhật khi có lượt ủng hộ đầu tiên.", "The list will be updated after the first donation."))
                     .font(.callout).foregroundStyle(.secondary)
             } else {
                 Text(names.prefix(limit).joined(separator: " · ")
@@ -502,14 +502,14 @@ struct DonateView: View {
     private var footer: some View {
         HStack(alignment: .center, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(L("Nếu chưa tiện ủng hộ, bạn gắn sao cho OverSub trên GitHub hoặc giới thiệu app cho bạn bè cũng là giúp mình rất nhiều.",
-                       "If donating isn't an option right now, starring OverSub on GitHub or telling a friend helps a lot too."))
+                Text(L("Gắn sao cho OverSub trên GitHub hoặc giới thiệu app với bạn bè cũng là một cách ủng hộ.",
+                       "Starring OverSub on GitHub or recommending it to a friend is another way to help."))
                     .font(.caption).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 // Đã ủng hộ thì thôi nhắc ở màn hình chính.
                 if prompt.donated {
                     HStack(spacing: 8) {
-                        Text(L("Cảm ơn bạn rất nhiều. OverSub sẽ không nhắc chuyện ủng hộ nữa.", "Thank you so much. OverSub won't ask again."))
+                        Text(L("Cảm ơn bạn đã ủng hộ OverSub. App sẽ không hiện lời nhắc ủng hộ nữa.", "Thank you for supporting OverSub. The app won't show support reminders again."))
                             .font(.caption.weight(.medium))
                         // Lỡ bấm nhầm thì bỏ được ngay, không phải đụng tới cài đặt ẩn.
                         Button(L("Hoàn tác", "Undo")) { prompt.donated = false }
@@ -517,7 +517,7 @@ struct DonateView: View {
                             .font(.caption)
                     }
                 } else {
-                    Button(L("Mình đã ủng hộ rồi", "I've already donated")) { prompt.donated = true }
+                    Button(L("Tôi đã ủng hộ", "I've already donated")) { prompt.donated = true }
                         .buttonStyle(.link)
                         .font(.caption)
                 }

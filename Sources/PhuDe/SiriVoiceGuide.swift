@@ -33,7 +33,7 @@ struct SiriVoiceGuide: View {
                     VStack(alignment: .leading, spacing: 5) {
                         step(1, L("Mở System Settings → Accessibility → Read & Speak.", "Open System Settings → Accessibility → Read & Speak."))
                         step(2, L("Bấm ⓘ cạnh System voice, chọn \(settings.target.english) ở danh sách bên trái.", "Click ⓘ next to System voice and choose \(settings.target.english) in the list on the left."))
-                        step(3, L("Bấm Voice, chọn một giọng Siri (nếu giọng có biểu tượng đám mây, bạn tải về trước).", "Click Voice and pick a Siri voice (download it first if it shows a cloud)."))
+                        step(3, L("Bấm Voice, chọn một giọng Siri (nếu giọng có biểu tượng đám mây, hãy tải về trước).", "Click Voice and pick a Siri voice (download it first if it shows a cloud)."))
                     }
                 }
                 HStack(spacing: 10) {
@@ -367,8 +367,8 @@ private struct SiriGuidePanelView: View {
     }
 
     private var hint: String {
-        if !panel.recognized { return L("Bạn làm lần lượt các bước trên. Bảng này tự đóng khi bạn chọn xong.", "Follow the steps above. This panel closes by itself once you've picked a voice.") }
-        if panel.step == .pick, panel.located { return L("Nếu giọng có biểu tượng đám mây, bạn bấm vào đó để tải về trước.", "If a voice shows a cloud, click the cloud to download it first.") }
+        if !panel.recognized { return L("Làm lần lượt các bước trên. Bảng này tự đóng khi bạn chọn xong.", "Follow the steps above. This panel closes by itself once you've picked a voice.") }
+        if panel.step == .pick, panel.located { return L("Nếu giọng có biểu tượng đám mây, hãy bấm vào đó để tải về trước.", "If a voice shows a cloud, click the cloud to download it first.") }
         if panel.located { return L("Bảng tự chuyển bước khi bạn làm xong.", "The panel moves on by itself.") }
         switch panel.step {
         case .open: return L("Đang chờ System Settings mở…", "Waiting for System Settings to open…")

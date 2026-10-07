@@ -68,20 +68,20 @@ Các tính năng khác:
 - macOS 26 trở lên, máy Mac chip Apple (M1 trở lên).
 - Quyền Ghi màn hình. macOS hỏi ở lần mở đầu tiên.
 - Bạn nên lấy thêm key API miễn phí của Gemini hoặc Groq để có bản dịch hay nhất. Chưa có key thì app vẫn dịch được bằng Dịch máy Apple và Apple Intelligence (nếu máy bạn đã bật Apple Intelligence).
-- Để giọng đọc tiếng Việt nghe tự nhiên, bạn nên tải giọng Siri tiếng Việt trong Cài đặt hệ thống. App có bảng hướng dẫn từng bước giúp bạn.
+- Để giọng đọc tiếng Việt nghe tự nhiên, bạn nên tải giọng Siri tiếng Việt trong Cài đặt hệ thống. App có bảng hướng dẫn từng bước.
 
 ## Cài đặt
 
 1. Vào trang [Releases](https://github.com/imhillxtz/oversub-mac/releases/latest), tải file `OverSub-x.y.z.dmg`.
 2. Mở file `.dmg`, kéo OverSub vào thư mục Applications.
-3. Mở OverSub. Lần đầu macOS sẽ chặn vì app chưa được Apple công chứng (notarize). Mình chưa có tài khoản nhà phát triển trả phí của Apple nên chưa công chứng được; app nào phát hành ngoài App Store trong trường hợp này cũng bị chặn như vậy, và mã nguồn ở ngay đây để bạn kiểm tra. Bạn vào Cài đặt hệ thống → Quyền riêng tư & Bảo mật, kéo xuống dưới, bấm **Vẫn mở** (Open Anyway) cạnh dòng OverSub rồi xác nhận.
-4. Làm theo hướng dẫn trong app. Sau khi cấp quyền Ghi màn hình, bạn thoát hẳn OverSub (⌘Q) rồi mở lại để quyền có hiệu lực.
+3. Mở OverSub. Lần đầu macOS sẽ chặn vì app chưa được Apple công chứng (notarize). OverSub được phát hành ngoài App Store và chưa có tài khoản nhà phát triển trả phí của Apple nên chưa thể công chứng; mọi app trong trường hợp này đều bị chặn như vậy. Mã nguồn được công khai tại đây để bạn có thể tự kiểm tra. Vào Cài đặt hệ thống → Quyền riêng tư & Bảo mật, kéo xuống dưới, bấm **Vẫn mở** (Open Anyway) cạnh dòng OverSub rồi xác nhận.
+4. Làm theo hướng dẫn trong app. Sau khi cấp quyền Ghi màn hình, thoát hẳn OverSub (⌘Q) rồi mở lại để quyền có hiệu lực.
 
 ### Cập nhật
 
-Từ bản 1.1.42, OverSub tự kiểm tra bản mới trên trang Releases, khoảng hai lần mỗi ngày. Khi có bản mới, dòng trạng thái ở chân cửa sổ chính hiện "Có bản mới · Cập nhật". Bấm Cập nhật là app tải về, kiểm tra chữ ký số, thay bản cũ rồi tự mở lại. Nếu không muốn bị gián đoạn lúc đang chơi, bạn bật "Tự tải bản mới và cài khi thoát app" ở Cài đặt → Chung; bản mới sẽ được thay vào lúc bạn thoát OverSub. Cài đặt, key, hồ sơ game và quyền Ghi màn hình đều giữ nguyên.
+Từ bản 1.1.42, OverSub tự kiểm tra bản mới trên trang Releases, khoảng hai lần mỗi ngày. Khi có bản mới, dòng trạng thái ở chân cửa sổ chính hiện "Có bản mới · Cập nhật". Bấm Cập nhật là app tải về, kiểm tra chữ ký số, thay bản cũ rồi tự mở lại. Nếu không muốn bị gián đoạn lúc đang chơi, hãy bật "Tự tải bản mới và cài khi thoát app" ở Cài đặt → Chung; bản mới sẽ được thay vào lúc bạn thoát OverSub. Cài đặt, key, hồ sơ game và quyền Ghi màn hình đều giữ nguyên.
 
-Bản 1.1.41 trở về trước chưa có tính năng này. Nếu đang dùng các bản đó, bạn tải `.dmg` mới và kéo đè vào Applications một lần là xong; từ đó về sau app tự cập nhật.
+Bản 1.1.41 trở về trước chưa có tính năng này. Nếu đang dùng các bản này, hãy tải `.dmg` mới và kéo đè vào Applications một lần; các bản sau sẽ tự cập nhật.
 
 ## Bắt đầu trong 5 phút
 
@@ -89,7 +89,7 @@ Bản 1.1.41 trở về trước chưa có tính năng này. Nếu đang dùng c
 2. Thêm key miễn phí (khuyên dùng): lấy key ở [Google AI Studio](https://aistudio.google.com/apikey) hoặc [Groq](https://console.groq.com/keys), vào Cài đặt → Dịch vụ dịch, dán key và bấm Kiểm tra & thêm. App sẽ thử key trước và chỉ thêm khi key dùng được.
 3. Chọn vùng phụ đề: mở game tới đoạn có lời thoại, bấm Chọn vùng phụ đề (⌘K, hoặc ⌃⌥K ngay trong game), kéo khung bao quanh chỗ phụ đề hiện ra. Nếu game có nhãn tên nhân vật, bạn nên bao cả nhãn đó. Bấm Xong, xem lại chữ đọc được rồi bấm Lưu.
 4. Bấm Bắt đầu (⌘R, hoặc ⌃⌥S trong game).
-5. Bật hoặc tắt Phụ đề, Voice-over (bấm vào linh vật ở giữa) và Dịch màn hình tuỳ theo nhu cầu của bạn.
+5. Bật hoặc tắt Phụ đề, Voice-over (bấm vào linh vật ở giữa) và Dịch màn hình tuỳ nhu cầu.
 
 ## Hướng dẫn chi tiết
 
@@ -97,7 +97,7 @@ Các mục dưới đây đi theo thứ tự bạn sẽ gặp: chọn vùng, ch�
 
 ### Chọn vùng
 
-Trình chọn vùng mở ra là hình trực tiếp của màn hình. Nếu phụ đề hiện quá nhanh, bạn bấm Dừng hình (hoặc phím Space) để chọn trên ảnh đứng yên.
+Trình chọn vùng mở ra là hình trực tiếp của màn hình. Nếu phụ đề hiện quá nhanh, hãy bấm Dừng hình (hoặc phím Space) để chọn trên ảnh đứng yên.
 
 Vùng phụ đề (chỉ một vùng) là nơi lời thoại hiện ra; nút Tự tìm phụ đề sẽ đoán chỗ đó giúp bạn. Vùng dịch màn hình (tối đa 3) đặt quanh menu, bảng nhiệm vụ hay ô mô tả vật phẩm, thêm bằng nút Thêm vùng dịch trên thanh công cụ.
 
@@ -158,9 +158,9 @@ Bấm ⌃⌥Q ở đâu cũng được (không cần bấm Bắt đầu), kéo k
 
 Thể loại game quyết định cách xưng hô và giọng văn. Trung cổ châu Âu dùng "thưa ngài", "ta – ngươi" theo địa vị; Cổ trang dùng "tại hạ – các hạ"; Học đường dùng "tớ – cậu". Ở thể loại Tuỳ chỉnh, bạn tự điền bối cảnh game, nhân vật và quan hệ, cách xưng hô, giọng văn, mức trang trọng, có chửi thề hay không, kính ngữ và yêu cầu khác, rồi xem trước đoạn hướng dẫn sẽ gửi cho AI.
 
-App gửi kèm tên người nói và vài câu trước, nên mỗi cặp nhân vật giữ một cách xưng hô. Tên nhân vật, địa danh, quái vật và chiêu thức giữ như bản gốc; bạn thêm tên vào danh sách để chắc chắn tên được giữ, hoặc đặt cho tên một cách dịch cố định.
+App gửi kèm tên người nói và vài câu trước, nên mỗi cặp nhân vật giữ một cách xưng hô. Tên nhân vật, địa danh, quái vật và chiêu thức giữ như bản gốc; hãy thêm tên vào danh sách để chắc chắn tên được giữ, hoặc đặt cho tên một cách dịch cố định.
 
-Nếu app dịch nhầm logo hay chữ cố định trên màn hình, bạn bấm nút Bỏ qua câu này (biểu tượng chữ kèm dấu ×) ở cửa sổ chính, Cửa sổ phụ đề hoặc Lịch sử. Câu đó sẽ không được dịch hay đọc nữa.
+Nếu app dịch nhầm logo hay chữ cố định trên màn hình, hãy bấm nút Bỏ qua câu này (biểu tượng chữ kèm dấu ×) ở cửa sổ chính, Cửa sổ phụ đề hoặc Lịch sử. Câu đó sẽ không được dịch hay đọc nữa.
 
 <br clear="right">
 
@@ -172,11 +172,11 @@ Lịch sử thoại (⌘L, hoặc ⌃⌥L trong game) giúp bạn xem lại các
 
 ### Giao diện
 
-Bạn chọn sáng, tối hoặc theo hệ thống ở Cài đặt → Chung → Giao diện. Cửa sổ phụ đề và chữ dịch đè lên game luôn nền tối cho dễ đọc. Icon app đổi theo kiểu icon bạn chọn trong macOS (sáng, tối, nhuộm màu, trong suốt).
+Có thể chọn giao diện sáng, tối hoặc theo hệ thống ở Cài đặt → Chung → Giao diện. Cửa sổ phụ đề và chữ dịch đè lên game luôn nền tối cho dễ đọc. Icon app đổi theo kiểu icon bạn chọn trong macOS (sáng, tối, nhuộm màu, trong suốt).
 
 ## Dịch vụ dịch và key API
 
-Bạn thêm key ở Cài đặt → Dịch vụ dịch, bao nhiêu key và bao nhiêu dịch vụ cũng được. Khi một key hết hạn mức, app tự chuyển sang key hoặc dịch vụ kế tiếp; dịch vụ chậm hay lỗi được xếp xuống cuối hàng.
+Key được thêm ở Cài đặt → Dịch vụ dịch; có thể thêm nhiều key và nhiều dịch vụ. Khi một key hết hạn mức, app tự chuyển sang key hoặc dịch vụ kế tiếp; dịch vụ chậm hay lỗi được xếp xuống cuối hàng.
 
 | Dịch vụ | Chi phí | Ghi chú |
 |---|---|---|
@@ -189,13 +189,13 @@ Bạn thêm key ở Cài đặt → Dịch vụ dịch, bao nhiêu key và bao n
 | Apple Intelligence | Miễn phí, chạy trên máy | Không cần mạng; máy phải bật Apple Intelligence. |
 | Dịch máy Apple | Miễn phí, chạy trên máy | Nhanh nhất, không cần mạng, nhưng không nhận chỉ dẫn xưng hô. Cần tải gói ngôn ngữ (app có nút tải). |
 
-Hạn mức miễn phí do từng nhà cung cấp đặt và có thể đổi; bạn xem số chính xác cho tài khoản của mình ở trang của nhà cung cấp.
+Hạn mức miễn phí do từng nhà cung cấp đặt và có thể đổi; số liệu chính xác cho tài khoản của bạn có trên trang của nhà cung cấp.
 
 Thứ tự dùng dịch vụ chọn ở mục Ưu tiên: Cân bằng (mặc định), Ưu tiên chất lượng, Ưu tiên tốc độ, hoặc Tuỳ chỉnh để tự sắp. App xếp hàng theo tốc độ đo thật (trung vị 20 lần gần nhất, trừ điểm khi hay lỗi). Dịch vụ đầu hàng chưa trả lời sau 1 giây thì app gửi song song cho dịch vụ kế tiếp và lấy kết quả về trước.
 
 ## Phím tắt và tay cầm
 
-Phím tắt toàn cục dùng được cả khi game toàn màn hình và không cần quyền Trợ năng. Bạn đổi phím ở Cài đặt → Phím tắt & tay cầm: bấm vào ô phím tắt rồi gõ tổ hợp mới.
+Phím tắt toàn cục dùng được cả khi game toàn màn hình và không cần quyền Trợ năng. Có thể đổi phím ở Cài đặt → Phím tắt & tay cầm: bấm vào ô phím tắt rồi gõ tổ hợp mới.
 
 | Phím mặc định | Việc |
 |---|---|
@@ -210,7 +210,7 @@ Phím tắt toàn cục dùng được cả khi game toàn màn hình và không
 
 Trong cửa sổ OverSub: ⌘R bắt đầu/dừng, ⌘K chọn vùng, ⌘J Cửa sổ phụ đề, ⌘E dịch nhanh, ⌘L lịch sử, ⇧⌘H phụ đề, ⇧⌘D giọng đọc, ⇧⌘T dịch màn hình.
 
-Nếu chơi bằng tay cầm (Xbox, PlayStation, Switch Pro), bạn giữ nút View / Share rồi bấm Y (△) để đọc lại câu vừa rồi, X (□) để bật tắt giọng đọc, B (○) để ẩn hiện phụ đề.
+Khi chơi bằng tay cầm (Xbox, PlayStation, Switch Pro), giữ nút View / Share rồi bấm Y (△) để đọc lại câu vừa rồi, X (□) để bật tắt giọng đọc, B (○) để ẩn hiện phụ đề.
 
 Biểu tượng tay cầm trên thanh menu điều khiển được mọi thứ mà không cần mở cửa sổ.
 
@@ -259,33 +259,33 @@ Key API nằm trong `~/Library/Application Support/OverSub/keys.json` và chỉ 
 <details>
 <summary><b>macOS không cho mở OverSub</b></summary>
 
-Vì app chưa được Apple công chứng nên lần đầu macOS sẽ chặn. Bạn vào Cài đặt hệ thống → Quyền riêng tư & Bảo mật, kéo xuống, bấm Vẫn mở cạnh dòng OverSub là được.
+Vì app chưa được Apple công chứng nên macOS chặn ở lần mở đầu tiên. Vào Cài đặt hệ thống → Quyền riêng tư & Bảo mật, kéo xuống và bấm Vẫn mở cạnh dòng OverSub.
 </details>
 
 <details>
 <summary><b>Đã cấp quyền Ghi màn hình mà app vẫn báo thiếu quyền</b></summary>
 
-macOS chỉ áp dụng quyền mới sau khi app khởi động lại. Bạn thoát hẳn OverSub (⌘Q, hoặc biểu tượng tay cầm trên thanh menu → Thoát) rồi mở lại là được.
+macOS chỉ áp dụng quyền mới sau khi app khởi động lại. Thoát hẳn OverSub (⌘Q, hoặc biểu tượng tay cầm trên thanh menu → Thoát) rồi mở lại.
 </details>
 
 <details>
 <summary><b>Giọng đọc không phải giọng Siri tiếng Việt</b></summary>
 
-Bạn vào Cài đặt → Giọng đọc, bấm Đổi giọng Siri... rồi làm theo bảng hướng dẫn: tải giọng Siri tiếng Việt rồi chọn nó ở mục Nội dung được đọc trong Cài đặt hệ thống.
+Vào Cài đặt → Giọng đọc, bấm Đổi giọng Siri... và làm theo bảng hướng dẫn: tải giọng Siri tiếng Việt rồi chọn nó ở mục Nội dung được đọc trong Cài đặt hệ thống.
 </details>
 
 <details>
 <summary><b>Dịch chậm, hoặc bỗng chuyển sang bản dịch máy</b></summary>
 
-Thường là do key đã hết hạn mức. Bạn mở Cài đặt → Dịch vụ dịch để xem trạng thái từng key (bao lâu nữa dùng lại được) và nhật ký chuyển dịch vụ. Bạn nên thêm key của một dịch vụ khác như Groq hay Cerebras để có dự phòng.
+Thường là do key đã hết hạn mức. Mở Cài đặt → Dịch vụ dịch để xem trạng thái từng key (bao lâu nữa dùng lại được) và nhật ký chuyển dịch vụ. Bạn nên thêm key của một dịch vụ khác như Groq hay Cerebras để có dự phòng.
 </details>
 
 <details>
 <summary><b>App không nhận được phụ đề, hoặc đọc sai</b></summary>
 
-- Bạn thử chọn lại vùng phụ đề cho vừa khít, nhớ bao cả nhãn tên nhân vật.
+- Chọn lại vùng phụ đề cho vừa khít và bao cả nhãn tên nhân vật.
 - Thử đổi cách bắt thoại; game hiện từng chữ thì chọn Chữ chạy.
-- Kiểm tra giúp mình mục Ngôn ngữ trong game có đúng ngôn ngữ của phụ đề không.
+- Kiểm tra mục Ngôn ngữ trong game có đúng ngôn ngữ của phụ đề hay không.
 - Tuỳ chọn "Tạm ngưng khi game bị ẩn hoặc bị che" (bật sẵn) cho app tạm ngưng khi game bị thu nhỏ, khi bạn chuyển màn hình làm việc, hoặc khi cửa sổ khác che vùng phụ đề. Nếu bạn bấm sang app khác mà game vẫn hiện ở vùng phụ đề, app vẫn dịch và đọc bình thường.
 - Tuỳ chọn "Giữ màn hình luôn sáng khi đang chạy" (bật sẵn): chơi bằng tay cầm thì Mac không nhận thao tác nào nên hay tự tắt màn hình hoặc khoá máy giữa chừng. Trong lúc OverSub chạy, màn hình luôn sáng; bấm Dừng là trở lại bình thường.
 </details>
@@ -293,13 +293,13 @@ Thường là do key đã hết hạn mức. Bạn mở Cài đặt → Dịch v
 <details>
 <summary><b>App dịch nhầm logo, chữ cố định trên màn hình</b></summary>
 
-Bạn bấm Bỏ qua câu này (biểu tượng chữ kèm dấu ×). Danh sách câu đã bỏ qua nằm ở Cài đặt → Văn phong & thuật ngữ, bạn xem và xoá được ở đó.
+Bấm Bỏ qua câu này (biểu tượng chữ kèm dấu ×). Danh sách câu đã bỏ qua có thể xem và xoá ở Cài đặt → Văn phong & thuật ngữ.
 </details>
 
 <details>
 <summary><b>App dịch tên nhân vật ra tiếng Việt</b></summary>
 
-Bạn bật Giữ nguyên tên riêng và thêm tên vào danh sách ở Cài đặt → Văn phong & thuật ngữ, hoặc bấm Giữ nguyên tên riêng... ở cửa sổ chính để chọn nhanh tên trong câu đang hiện.
+Bật Giữ nguyên tên riêng và thêm tên vào danh sách ở Cài đặt → Văn phong & thuật ngữ, hoặc bấm Giữ nguyên tên riêng... ở cửa sổ chính để chọn nhanh tên trong câu đang hiện.
 </details>
 
 ## Giới hạn hiện tại
@@ -313,37 +313,37 @@ Bạn bật Giữ nguyên tên riêng và thêm tên vào danh sách ở Cài đ
 
 ## Góp ý và báo lỗi
 
-Nếu gặp lỗi hay muốn đề xuất tính năng, bạn cứ mở một [Issue](https://github.com/imhillxtz/oversub-mac/issues). Để mình tìm ra lỗi nhanh hơn, bạn ghi kèm phiên bản OverSub (xem ở Cài đặt → Chung), tên game, cách game hiện phụ đề, và nếu được thì một đoạn nhật ký quanh lúc gặp lỗi (`~/Library/Logs/OverSub/debug.log`). Bạn nhớ đọc lại nhật ký trước khi gửi, vì trong đó có chữ của game.
+Nếu gặp lỗi hoặc muốn đề xuất tính năng, vui lòng mở một [Issue](https://github.com/imhillxtz/oversub-mac/issues). Để việc tìm lỗi nhanh hơn, hãy ghi kèm phiên bản OverSub (xem ở Cài đặt → Chung), tên game, cách game hiện phụ đề, và nếu được thì một đoạn nhật ký quanh lúc gặp lỗi (`~/Library/Logs/OverSub/debug.log`). Vui lòng đọc lại nhật ký trước khi gửi, vì nhật ký có chứa chữ trong game.
 
-Game nào chạy tốt, bạn cũng báo giúp mình nhé. Chỉ một Issue ngắn kiểu "game X chạy tốt với chế độ Y" cũng giúp người chơi sau đỡ phải mò.
+Báo cáo về những game chạy tốt cũng rất hữu ích: một Issue ngắn như "game X chạy tốt với chế độ Y" giúp người chơi sau đỡ mất thời gian thử.
 
-Mã nguồn công khai để mọi người xem, nhưng bản quyền vẫn được bảo lưu. Nếu bạn muốn đóng góp mã, hãy mở một Issue để mình trao đổi trước nhé.
+Mã nguồn công khai để mọi người xem, nhưng bản quyền vẫn được bảo lưu. Nếu muốn đóng góp mã, vui lòng mở một Issue để trao đổi trước.
 
 ## Ủng hộ
 
-OverSub miễn phí cho mọi người. Mình làm app này để ai chơi game trên Mac cũng theo được câu chuyện, kể cả khi không giỏi tiếng Anh. Nếu OverSub giúp bạn chơi game vui hơn, mong bạn mời mình một ly cà phê. Mỗi lượt ủng hộ, dù nhiều hay ít, đều giúp mình có thêm thời gian sửa lỗi, hỗ trợ thêm game và làm tính năng mới.
+OverSub miễn phí cho mọi người. App được làm ra để người chơi game trên Mac theo được câu chuyện, kể cả khi không thạo ngôn ngữ của game. Nếu thấy OverSub hữu ích, bạn có thể mời mình một ly cà phê để app tiếp tục được phát triển. Mỗi khoản ủng hộ, dù lớn hay nhỏ, đều giúp OverSub được sửa lỗi, hỗ trợ thêm game và có thêm tính năng mới.
 
 <img src="Docs/images/donate-vietqr.png" width="180" align="right" alt="Mã VietQR ủng hộ OverSub">
 
 - Trong nước: quét mã VietQR bên cạnh bằng app ngân hàng, MoMo hoặc ZaloPay (người nhận TRINH NGOC HIEU, ví MoMo, nội dung "OverSub"). Trong app, bấm Ủng hộ ở góc dưới cửa sổ chính để chọn nhanh mức 20.000đ, 50.000đ hay 100.000đ và thêm tên của bạn vào mã.
 - Quốc tế: [paypal.me/ngochieuit](https://paypal.me/ngochieuit).
-- Nếu chưa tiện, bạn gắn sao cho kho này trên GitHub hoặc giới thiệu OverSub cho bạn bè chơi game cũng là giúp mình rất nhiều.
+- Gắn sao cho kho này trên GitHub hoặc giới thiệu OverSub với bạn bè cũng là một cách ủng hộ.
 
 <br clear="right">
 
 ### Bảng cảm ơn
 
-Cảm ơn tất cả những người đã ủng hộ OverSub. Mình đọc từng lời nhắn và tự tay ghi tên mọi người vào đây.
+Cảm ơn tất cả những người đã ủng hộ OverSub. Danh sách dưới đây được cập nhật sau mỗi lượt ủng hộ có ghi tên.
 
-Để có tên trong bảng này và trong cửa sổ Ủng hộ của app, bạn chỉ cần nhập tên hoặc nickname vào ô Tên của bạn trước khi quét mã. Tên sẽ được ghi sẵn vào nội dung chuyển khoản, vì nhiều app ngân hàng không cho sửa nội dung sau khi quét. Nếu chuyển khoản tay, bạn ghi nội dung "OverSub tên-của-bạn"; qua PayPal thì ghi tên vào lời nhắn. Muốn ẩn danh thì bạn cứ để trống.
+Để tên của bạn xuất hiện trong bảng này và trong cửa sổ Ủng hộ của app, hãy nhập tên hoặc nickname vào ô Tên của bạn trước khi quét mã. Tên sẽ được ghi sẵn vào nội dung chuyển khoản, vì nhiều app ngân hàng không cho sửa nội dung sau khi quét. Khi chuyển khoản thủ công, vui lòng ghi nội dung "OverSub tên-của-bạn"; với PayPal, ghi tên vào phần lời nhắn. Nếu muốn ẩn danh, hãy để trống ô này.
 
 <!-- Người mới thêm lên đầu; danh sách trong app lấy từ Docs/supporters.json -->
-Chưa có tên nào. Mong bạn sẽ là người đầu tiên.
+Danh sách sẽ được cập nhật khi có lượt ủng hộ đầu tiên.
 
 ## Bản quyền
 
 © 2026 imhillxtz. Bảo lưu mọi quyền.
 
-Mình công khai mã nguồn để bạn tự xem được app làm gì trên máy bạn. OverSub không phải phần mềm mã nguồn mở, nên mong bạn đừng sao chép, sửa đổi, phát hành lại hay dùng mã cho sản phẩm khác khi chưa có sự đồng ý bằng văn bản của mình. Bản cài chính thức ở trang Releases thì bạn cứ dùng miễn phí. Chi tiết ở [LICENSE](LICENSE).
+Mã nguồn được công khai để bạn có thể tự kiểm tra app làm gì trên máy. OverSub không phải phần mềm mã nguồn mở: việc sao chép, sửa đổi, phát hành lại hay dùng mã cho sản phẩm khác cần có sự đồng ý bằng văn bản của tác giả. Bản cài chính thức ở trang Releases được dùng miễn phí. Chi tiết xem tại [LICENSE](LICENSE).
 
 Tên game và nhãn hiệu nhắc tới trong tài liệu thuộc về chủ sở hữu tương ứng. OverSub dùng dịch vụ và công nghệ của Apple, Google, Groq, Cerebras, Mistral và OpenRouter theo điều khoản của từng nhà cung cấp.

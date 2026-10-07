@@ -175,7 +175,7 @@ struct ContentView: View {
         HStack(spacing: 10) {
             Image(systemName: "heart.fill").foregroundStyle(.pink)
             (Text(L("OverSub đã dịch hơn \(Donation.count(m)) câu thoại cho bạn. ", "OverSub has translated over \(Donation.count(m)) lines for you. ")).fontWeight(.semibold)
-             + Text(L("Mong là app giúp bạn chơi vui hơn.", "I hope it's made your games more fun.")).foregroundStyle(.secondary))
+             + Text(L("Cảm ơn bạn đã sử dụng app.", "Thank you for using the app.")).foregroundStyle(.secondary))
                 .lineLimit(1)
             Button(L("Để sau", "Later")) { support.dismiss() }.buttonStyle(.link)
             Button {
