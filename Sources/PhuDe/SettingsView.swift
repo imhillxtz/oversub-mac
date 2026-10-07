@@ -850,7 +850,8 @@ struct SettingsView: View {
                 if settings.genre == .custom {
                     customStyleEditor
                 } else {
-                    Note(settings.target.isVietnamese ? settings.genre.styleGuide : settings.genre.englishHint)
+                    // Chỉ dẫn văn phong tiếng Việt (có ví dụ xưng hô) chỉ hiện khi giao diện tiếng Việt; giao diện tiếng Anh xem bản tiếng Anh.
+                    Note(settings.target.isVietnamese && !Lang.isEnglish ? settings.genre.styleGuide : settings.genre.englishHint)
                 }
             } header: { Text(L("Thể loại game", "Game genre")) }
             Section {

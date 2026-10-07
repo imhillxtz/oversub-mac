@@ -131,7 +131,7 @@ Trình chọn vùng mở ra là **xem trực tiếp** màn hình. Bấm **Dừng
   - mép phải: **Ghim** (nổi trên mọi Space, kể cả game toàn màn hình; mở lên là ghim sẵn), **Một dòng** (thu còn một dải chữ mỏng, đặt vừa vào dải đen dưới game), **Nền** (độ mờ kính, độ tối), **A− / A+**.
 
 <div align="center">
-<img src="Docs/images/vi/subtitles-1line-hover.png" width="760" alt="Cửa sổ phụ đề chế độ một dòng"><br>
+<img src="Docs/images/vi/subtitles-1line.png" width="760" alt="Cửa sổ phụ đề chế độ một dòng"><br>
 <sub>Chế độ một dòng: tên nhân vật đứng trước câu, câu dài tự co cho vừa</sub>
 </div>
 

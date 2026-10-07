@@ -131,7 +131,7 @@ In **Settings → Subtitles**, pick the mode that matches how the game shows tex
   - right edge: **Pin** (float above every Space, including full-screen games; it opens pinned), **One line** (shrink to a thin strip that fits the black bar under the game), **Background** (blur, darkness), **A− / A+**.
 
 <div align="center">
-<img src="Docs/images/en/subtitles-1line-hover.png" width="760" alt="Subtitle window in one-line mode"><br>
+<img src="Docs/images/en/subtitles-1line.png" width="760" alt="Subtitle window in one-line mode"><br>
 <sub>One-line mode: the speaker's name comes first, long lines shrink to fit</sub>
 </div>
 
