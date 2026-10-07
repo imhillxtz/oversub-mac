@@ -38,7 +38,7 @@ struct OnboardingView: View {
         case 1: return L("Đổi lại bất cứ lúc nào trong Cài đặt.", "You can change this any time in Settings.")
         case 2: return L("Ba tính năng bật tắt độc lập, bằng ba nút tròn ở cửa sổ chính.", "Three independent features, toggled with the three round buttons in the main window.")
         case 3: return L("OverSub đọc bằng giọng Siri bạn chọn trong macOS. Chọn một lần là xong.", "OverSub reads with the Siri voice you choose in macOS. You only do this once.")
-        default: return L("Mở game lên rồi kéo một khung quanh chỗ cần dịch. Làm một lần cho mỗi game.", "Open your game and drag a box around the text. Once per game.")
+        default: return L("Bạn mở game lên rồi kéo một khung quanh chỗ cần dịch. Mỗi game chỉ cần làm một lần.", "Open your game and drag a box around the text. Once per game.")
         }
     }
 
@@ -180,7 +180,7 @@ struct OnboardingView: View {
                 } else {
                     VStack(alignment: .leading, spacing: 1) {
                         Text(L("Cần quyền Ghi màn hình để nhận chữ", "Screen Recording is needed to read the text")).font(.callout.weight(.medium))
-                        Text(L("Bật OverSub trong danh sách, rồi thoát hẳn và mở lại app. Ảnh màn hình không rời khỏi máy.", "Turn on OverSub in the list, then quit and reopen the app. Screenshots never leave your Mac."))
+                        Text(L("Bạn bật OverSub trong danh sách, rồi thoát hẳn và mở lại app. Ảnh màn hình không rời khỏi máy.", "Turn on OverSub in the list, then quit and reopen the app. Screenshots never leave your Mac."))
                             .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer(minLength: 8)
@@ -236,7 +236,7 @@ struct OnboardingView: View {
                         Button(L("Tải gói", "Download")) { applePack.download(source: src.code, target: tgt.code) }
                     case .unsupported:
                         Image(systemName: "exclamationmark.triangle")
-                        Text(L("Apple chưa có gói dịch trên máy cho cặp này: cần thêm key bên dưới.", "Apple has no on-device pack for this pair: add a key below."))
+                        Text(L("Apple chưa có gói dịch trên máy cho cặp này, nên bạn cần thêm key bên dưới.", "Apple has no on-device pack for this pair: add a key below."))
                     case .unknown:
                         Text(L("Đang kiểm tra gói dịch trên máy…", "Checking the on-device pack…"))
                     }
@@ -246,7 +246,7 @@ struct OnboardingView: View {
             }
             card(L("Dịch hay hơn", "Better translations"), note: L("không bắt buộc", "optional")) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(L("Thêm key Gemini miễn phí để bản dịch đúng xưng hô và văn phong game. Khi có key, chữ trong vùng bạn chọn được gửi tới Google để dịch.",
+                    Text(L("Bạn nên thêm key Gemini miễn phí để bản dịch đúng xưng hô và văn phong game. Khi có key, chữ trong vùng bạn chọn được gửi tới Google để dịch.",
                            "Add a free Gemini key for translations with the right tone and character voice. With a key, text in your regions is sent to Google for translation."))
                         .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     HStack {
@@ -290,7 +290,7 @@ struct OnboardingView: View {
                     L("Menu, bảng nhiệm vụ, mô tả vật phẩm được dịch tại chỗ.", "Menus, quest logs and item text are translated in place."),
                     toggle: $settings.screenTranslateEnabled)
             }
-            Text(L("Chỉ muốn nghe mà không cần chữ? Tắt Phụ đề, giữ Giọng đọc: giọng vẫn đọc lời thoại trong vùng phụ đề.",
+            Text(L("Nếu chỉ muốn nghe mà không cần chữ, bạn tắt Phụ đề và giữ Giọng đọc; giọng vẫn đọc lời thoại trong vùng phụ đề.",
                    "Just want to listen? Turn off Subtitles and keep Voice: it still reads the dialogue in the subtitle region."))
                 .font(.caption).foregroundStyle(.secondary).padding(.horizontal, 4).fixedSize(horizontal: false, vertical: true)
         }

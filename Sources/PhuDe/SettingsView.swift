@@ -299,9 +299,9 @@ struct SettingsView: View {
                     }
                     .buttonStyle(.glassProminent).tint(Theme.accent)
                 }
-                Note(L("Mỗi game một hồ sơ: các vùng, ngôn ngữ, phụ đề, giọng đọc, dịch vụ dịch, cùng trí nhớ game (ngữ cảnh hội thoại, dàn diễn viên, thuật ngữ, bộ nhớ dịch). Mọi thay đổi tự lưu vào hồ sơ đang dùng. Hồ sơ mới lấy cài đặt hiện tại với trí nhớ trống; cùng game thì dùng Nhân bản để giữ trí nhớ.", "One profile per game: regions, languages, subtitles, voice, translation services, plus game memory (dialogue context, cast, glossary, translation memory). Every change is saved to the active profile automatically. A new profile starts from the current settings with empty memory; for the same game, use Duplicate to keep the memory."))
+                Note(L("Mỗi game một hồ sơ: các vùng, ngôn ngữ, phụ đề, giọng đọc, dịch vụ dịch, cùng trí nhớ game (ngữ cảnh hội thoại, dàn diễn viên, thuật ngữ, bộ nhớ dịch). Mọi thay đổi tự lưu vào hồ sơ đang dùng. Hồ sơ mới lấy cài đặt hiện tại với trí nhớ trống; nếu là cùng một game, bạn dùng Nhân bản để giữ trí nhớ.", "One profile per game: regions, languages, subtitles, voice, translation services, plus game memory (dialogue context, cast, glossary, translation memory). Every change is saved to the active profile automatically. A new profile starts from the current settings with empty memory; for the same game, use Duplicate to keep the memory."))
                 Toggle(L("Tự chuyển hồ sơ theo game đang mở", "Switch profiles automatically for the game in front"), isOn: $settings.autoSwitchProfile)
-                Note(L("OverSub dùng được với mọi game đang hiện trên màn hình Mac. Đưa một game ra phía trước thì OverSub chuyển sang hồ sơ của game đó (nhận theo app đang hiện game). Chơi máy console qua app xem capture card (như OBS, VisionRelay) thì mọi game đều hiện qua cùng một app, OverSub không phân biệt được từng game: hãy chọn hồ sơ bằng tay.", "OverSub works with any game shown on your Mac's screen. Bring a game to the front and OverSub switches to its profile (matched by the app showing the game). If you play a console through a capture-card viewer (such as OBS or VisionRelay), every game appears in the same app and OverSub can't tell them apart: pick the profile yourself."))
+                Note(L("OverSub dùng được với mọi game đang hiện trên màn hình Mac. Khi bạn đưa một game ra phía trước, OverSub chuyển sang hồ sơ của game đó (nhận theo app đang hiện game). Nếu bạn chơi máy console qua app xem capture card (như OBS, VisionRelay), mọi game đều hiện qua cùng một app nên OverSub không phân biệt được từng game; khi đó bạn chọn hồ sơ bằng tay nhé.", "OverSub works with any game shown on your Mac's screen. Bring a game to the front and OverSub switches to its profile (matched by the app showing the game). If you play a console through a capture-card viewer (such as OBS or VisionRelay), every game appears in the same app and OverSub can't tell them apart: pick the profile yourself."))
             } header: { Text(L("Hồ sơ mới", "New profile")) }
 
             Section {
@@ -429,14 +429,14 @@ struct SettingsView: View {
                     Text("Tiếng Việt").tag("vi")
                     Text("English").tag("en")
                 }
-                Note(L("Cửa sổ phụ đề và chữ dịch đè lên game luôn nền tối cho dễ đọc. Đổi ngôn ngữ thì thanh menu và menu của app đổi theo sau khi mở lại OverSub.", "The subtitle window and in-game translations always use a dark background for readability. After changing the language, the menu bar and app menus update once you reopen OverSub."))
+                Note(L("Cửa sổ phụ đề và chữ dịch đè lên game luôn nền tối cho dễ đọc. Sau khi đổi ngôn ngữ, thanh menu và menu của app sẽ đổi theo khi bạn mở lại OverSub.", "The subtitle window and in-game translations always use a dark background for readability. After changing the language, the menu bar and app menus update once you reopen OverSub."))
             } header: { Text(L("Giao diện", "Appearance")) }
             Section {
                 LabeledContent {
                     Button(L("Ủng hộ OverSub…", "Support OverSub…")) { openWindow(id: "donate") }
                 } label: {
                     Label {
-                        Text(L("OverSub miễn phí. Thấy hữu ích thì mời mình một ly cà phê nhé.", "OverSub is free. If you find it useful, buy me a coffee."))
+                        Text(L("OverSub miễn phí cho mọi người. Mỗi lượt ủng hộ giúp mình có thêm thời gian làm app.", "OverSub is free for everyone. Every donation gives me more time to work on it."))
                     } icon: {
                         Image(systemName: "heart.fill").foregroundStyle(.pink)
                     }
@@ -462,7 +462,7 @@ struct SettingsView: View {
                         NSWorkspace.shared.open(dir)
                     }
                 }
-                Note(L("Nhật ký ghi chữ đọc được trong các vùng bạn chọn và quyết định của app, không ghi key, tự xoá khi quá 2 MB. Gửi kèm khi báo lỗi để dễ tìm nguyên nhân.", "The log records text read in the regions you select and the app's decisions. It never records API keys and clears itself past 2 MB. Attach it to bug reports to help find the cause."))
+                Note(L("Nhật ký ghi chữ đọc được trong các vùng bạn chọn và quyết định của app, không ghi key, tự xoá khi quá 2 MB. Khi báo lỗi, bạn gửi kèm nhật ký này để dễ tìm ra nguyên nhân hơn.", "The log records text read in the regions you select and the app's decisions. It never records API keys and clears itself past 2 MB. Attach it to bug reports to help find the cause."))
             } header: { Text(L("Hỗ trợ", "Support")) }
             Section {
                 Note(L("Ảnh màn hình không rời khỏi máy: chữ được nhận ngay trên máy bằng Vision. Khi bạn thêm key Gemini hoặc Groq, chữ trong các vùng bạn chọn được gửi tới dịch vụ đó để dịch, kèm vài câu trước làm ngữ cảnh, tên nhân vật và thuật ngữ của bạn. Dịch máy Apple và Apple Intelligence chạy hoàn toàn trên máy.", "Screenshots never leave your Mac: text is recognized on device with Vision. When you add a Gemini or Groq API key, text in the regions you select is sent to that service for translation, along with a few previous lines as context, character names and your glossary. Apple Translation and Apple Intelligence run entirely on device."))
@@ -476,11 +476,11 @@ struct SettingsView: View {
         Form {
             Section {
                 Toggle(L("Hiện tạm bản Dịch máy Apple khi AI chưa kịp", "Show Apple Translation while the AI catches up"), isOn: $settings.quickAppleTranslation)
-                Note(L("AI chưa trả lời sau 0,25 giây thì phụ đề hiện tạm bản dịch máy của Apple (trên máy, gần như tức thì), có bản AI thì thay. Giọng đọc luôn chờ bản AI. Gemini và Groq trả bản dịch theo luồng: chữ hiện dần và câu đầu được đọc ngay khi dịch xong, không chờ cả đoạn.", "If the AI hasn't answered after 0.25 seconds, subtitles show Apple's machine translation (on device, almost instant) and switch to the AI version when it arrives. Voice always waits for the AI version. Gemini and Groq stream their translations: text appears as it comes in and the first sentence is spoken as soon as it's translated, without waiting for the whole passage."))
+                Note(L("Nếu AI chưa trả lời sau 0,25 giây, phụ đề hiện tạm bản dịch máy của Apple (trên máy, gần như tức thì) rồi thay bằng bản AI khi có. Giọng đọc luôn chờ bản AI. Gemini và Groq trả bản dịch theo luồng: chữ hiện dần và câu đầu được đọc ngay khi dịch xong, không chờ cả đoạn.", "If the AI hasn't answered after 0.25 seconds, subtitles show Apple's machine translation (on device, almost instant) and switch to the AI version when it arrives. Voice always waits for the AI version. Gemini and Groq stream their translations: text appears as it comes in and the first sentence is spoken as soon as it's translated, without waiting for the whole passage."))
                 LabeledContent(L("Bộ nhớ dịch của hồ sơ này", "Translation memory for this profile")) {
                     Text(L("\(engine.memory.count) câu", "\(engine.memory.count) lines")).foregroundStyle(.secondary)
                 }
-                Note(L("Câu đã dịch được nhớ theo hồ sơ game; gặp lại (NPC nói lặp, xem lại hội thoại) thì dùng ngay, không tốn lượt. Xoá ở trang chi tiết hồ sơ.", "Translated lines are remembered per game profile; when they come up again (repeated NPC lines, rewatched dialogue) they're reused instantly at no cost to your quota. Clear it on the profile's detail page."))
+                Note(L("Câu đã dịch được nhớ theo hồ sơ game; khi gặp lại (NPC nói lặp, xem lại hội thoại), app dùng ngay mà không tốn lượt. Bạn có thể xoá bộ nhớ này ở trang chi tiết hồ sơ.", "Translated lines are remembered per game profile; when they come up again (repeated NPC lines, rewatched dialogue) they're reused instantly at no cost to your quota. Clear it on the profile's detail page."))
             } header: { Text(L("Tốc độ", "Speed")) }
 
             Section {
@@ -531,7 +531,7 @@ struct SettingsView: View {
             } header: { Text(L("Khả năng của từng dịch vụ", "What each service can do")) }
 
             keySection("Gemini", engine: .gemini, form: geminiForm,
-                       hint: L("Dịch hay nhất trong nhóm miễn phí. Hạn mức tính theo dự án Google Cloud chứ không theo key: hai key cùng một dự án dùng chung hạn mức, và Google có thể khoá các dự án lập ra chỉ để né hạn mức. Muốn có dự phòng thì thêm key của dịch vụ khác bên dưới.", "The best translations among the free options. Quota is per Google Cloud project, not per key: two keys from one project share the same quota, and Google may restrict projects created just to get around limits. For a backup, add a key from another service below."))
+                       hint: L("Dịch hay nhất trong nhóm miễn phí. Hạn mức tính theo dự án Google Cloud chứ không theo key: hai key cùng một dự án dùng chung hạn mức, và Google có thể khoá các dự án lập ra chỉ để né hạn mức. Bạn nên thêm key của một dịch vụ khác bên dưới để dự phòng.", "The best translations among the free options. Quota is per Google Cloud project, not per key: two keys from one project share the same quota, and Google may restrict projects created just to get around limits. For a backup, add a key from another service below."))
             keySection("Groq", engine: .groq, form: groqForm,
                        hint: L("Rất nhanh (khoảng 0,3 đến 0,5 giây). Miễn phí khoảng 1.000 lượt mỗi ngày cho mỗi model.", "Very fast (about 0.3 to 0.5 seconds). Free for roughly 1,000 requests per day per model."))
             keySection("Cerebras", engine: .cerebras, form: cerebrasForm,
@@ -539,11 +539,11 @@ struct SettingsView: View {
             keySection("Mistral", engine: .mistral, form: mistralForm,
                        hint: L("Gói miễn phí rộng nhất (khoảng 1 tỉ token mỗi tháng) nhưng chỉ một lượt mỗi giây. Hợp làm dự phòng khi Gemini và Groq hết lượt.", "The most generous free plan (about 1 billion tokens per month) but only one request per second. A good backup when Gemini and Groq run out."))
             keySection("OpenRouter", engine: .openRouter, form: openRouterForm,
-                       hint: L("Một key dùng được nhiều model. Model miễn phí (tên có đuôi :free) giới hạn 50 lượt mỗi ngày, lên 1.000 lượt khi tài khoản đã nạp từ 10 USD. Muốn dùng model trả phí thì nhập tên model ở phần Nâng cao.", "One key for many models. Free models (names ending in :free) are limited to 50 requests per day, or 1,000 once the account has bought at least $10 of credits. To use a paid model, enter its name under Advanced."))
+                       hint: L("Một key dùng được nhiều model. Model miễn phí (tên có đuôi :free) giới hạn 50 lượt mỗi ngày, lên 1.000 lượt khi tài khoản đã nạp từ 10 USD. Để dùng model trả phí, bạn nhập tên model ở phần Nâng cao.", "One key for many models. Free models (names ending in :free) are limited to 50 requests per day, or 1,000 once the account has bought at least $10 of credits. To use a paid model, enter its name under Advanced."))
             customSection
 
             Section {
-                Note(L("Chỉ thêm key chạy được; lúc thêm, app gửi ba câu thử để đo tốc độ. Hết hạn mức thì app tự chuyển sang key hoặc dịch vụ kế tiếp. Khi dùng dịch vụ qua mạng, chữ trong các vùng bạn chọn (kèm vài câu trước làm ngữ cảnh và tên nhân vật) được gửi tới dịch vụ đó để dịch. Key lưu trong một file chỉ tài khoản của bạn đọc được.", "Only working keys are added; when you add one, the app sends three test lines to measure speed. When a quota runs out, the app moves on to the next key or service. When you use an online service, text in the regions you select (plus a few previous lines as context and character names) is sent to that service for translation. Keys are stored in a file only your account can read."))
+                Note(L("App chỉ thêm key dùng được; lúc thêm, app gửi ba câu thử để đo tốc độ. Khi một key hết hạn mức, app tự chuyển sang key hoặc dịch vụ kế tiếp. Khi dùng dịch vụ qua mạng, chữ trong các vùng bạn chọn (kèm vài câu trước làm ngữ cảnh và tên nhân vật) được gửi tới dịch vụ đó để dịch. Key lưu trong một file chỉ tài khoản của bạn đọc được.", "Only working keys are added; when you add one, the app sends three test lines to measure speed. When a quota runs out, the app moves on to the next key or service. When you use an online service, text in the regions you select (plus a few previous lines as context and character names) is sent to that service for translation. Keys are stored in a file only your account can read."))
             }
             Section {
                 DisclosureGroup(L("Nhật ký chuyển dịch vụ (\(hub.log.count))", "Service switch log (\(hub.log.count))")) {
@@ -564,7 +564,7 @@ struct SettingsView: View {
                     ForEach([EngineKind.cerebras, .mistral, .openRouter]) { e in
                         TextField(L("Model \(e.title)", "\(e.title) model"), text: modelBinding(e))
                     }
-                    Note(L("Model không còn dùng được với tài khoản thì app tự chọn model khác khi thêm key hoặc khi dịch gặp lỗi.", "If a model is no longer available on your account, the app picks another one when you add a key or when a translation fails."))
+                    Note(L("Nếu model không còn dùng được với tài khoản của bạn, app tự chọn model khác khi thêm key hoặc khi dịch gặp lỗi.", "If a model is no longer available on your account, the app picks another one when you add a key or when a translation fails."))
                 }
             }
         }
@@ -620,12 +620,12 @@ struct SettingsView: View {
             }
             TextField(L("Tên hiển thị", "Display name"), text: $settings.customEngineName, prompt: Text("OpenAI"))
             TextField(L("Địa chỉ API", "API address"), text: $settings.customEngineURL, prompt: Text("https://api.openai.com/v1"))
-            TextField(L("Tên model", "Model name"), text: modelBinding(.custom), prompt: Text(L("Để trống thì app tự chọn khi thêm key", "Leave empty and the app picks one when you add a key")))
+            TextField(L("Tên model", "Model name"), text: modelBinding(.custom), prompt: Text(L("Để trống, app sẽ tự chọn khi thêm key", "Leave empty and the app picks one when you add a key")))
             keyRows(L("dịch vụ này", "this service"), engine: .custom, form: customForm)
         } header: {
             Text(L("Dịch vụ tự thêm (\(hub.keys(for: .custom).count))", "Custom service (\(hub.keys(for: .custom).count))"))
         } footer: {
-            Text(L("Dùng cho dịch vụ trả phí có API kiểu OpenAI (chat/completions). Phí do nhà cung cấp tính theo lượng chữ; một câu thoại tốn khoảng 300 đến 600 token kèm ngữ cảnh. Tên model có thể đã đổi, xem trang của nhà cung cấp nếu app báo model không dùng được.", "For paid services with an OpenAI-style API (chat/completions). The provider bills by text volume; one line of dialogue uses roughly 300 to 600 tokens including context. Model names change, so check the provider's site if the app reports a model as unavailable."))
+            Text(L("Dùng cho dịch vụ trả phí có API kiểu OpenAI (chat/completions). Phí do nhà cung cấp tính theo lượng chữ; một câu thoại tốn khoảng 300 đến 600 token kèm ngữ cảnh. Tên model có thể đã đổi; nếu app báo model không dùng được, bạn xem lại trang của nhà cung cấp.", "For paid services with an OpenAI-style API (chat/completions). The provider bills by text volume; one line of dialogue uses roughly 300 to 600 tokens including context. Model names change, so check the provider's site if the app reports a model as unavailable."))
         }
     }
 
@@ -715,7 +715,7 @@ struct SettingsView: View {
 
             Section {
                 Toggle(L("Giữ nguyên tên riêng", "Keep proper names as is"), isOn: $settings.smartNames)
-                Note(L("Tên nhân vật, địa danh, quái vật và chiêu thức được giữ như bản gốc. Thêm vào danh sách bên dưới để giữ chắc chắn, hoặc đặt một cách dịch cố định.", "Character, place, monster and skill names are kept as in the original. Add them to the list below to make sure, or set a fixed translation."))
+                Note(L("Tên nhân vật, địa danh, quái vật và chiêu thức được giữ như bản gốc. Bạn thêm tên vào danh sách bên dưới để chắc chắn tên được giữ, hoặc đặt một cách dịch cố định.", "Character, place, monster and skill names are kept as in the original. Add them to the list below to make sure, or set a fixed translation."))
                 HStack {
                     TextField(L("Thuật ngữ", "Glossary term"), text: Binding(get: { glossaryForm.term }, set: { glossaryForm.term = $0 }), prompt: Text(L("Tên hoặc thuật ngữ", "Name or term")))
                         .labelsHidden().textFieldStyle(.roundedBorder)
@@ -756,7 +756,7 @@ struct SettingsView: View {
 
             Section {
                 if settings.ignoreList.isEmpty {
-                    Note(L("Chưa có câu nào. Bấm \"Bỏ qua câu này\" ở cửa sổ chính khi app dịch nhầm chữ không phải lời thoại.", "No lines yet. Click \"Ignore this line\" in the main window when the app translates text that isn't dialogue."))
+                    Note(L("Chưa có câu nào. Khi app dịch nhầm chữ không phải lời thoại, bạn bấm \"Bỏ qua câu này\" ở cửa sổ chính.", "No lines yet. Click \"Ignore this line\" in the main window when the app translates text that isn't dialogue."))
                 }
                 ForEach(settings.ignoreList, id: \.self) { t in
                     HStack {
@@ -786,7 +786,7 @@ struct SettingsView: View {
     /// Các ô để người dùng tự mô tả bối cảnh và cách dịch cho thể loại Tuỳ chỉnh.
     @ViewBuilder
     private var customStyleEditor: some View {
-        Note(L("Mô tả game để AI dịch theo ý bạn. Ô nào không cần thì để trống. Viết ngắn gọn: mỗi ô tối đa \(CustomStyle.fieldLimit) ký tự được gửi kèm mỗi câu dịch.", "Describe the game so the AI translates the way you want. Leave any box empty if you don't need it. Keep it short: up to \(CustomStyle.fieldLimit) characters per box are sent with every line."))
+        Note(L("Bạn mô tả game để AI dịch theo ý mình. Ô nào không cần, bạn cứ để trống. Nên viết ngắn gọn, vì mỗi ô (tối đa \(CustomStyle.fieldLimit) ký tự) được gửi kèm mỗi câu dịch.", "Describe the game so the AI translates the way you want. Leave any box empty if you don't need it. Keep it short: up to \(CustomStyle.fieldLimit) characters per box are sent with every line."))
         LabeledContent(L("Bắt đầu từ thể loại có sẵn", "Start from a built-in genre")) {
             Menu(L("Điền sẵn…", "Fill in…")) {
                 ForEach(GameGenre.allCases.filter { $0 != .custom && $0 != .auto }) { g in
@@ -856,12 +856,12 @@ struct SettingsView: View {
             } header: { Text(L("Thể loại game", "Game genre")) }
             Section {
                 LabeledContent(L("Game đang nhận", "Detected game")) {
-                    Text(settings.gameAppName ?? L("Chưa nhận. Chọn vùng khi game đang mở.", "None yet. Select a region while the game is open.")).foregroundStyle(.secondary)
+                    Text(settings.gameAppName ?? L("Chưa nhận ra game. Bạn chọn vùng khi game đang mở nhé.", "None yet. Select a region while the game is open.")).foregroundStyle(.secondary)
                 }
                 Toggle(L("Tạm ngưng khi game bị ẩn hoặc bị che", "Pause while the game is hidden or covered"), isOn: $settings.pauseWhenGameHidden)
-                Note(L("Lúc chọn vùng, app nằm dưới vùng được nhận là game. Bấm sang app khác mà game vẫn hiện ở vùng phụ đề (vd. chơi console bằng tay cầm, gõ việc khác ở cửa sổ bên cạnh) thì vẫn dịch và đọc. Game bị thu nhỏ, chuyển màn hình làm việc, hay cửa sổ khác che vùng phụ đề thì tạm ngưng và ẩn bản dịch.", "When you select a region, the app beneath it is taken as the game. If you click another app but the game is still visible in the subtitle region (e.g. playing a console with a controller while typing in a window beside it), translation and voice keep going. If the game is minimized, you switch desktops, or another window covers the subtitle region, OverSub pauses and hides translations."))
+                Note(L("Lúc bạn chọn vùng, app nằm dưới vùng đó được nhận là game. Khi bạn bấm sang app khác mà game vẫn hiện ở vùng phụ đề (vd. chơi console bằng tay cầm, gõ việc khác ở cửa sổ bên cạnh), OverSub vẫn dịch và đọc. Nếu game bị thu nhỏ, bạn chuyển màn hình làm việc, hay cửa sổ khác che vùng phụ đề, OverSub tạm ngưng và ẩn bản dịch.", "When you select a region, the app beneath it is taken as the game. If you click another app but the game is still visible in the subtitle region (e.g. playing a console with a controller while typing in a window beside it), translation and voice keep going. If the game is minimized, you switch desktops, or another window covers the subtitle region, OverSub pauses and hides translations."))
                 Toggle(L("Giữ màn hình luôn sáng khi đang chạy", "Keep the screen on while running"), isOn: $settings.keepScreenAwake)
-                Note(L("Chơi bằng tay cầm (nhất là console qua capture card) thì Mac không nhận thao tác nào, tự tắt màn hình hoặc khoá máy giữa chừng và OverSub không đọc được phụ đề nữa. Bật mục này thì màn hình sáng suốt lúc OverSub đang chạy; bấm Dừng hay thoát app là trở lại bình thường.", "When you play with a controller (especially a console through a capture card), your Mac sees no input and turns off the screen or locks partway through, so OverSub can no longer read subtitles. With this on, the screen stays on while OverSub is running; click Stop or quit the app and everything goes back to normal."))
+                Note(L("Khi bạn chơi bằng tay cầm (nhất là console qua capture card), Mac không nhận được thao tác nào nên có thể tự tắt màn hình hoặc khoá máy giữa chừng, và OverSub không đọc được phụ đề nữa. Khi bật mục này, màn hình luôn sáng trong lúc OverSub chạy; bấm Dừng hay thoát app là mọi thứ trở lại bình thường.", "When you play with a controller (especially a console through a capture card), your Mac sees no input and turns off the screen or locks partway through, so OverSub can no longer read subtitles. With this on, the screen stays on while OverSub is running; click Stop or quit the app and everything goes back to normal."))
             } header: { Text("Game") }
         }
         .task(id: settings.sourceLanguage + ">" + settings.targetLanguage) {
@@ -880,13 +880,13 @@ struct SettingsView: View {
         switch applePack.state {
         case .downloadable:
             VStack(alignment: .leading, spacing: 8) {
-                Label(L("Chưa có gói Dịch máy Apple \(src.displayName) → \(tgt.displayName). Tải gói để dịch tức thì ngay trên máy, không cần key và không cần mạng.", "The Apple Translation pack for \(src.displayName) → \(tgt.displayName) isn't installed. Download it to translate instantly on device, with no API key and no network."),
+                Label(L("Chưa có gói Dịch máy Apple \(src.displayName) → \(tgt.displayName). Bạn tải gói này để dịch tức thì ngay trên máy, không cần key và không cần mạng.", "The Apple Translation pack for \(src.displayName) → \(tgt.displayName) isn't installed. Download it to translate instantly on device, with no API key and no network."),
                       systemImage: "arrow.down.circle")
                     .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 Button(L("Tải gói dịch", "Download language pack")) { applePack.download(source: src.code, target: tgt.code) }
             }
         case .unsupported:
-            Label(L("Dịch máy Apple chưa hỗ trợ \(src.displayName) → \(tgt.displayName). Cần key Gemini hoặc Groq (miễn phí) ở trang Dịch vụ dịch.", "Apple Translation doesn't support \(src.displayName) → \(tgt.displayName) yet. You need a Gemini or Groq API key (free), added on the Translation services page."),
+            Label(L("Dịch máy Apple chưa hỗ trợ \(src.displayName) → \(tgt.displayName). Bạn cần thêm key Gemini hoặc Groq (miễn phí) ở trang Dịch vụ dịch.", "Apple Translation doesn't support \(src.displayName) → \(tgt.displayName) yet. You need a Gemini or Groq API key (free), added on the Translation services page."),
                   systemImage: "exclamationmark.triangle")
                 .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         case .installed:
@@ -904,7 +904,7 @@ struct SettingsView: View {
                 LabeledContent(L("Cửa sổ phụ đề", "Subtitle window")) {
                     Button(subtitleWindow.isOpen ? L("Đóng", "Close") : L("Mở   ⌘J", "Open   ⌘J")) { subtitleWindow.toggle() }
                 }
-                Note(L("Cửa sổ riêng chỉ có câu thoại: đặt ở màn hình thứ hai, hoặc thu còn một dòng để không che game. Rê chuột vào cửa sổ mới hiện nút.", "A separate window with just the dialogue: put it on a second display, or shrink it to one line so it doesn't cover the game. Buttons appear when you move the pointer over the window."))
+                Note(L("Cửa sổ riêng chỉ có câu thoại: đặt ở màn hình thứ hai, hoặc thu còn một dòng để không che game. Rê chuột vào cửa sổ để hiện các nút.", "A separate window with just the dialogue: put it on a second display, or shrink it to one line so it doesn't cover the game. Buttons appear when you move the pointer over the window."))
             }
             Section {
                 SliderRow(title: L("Cỡ chữ", "Font size"), value: $settings.windowFontSize, range: 12...120, step: 1, format: "%.0f")
@@ -916,7 +916,7 @@ struct SettingsView: View {
             } header: { Text(L("Nền", "Background")) }
             Section {
                 Toggle(L("Ghim: nổi trên cùng, theo sang mọi màn hình làm việc", "Pin: float on top and follow to every desktop"), isOn: $subtitleWindow.onTop)
-                Note(L("Ghim thì cửa sổ luôn nổi, kể cả cạnh game toàn màn hình.", "When pinned, the window always floats, even next to a full-screen game."))
+                Note(L("Khi ghim, cửa sổ luôn nổi trên cùng, kể cả cạnh game toàn màn hình.", "When pinned, the window always floats, even next to a full-screen game."))
             } header: { Text(L("Ghim", "Pin")) }
         }
     }
@@ -974,13 +974,13 @@ struct SettingsView: View {
                         SliderRow(title: L("Dịch ngang", "Horizontal offset"), value: $settings.overlayDX, range: -800...800, step: 2, format: "%+.0f")
                         SliderRow(title: L("Dịch dọc", "Vertical offset"), value: $settings.overlayDY, range: -600...600, step: 2, format: "%+.0f")
                         SliderRow(title: L("Độ rộng tối đa", "Maximum width"), value: $settings.overlayWidthPct, range: 30...200, step: 5, format: "%.0f%%")
-                        Note(L("Phụ đề nằm giữa vùng đã chọn, dời theo hai thanh trên. Dùng khi muốn giữ nguyên chữ gốc và đặt bản dịch ở chỗ khác.",
+                        Note(L("Phụ đề nằm giữa vùng đã chọn, dời theo hai thanh trên. Hợp khi bạn muốn giữ nguyên chữ gốc và đặt bản dịch ở chỗ khác.",
                                "Subtitles sit in the middle of your region, shifted by the sliders above. Use this to keep the original text visible and put the translation elsewhere."))
                     }
                 }
                 .disabled(!settings.overlayEnabled)
             } header: { Text(L("Phụ đề đè lên", "Overlay subtitles")) } footer: {
-                Text(L("Trong game bấm \(HotkeyCenter.Action.toggleOverlay.display) để ẩn hoặc hiện nhanh.", "In game, press \(HotkeyCenter.Action.toggleOverlay.display) to quickly hide or show."))
+                Text(L("Trong game, bạn bấm \(HotkeyCenter.Action.toggleOverlay.display) để ẩn hoặc hiện nhanh.", "In game, press \(HotkeyCenter.Action.toggleOverlay.display) to quickly hide or show."))
             }
 
         }
@@ -995,7 +995,7 @@ struct SettingsView: View {
                 Toggle(isOn: $settings.screenTranslateEnabled) {
                     Text(L("Bật dịch màn hình   \(HotkeyCenter.Action.screenTranslate.display)", "Turn on screen translation   \(HotkeyCenter.Action.screenTranslate.display)"))
                 }
-                Note(L("Dịch ngay tại chỗ chữ ngoài lời thoại: bảng nhiệm vụ, menu, mô tả vật phẩm, thư từ. Mỗi cụm chữ được thay bằng bản dịch ngay trên nền game, cùng màu chữ, chữ tự co để nằm gọn trong khung giao diện. Không đọc to, không vào Cửa sổ phụ đề hay lịch sử thoại. Bật/tắt ở đây hoặc nút tròn Dịch màn hình; chạy khi bấm Bắt đầu, như Phụ đề và Voice-over.", "Translates text outside the dialogue right where it is: quest logs, menus, item descriptions, letters. Each block of text is replaced by its translation on top of the game, in the same text color, shrinking to fit the interface frame. It isn't read aloud and doesn't go to the Subtitle window or dialogue history. Turn it on or off here or with the round Screen translation button; it runs when you press Start, like Subtitles and Voice-over."))
+                Note(L("Dịch ngay tại chỗ chữ ngoài lời thoại: bảng nhiệm vụ, menu, mô tả vật phẩm, thư từ. Mỗi cụm chữ được thay bằng bản dịch ngay trên nền game, cùng màu chữ, chữ tự co để nằm gọn trong khung giao diện. Không đọc to, không vào Cửa sổ phụ đề hay lịch sử thoại. Bạn bật/tắt ở đây hoặc bằng nút tròn Dịch màn hình; tính năng chạy khi bấm Bắt đầu, như Phụ đề và Voice-over.", "Translates text outside the dialogue right where it is: quest logs, menus, item descriptions, letters. Each block of text is replaced by its translation on top of the game, in the same text color, shrinking to fit the interface frame. It isn't read aloud and doesn't go to the Subtitle window or dialogue history. Turn it on or off here or with the round Screen translation button; it runs when you press Start, like Subtitles and Voice-over."))
             } header: { Text(L("Dịch màn hình", "Screen translation")) }
             Section {
                 Picker(L("Tốc độ", "Speed"), selection: $settings.screenSpeed) {
@@ -1029,7 +1029,7 @@ struct SettingsView: View {
                 LabeledContent(L("Thêm vùng", "Add region")) {
                     Button(L("Thêm vùng dịch màn hình…", "Add screen region…")) { engine.selectRegion(screen: true) }
                 }
-                Note(L("Mỗi vùng quét khoảng 0,45 giây một lần. Chữ đổi thì bản dịch cũ được gỡ ngay, chữ mới đứng yên là dịch. Vùng lưu theo hồ sơ game.", "Each region is scanned about every 0.45 seconds. When the text changes, the old translation is removed right away; once the new text settles, it's translated. Regions are saved per game profile."))
+                Note(L("Mỗi vùng quét khoảng 0,45 giây một lần. Khi chữ đổi, bản dịch cũ được gỡ ngay và chữ mới được dịch khi đứng yên. Vùng lưu theo hồ sơ game.", "Each region is scanned about every 0.45 seconds. When the text changes, the old translation is removed right away; once the new text settles, it's translated. Regions are saved per game profile."))
             } header: { Text(L("Vùng dịch màn hình", "Screen regions")) }
             Section {
                 LabeledContent(L("Dịch nhanh một vùng", "Quick-translate an area")) {
@@ -1040,7 +1040,7 @@ struct SettingsView: View {
                 }
                 if !hotkeys.message.isEmpty { Note(hotkeys.message) }
                 Toggle(L("Dừng hình khi dịch nhanh", "Freeze the frame while quick-translating"), isOn: $settings.quickFreeze)
-                Note(L("Bấm \(HotkeyCenter.Action.quickTranslate.display) ở bất cứ đâu, kéo một khung quanh chữ, thả chuột là bản dịch hiện ngay tại chỗ. Dùng cho chữ xuất hiện bất chợt (thư, biển hiệu, màn hướng dẫn) mà không cần đặt vùng cố định; không cần bấm Bắt đầu. Dừng hình giúp chọn và đọc không bị trôi; tắt đi thì game vẫn hiện phía sau.",
+                Note(L("Bấm \(HotkeyCenter.Action.quickTranslate.display) ở bất cứ đâu, kéo một khung quanh chữ, thả chuột là bản dịch hiện ngay tại chỗ. Dùng cho chữ xuất hiện bất chợt (thư, biển hiệu, màn hướng dẫn) mà không cần đặt vùng cố định; không cần bấm Bắt đầu. Dừng hình giúp bạn chọn và đọc mà không bị trôi; nếu tắt, bạn vẫn thấy game chạy phía sau.",
                        "Press \(HotkeyCenter.Action.quickTranslate.display) anywhere, drag a box around some text, and the translation appears in place when you release. For text that pops up unexpectedly (letters, signs, tutorials) without setting a fixed region; no need to press Start. Freezing keeps the text still while you select and read; turn it off to keep the game visible behind."))
             } header: { Text(L("Dịch nhanh", "Quick translate")) }
         }
@@ -1061,7 +1061,7 @@ struct SettingsView: View {
                 RegionMap(main: settings.region, secondaries: settings.secondaryRegions, thumbnail: thumb)
                     .padding(.vertical, 4)
                 Note(thumb == nil
-                     ? L("Chưa có ảnh xem trước. Chọn vùng rồi lưu để có ảnh màn hình kèm các vùng.", "No preview yet. Select a region and save to get a screenshot with the regions.")
+                     ? L("Chưa có ảnh xem trước. Bạn chọn vùng rồi lưu để có ảnh màn hình kèm các vùng.", "No preview yet. Select a region and save to get a screenshot with the regions.")
                      : L("Ảnh màn hình lúc lưu vùng gần nhất. Viền trắng là vùng phụ đề, viền cam là vùng dịch màn hình.", "Screenshot from the last time regions were saved. The white outline is the subtitle region; orange outlines are screen regions."))
             } header: { Text(L("Xem trước · hồ sơ \(settings.activePreset?.name ?? "")", "Preview · profile \(settings.activePreset?.name ?? "")")) }
             Section {
@@ -1079,7 +1079,7 @@ struct SettingsView: View {
             } header: { Text(L("Phụ đề lời thoại", "Dialogue subtitles")) }
             Section {
                 if settings.secondaryRegions.isEmpty {
-                    Note(L("Chưa có vùng nào. Thêm vùng quanh chữ ngoài lời thoại (bảng nhiệm vụ, menu, mô tả vật phẩm) để dịch ngay tại chỗ.", "No regions yet. Add regions around text outside the dialogue (quest logs, menus, item descriptions) to translate it in place."))
+                    Note(L("Chưa có vùng nào. Bạn thêm vùng quanh chữ ngoài lời thoại (bảng nhiệm vụ, menu, mô tả vật phẩm) để dịch ngay tại chỗ.", "No regions yet. Add regions around text outside the dialogue (quest logs, menus, item descriptions) to translate it in place."))
                 }
                 ForEach(Array(settings.secondaryRegions.enumerated()), id: \.offset) { i, r in
                     LabeledContent(L("Vùng \(i + 1)", "Region \(i + 1)")) {
@@ -1118,7 +1118,7 @@ struct UpdateSection: View {
             }
             Toggle(L("Tự kiểm tra bản mới", "Check for updates automatically"), isOn: $u.autoCheck)
             Toggle(L("Tự tải bản mới và cài khi thoát app", "Download updates automatically and install when quitting"), isOn: $u.autoInstall)
-            Note(L("OverSub hỏi trang phát hành trên GitHub khoảng hai lần mỗi ngày, không gửi đi thông tin gì của bạn. Bản tải về được kiểm tra chữ ký số trước khi cài; cài đặt, key và quyền Ghi màn hình giữ nguyên. Bật tự cài thì bản mới được tải sẵn và thay vào lúc bạn thoát app, không làm gián đoạn lúc đang chơi.",
+            Note(L("OverSub hỏi trang phát hành trên GitHub khoảng hai lần mỗi ngày, không gửi đi thông tin gì của bạn. Bản tải về được kiểm tra chữ ký số trước khi cài; cài đặt, key và quyền Ghi màn hình giữ nguyên. Nếu bật tự cài, bản mới được tải sẵn và thay vào lúc bạn thoát app, không làm gián đoạn lúc đang chơi.",
                    "OverSub checks the GitHub releases page about twice a day and sends nothing about you. Downloads are verified with a digital signature before installing; your settings, keys and Screen Recording permission are kept. With automatic install on, the new version is downloaded in the background and swapped in when you quit, so it never interrupts a game."))
         } header: { Text(L("Cập nhật", "Updates")) }
     }

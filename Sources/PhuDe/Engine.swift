@@ -990,8 +990,8 @@ final class Engine: ObservableObject {
         let hasMain = settings.region != nil
         let hasScreen = settings.screenTranslateEnabled && !settings.secondaryRegions.isEmpty
         guard hasMain || hasScreen else {
-            status = settings.secondaryRegions.isEmpty ? L("Chưa có vùng nào. Bấm Chọn vùng phụ đề hoặc Thêm dịch màn hình.", "No regions yet. Click Select subtitle region or Add screen translation.")
-                                                       : L("Dịch màn hình đang tắt và chưa có vùng phụ đề. Bật nút Dịch màn hình hoặc chọn vùng phụ đề.", "Screen translation is off and there's no subtitle region. Turn on Screen translation or select a subtitle region.")
+            status = settings.secondaryRegions.isEmpty ? L("Chưa có vùng nào. Bạn bấm Chọn vùng phụ đề hoặc Thêm vùng dịch để bắt đầu.", "No regions yet. Click Select subtitle region or Add screen region to get started.")
+                                                       : L("Dịch màn hình đang tắt và chưa có vùng phụ đề. Bạn bật Dịch màn hình hoặc chọn vùng phụ đề để bắt đầu.", "Screen translation is off and there's no subtitle region. Turn on Screen translation or select a subtitle region.")
             return
         }
         if hasMain { start() }
@@ -1145,7 +1145,7 @@ final class Engine: ObservableObject {
     private func ensurePermission() -> Bool {
         if CGPreflightScreenCaptureAccess() { problem = nil; return true }
         CGRequestScreenCaptureAccess()
-        problem = L("Chưa có quyền Ghi màn hình cho OverSub. Bật trong System Settings → Privacy & Security → Screen & System Audio Recording, rồi thoát hẳn và mở lại app.", "OverSub doesn't have Screen Recording permission. Turn it on in System Settings → Privacy & Security → Screen & System Audio Recording, then quit and reopen the app.")
+        problem = L("OverSub chưa có quyền Ghi màn hình. Bạn bật quyền trong System Settings → Privacy & Security → Screen & System Audio Recording, rồi thoát hẳn và mở lại app.", "OverSub doesn't have Screen Recording permission. Turn it on in System Settings → Privacy & Security → Screen & System Audio Recording, then quit and reopen the app.")
         status = L("Thiếu quyền Ghi màn hình.", "Screen Recording permission missing.")
         return false
     }
@@ -1154,7 +1154,7 @@ final class Engine: ObservableObject {
         DebugLog.write("Lỗi: \((error as? AppError)?.message ?? error.localizedDescription)")
         let ns = error as NSError
         if ns.domain == "com.apple.ScreenCaptureKit.SCStreamErrorDomain" || ns.code == -3801 {
-            problem = L("macOS từ chối chụp màn hình: \(error.localizedDescription). Kiểm tra quyền Ghi màn hình của OverSub, rồi thoát hẳn và mở lại app.", "macOS refused the screen capture: \(error.localizedDescription). Check OverSub's Screen Recording permission, then quit and reopen the app.")
+            problem = L("macOS từ chối chụp màn hình: \(error.localizedDescription). Bạn kiểm tra lại quyền Ghi màn hình của OverSub, rồi thoát hẳn và mở lại app.", "macOS refused the screen capture: \(error.localizedDescription). Check OverSub's Screen Recording permission, then quit and reopen the app.")
         } else {
             problem = error.localizedDescription
         }

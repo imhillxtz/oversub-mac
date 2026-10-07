@@ -524,7 +524,7 @@ enum Providers {
         switch await LanguageAvailability().status(from: src, to: dst) {
         case .installed: break
         case .supported:
-            throw Failure.unavailable(L("Chưa tải gói dịch \(source) → \(target). Mở System Settings → General → Language & Region → Translation Languages.", "The \(source) → \(target) translation pack isn't downloaded. Open System Settings → General → Language & Region → Translation Languages."))
+            throw Failure.unavailable(L("Bạn chưa tải gói dịch \(source) → \(target). Bạn có thể tải ở System Settings → General → Language & Region → Translation Languages.", "The \(source) → \(target) translation pack isn't downloaded. Open System Settings → General → Language & Region → Translation Languages."))
         default:
             throw Failure.unavailable(L("Dịch máy Apple không hỗ trợ cặp ngôn ngữ này.", "Apple Translation doesn't support this language pair."))
         }

@@ -227,7 +227,7 @@ final class HotkeyRecording: ObservableObject {
             return
         }
         if let clash = HotkeyCenter.shared.setCombo(combo, for: a) {
-            message = L("\(combo.display) đang được dùng cho \"\(clash.title)\". Chọn tổ hợp khác.", "\(combo.display) is already used by \"\(clash.title)\". Pick another.")
+            message = L("\(combo.display) đang được dùng cho \"\(clash.title)\". Bạn chọn tổ hợp khác nhé.", "\(combo.display) is already used by \"\(clash.title)\". Pick another.")
             return
         }
         message = ""

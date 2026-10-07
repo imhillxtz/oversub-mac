@@ -36,24 +36,27 @@ Mistral, OpenRouter and others) are used under their own terms.
 
 Bản quyền (c) 2026 imhillxtz. Bảo lưu mọi quyền.
 
-Mã nguồn được công khai để mọi người xem và kiểm tra app làm gì trên máy
-của họ. Đây KHÔNG phải phần mềm mã nguồn mở.
+Mình công khai mã nguồn để bạn tự xem được OverSub làm gì trên máy bạn, cho
+yên tâm. OverSub không phải phần mềm mã nguồn mở, nên có vài điều mình mong
+bạn giữ giúp.
 
-Được phép, không cần xin:
-  - xem, đọc mã nguồn trên GitHub;
-  - fork kho trên GitHub, trong phạm vi Điều khoản dịch vụ của GitHub cho
-    kho công khai;
-  - tải và dùng miễn phí các bản cài chính thức, không chỉnh sửa, ở trang
-    Releases của kho này, cho mục đích cá nhân.
+Bạn cứ thoải mái làm những việc này, không cần hỏi:
+  - xem và đọc mã nguồn trên GitHub;
+  - fork kho này trên GitHub, trong phạm vi Điều khoản dịch vụ của GitHub
+    cho kho công khai;
+  - tải và dùng miễn phí các bản cài chính thức ở trang Releases của kho
+    này, giữ nguyên không chỉnh sửa, cho mục đích cá nhân.
 
-Không được, khi chưa có sự đồng ý bằng văn bản của chủ bản quyền:
+Những việc sau cần có sự đồng ý bằng văn bản của mình (người giữ bản quyền)
+trước:
   - sao chép, sửa đổi, gộp hay dịch mã nguồn, toàn bộ hay một phần;
-  - dựng, phát hành, phân phối, cấp phép lại hay bán phần mềm hoặc sản phẩm
-    phái sinh từ nó;
-  - dùng mã nguồn, hay bất kỳ phần nào, trong sản phẩm hoặc dịch vụ khác,
-    có hay không vì mục đích thương mại.
+  - dựng, phát hành, phân phối, cấp phép lại hay bán phần mềm, hoặc sản
+    phẩm phái sinh từ nó;
+  - dùng mã nguồn, dù chỉ một phần, trong sản phẩm hay dịch vụ khác, dù có
+    nhằm mục đích thương mại hay không.
 
-Muốn xin phép, hãy mở một Issue trên kho này.
+Nếu bạn muốn làm một trong những việc trên, cứ mở một Issue trên kho này để
+trao đổi với mình nhé.
 
-Phần mềm được cung cấp "nguyên trạng", không kèm bất kỳ bảo đảm nào. Bản
-tiếng Anh ở trên là bản có hiệu lực.
+Phần mềm được cung cấp "nguyên trạng", không kèm bảo đảm nào. Nếu hai bản
+có chỗ hiểu khác nhau, bản tiếng Anh ở trên là bản có hiệu lực.

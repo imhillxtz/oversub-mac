@@ -187,14 +187,14 @@ final class TranslationHub: ObservableObject {
                     // Gọi được danh sách model nghĩa là key hợp lệ; chỉ là không chọn được model.
                     if (try? await Providers.listModels(provider, key: secret)) != nil {
                         _ = accept(nil)
-                        return (true, L("Key hợp lệ và đã thêm, nhưng app chưa chọn được model phù hợp. Vào Cài đặt → Dịch vụ dịch → Nâng cao để nhập tên model.", "The key is valid and was added, but the app couldn't pick a suitable model. Go to Settings → Translation services → Advanced to enter a model name."))
+                        return (true, L("Key hợp lệ và đã thêm, nhưng app chưa chọn được model phù hợp. Bạn vào Cài đặt → Dịch vụ dịch → Nâng cao để nhập tên model.", "The key is valid and was added, but the app couldn't pick a suitable model. Go to Settings → Translation services → Advanced to enter a model name."))
                     }
                     return (false, L("Key được nhận nhưng không dùng được model nào để dịch.", "The key was accepted, but no model is available for translation."))
                 }
                 repaired = pick
                 result = try await callProvider(provider, key: secret, system: system, user: user)
             }
-            guard !result.text.isEmpty else { return (false, L("Key được nhận nhưng không có nội dung trả về, thử lại sau.", "The key was accepted but nothing came back. Try again later.")) }
+            guard !result.text.isEmpty else { return (false, L("Key được nhận nhưng không có nội dung trả về, bạn thử lại sau nhé.", "The key was accepted but nothing came back. Try again later.")) }
             let entry = accept(result)
             let ms = Date().timeIntervalSince(t0) * 1000
             // Lượt kiểm tra cũng là một lần dịch thật: ghi vào số liệu để trạng thái engine hiện ngay, không còn "chưa dùng".
@@ -394,7 +394,7 @@ final class TranslationHub: ObservableObject {
         let summary = failed.map { "\($0.0.title): \($0.1)" }.joined(separator: "; ")
         activeLabel = L("Không dịch vụ nào dịch được", "No service could translate")
         activeOK = false
-        throw AppError(summary.isEmpty ? L("Chưa bật dịch vụ dịch nào. Vào Cài đặt → Dịch vụ dịch.", "No translation service is turned on. Go to Settings → Translation services.") : summary)
+        throw AppError(summary.isEmpty ? L("Chưa bật dịch vụ dịch nào. Bạn vào Cài đặt → Dịch vụ dịch để bật nhé.", "No translation service is turned on. Go to Settings → Translation services.") : summary)
     }
 
     /// Dịch vụ đầu chưa ra chữ nào sau 1 giây thì gửi song song cho dịch vụ kế tiếp, ai ra chữ trước thì dùng.

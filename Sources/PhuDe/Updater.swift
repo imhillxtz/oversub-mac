@@ -153,7 +153,7 @@ final class Updater: ObservableObject {
         state = .downloading(release, 0)
         do {
             guard let sigURL = release.signature else {
-                throw UpdateError(L("Bản \(release.version) không kèm chữ ký, nên app không tự cài. Tải tay ở trang Releases.", "Version \(release.version) has no signature, so it can't be installed automatically. Download it from the Releases page."))
+                throw UpdateError(L("Bản \(release.version) không kèm chữ ký số nên app không tự cài được. Bạn tải tay ở trang Releases nhé.", "Version \(release.version) has no signature, so it can't be installed automatically. Download it from the Releases page."))
             }
             let (sigData, _) = try await URLSession.shared.data(from: sigURL)
             let watcher = Task { @MainActor [weak self] in

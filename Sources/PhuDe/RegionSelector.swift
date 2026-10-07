@@ -263,7 +263,7 @@ final class RegionEditor {
                 }
             }
             refresh()
-            if r == nil { views.first { $0.displayID == display }?.flash(L("Không thấy phụ đề trên màn hình này. Mở hộp thoại trong game rồi thử lại.", "No subtitles found on this screen. Bring up dialogue in the game and try again.")) }
+            if r == nil { views.first { $0.displayID == display }?.flash(L("Chưa thấy phụ đề trên màn hình này. Bạn mở một đoạn hội thoại trong game rồi thử lại nhé.", "No subtitles found on this screen. Bring up dialogue in the game and try again.")) }
         }
     }
 
@@ -665,7 +665,7 @@ private final class EditorView: NSView {
             drag = .move(it.id, p, it.region.rect)
         } else {
             guard let id = editor.beginNew(display: displayID) else {
-                flash(L("Đã đủ \(RegionEditor.maxSecondaries) vùng dịch màn hình. Bấm × để bỏ bớt một vùng.", "You already have \(RegionEditor.maxSecondaries) screen regions. Click × to remove one."))
+                flash(L("Đã đủ \(RegionEditor.maxSecondaries) vùng dịch màn hình. Nếu muốn thêm, bạn bấm × để bỏ bớt một vùng.", "You already have \(RegionEditor.maxSecondaries) screen regions. Click × to remove one."))
                 return
             }
             drag = .draw(id)

@@ -470,8 +470,8 @@ enum ScreenSpeed: String, CaseIterable, Identifiable {
     var detail: String {
         switch self {
         case .instant: return L("Dịch máy Apple ngay trên máy: khoảng 0,2 đến 0,5 giây, không tốn lượt API, không cần mạng. Câu chữ đôi khi cứng.", "Apple Translation on your Mac: about 0.2 to 0.5 seconds, no API requests, no network needed. Wording can be stiff at times.")
-        case .balanced: return L("Hiện ngay bản Dịch máy Apple, khoảng 1 đến 2 giây sau thay bằng bản AI tự nhiên hơn. Chữ đã gặp thì hiện bản AI ngay từ trí nhớ.", "Shows the Apple Translation result right away, then replaces it with the more natural AI version 1 to 2 seconds later. Text seen before shows the AI version instantly from memory.")
-        case .quality: return L("Chỉ hiện bản AI (Gemini, Groq): chậm hơn 1 đến 3 giây nhưng câu văn tự nhiên, đúng thuật ngữ game. Chữ đã gặp thì hiện ngay từ trí nhớ.", "Shows only the AI version (Gemini, Groq): 1 to 3 seconds slower, but more natural and true to the game's terms. Text seen before shows instantly from memory.")
+        case .balanced: return L("Hiện ngay bản Dịch máy Apple, khoảng 1 đến 2 giây sau thay bằng bản AI tự nhiên hơn. Chữ đã gặp sẽ hiện bản AI ngay từ trí nhớ.", "Shows the Apple Translation result right away, then replaces it with the more natural AI version 1 to 2 seconds later. Text seen before shows the AI version instantly from memory.")
+        case .quality: return L("Chỉ hiện bản AI (Gemini, Groq): chậm hơn 1 đến 3 giây nhưng câu văn tự nhiên, đúng thuật ngữ game. Chữ đã gặp sẽ hiện ngay từ trí nhớ.", "Shows only the AI version (Gemini, Groq): 1 to 3 seconds slower, but more natural and true to the game's terms. Text seen before shows instantly from memory.")
         }
     }
 }

@@ -130,7 +130,7 @@ struct PresetDetailView: View {
                     .padding(.vertical, 4)
                 HStack {
                     Note(RegionThumbs.image(for: p.id) == nil
-                         ? L("Chưa có ảnh xem trước. Bấm Chỉnh vùng rồi lưu lại để có ảnh màn hình kèm các vùng.", "No preview yet. Click Edit regions and save to capture a screenshot with the regions.")
+                         ? L("Chưa có ảnh xem trước. Bạn bấm Chỉnh vùng rồi lưu lại để có ảnh màn hình kèm các vùng.", "No preview yet. Click Edit regions and save to capture a screenshot with the regions.")
                          : L("Ảnh màn hình lúc lưu vùng. Viền trắng là vùng phụ đề, viền cam là vùng dịch màn hình.", "Screenshot from when the regions were saved. The white outline is the subtitle region; orange outlines are screen regions."))
                     Spacer()
                     Button(L("Chỉnh vùng…", "Edit regions…")) { engine.editRegions(forProfile: id) }
@@ -203,8 +203,8 @@ struct PresetDetailView: View {
             Button(L("Xoá", "Delete"), role: .destructive) { engine.deleteProfile(id); onBack() }
         } message: {
             Text(isLast
-                 ? L("Đây là hồ sơ cuối cùng. Xoá thì OverSub tạo lại một hồ sơ \"Mặc định\" với cài đặt ban đầu (giữ vùng phụ đề).", "This is the last profile. If you delete it, OverSub creates a new \"Default\" profile with default settings (keeping the subtitle region).")
-                 : L("Xoá cả trí nhớ game của hồ sơ này. Không hoàn tác được.", "This also deletes the profile's game memory. This can't be undone."))
+                 ? L("Đây là hồ sơ cuối cùng. Nếu xoá, OverSub sẽ tạo lại một hồ sơ \"Mặc định\" với cài đặt ban đầu (giữ vùng phụ đề).", "This is the last profile. If you delete it, OverSub creates a new \"Default\" profile with default settings (keeping the subtitle region).")
+                 : L("Trí nhớ game của hồ sơ này cũng bị xoá theo. Việc này không hoàn tác được.", "This also deletes the profile's game memory. This can't be undone."))
         }
     }
 

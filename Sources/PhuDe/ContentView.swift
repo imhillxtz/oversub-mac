@@ -175,7 +175,7 @@ struct ContentView: View {
         HStack(spacing: 10) {
             Image(systemName: "heart.fill").foregroundStyle(.pink)
             (Text(L("OverSub đã dịch hơn \(Donation.count(m)) câu thoại cho bạn. ", "OverSub has translated over \(Donation.count(m)) lines for you. ")).fontWeight(.semibold)
-             + Text(L("Thấy hữu ích thì mời mình một ly cà phê nhé.", "If it's been useful, consider buying me a coffee.")).foregroundStyle(.secondary))
+             + Text(L("Mong là app giúp bạn chơi vui hơn.", "I hope it's made your games more fun.")).foregroundStyle(.secondary))
                 .lineLimit(1)
             Button(L("Để sau", "Later")) { support.dismiss() }.buttonStyle(.link)
             Button {
@@ -399,7 +399,7 @@ struct VoiceOverStage: View {
                     .font(.callout).foregroundStyle(.secondary)
                     .symbolEffect(.pulse)
                 if settings.region == nil {
-                    Text(L("Muốn có phụ đề lời thoại thì bấm Chọn vùng phụ đề · \(HotkeyCenter.Action.selectRegion.display)", "For dialogue subtitles, click Select subtitle region · \(HotkeyCenter.Action.selectRegion.display)")).font(.caption).foregroundStyle(.tertiary)
+                    Text(L("Để có phụ đề lời thoại, bạn bấm Chọn vùng phụ đề · \(HotkeyCenter.Action.selectRegion.display)", "For dialogue subtitles, click Select subtitle region · \(HotkeyCenter.Action.selectRegion.display)")).font(.caption).foregroundStyle(.tertiary)
                 }
             } else if settings.region == nil && settings.secondaryRegions.isEmpty {
                 Button { engine.selectRegion() } label: {
@@ -523,7 +523,7 @@ struct TermPicker: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(L("Chọn tên để giữ nguyên, không dịch", "Pick names to keep untranslated")).font(.headline)
             if found.isEmpty {
-                Text(L("Không thấy tên riêng mới trong câu này. Thêm thủ công ở Cài đặt → Văn phong & thuật ngữ.", "No new names found in this line. Add one manually in Settings → Style & glossary."))
+                Text(L("Câu này không có tên riêng nào mới. Bạn có thể thêm tên bằng tay ở Cài đặt → Văn phong & thuật ngữ.", "No new names found in this line. Add one manually in Settings → Style & glossary."))
                     .font(.callout).foregroundStyle(.secondary).frame(maxWidth: 260, alignment: .leading)
             }
             ForEach(found, id: \.self) { name in
@@ -670,7 +670,7 @@ struct PresetSaveSheet: View {
             }
             .padding(12)
             .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
-            Text(L("Cùng game mà muốn giữ trí nhớ (ví dụ một bản lưu khác) thì dùng Nhân bản ở trang Hồ sơ game. Mọi thay đổi sau đó tự lưu vào hồ sơ đang dùng.", "To keep the memory for the same game (another save file, say), use Duplicate on the Game profiles page. Later changes are saved to the active profile automatically."))
+            Text(L("Nếu là cùng một game (ví dụ một bản lưu khác) và bạn muốn giữ trí nhớ dịch, hãy dùng Nhân bản ở trang Hồ sơ game. Mọi thay đổi sau đó tự lưu vào hồ sơ đang dùng.", "To keep the memory for the same game (another save file, say), use Duplicate on the Game profiles page. Later changes are saved to the active profile automatically."))
                 .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             HStack {
                 Spacer()

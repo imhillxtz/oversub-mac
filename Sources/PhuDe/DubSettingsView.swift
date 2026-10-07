@@ -41,7 +41,7 @@ private struct DubSettingsContent: View {
                 }
                 .pickerStyle(.segmented)
                 Note(settings.dubCharacters
-                     ? L("Dub: mỗi nhân vật một giọng theo giới tính, tuổi. Cần game hiện tên người nói, xem hướng dẫn bên dưới. Câu nào chưa kịp dựng giọng trong 1 giây thì đọc bằng giọng Voice-over.", "Dub: each character gets a voice matched to gender and age. The game must show speaker names; see the guide below. If a character voice isn't ready within 1 second, the line is read in the Voice-over voice.")
+                     ? L("Dub: mỗi nhân vật một giọng theo giới tính, tuổi. Game cần hiện tên người nói, bạn xem hướng dẫn bên dưới. Câu nào chưa kịp dựng giọng trong 1 giây sẽ được đọc bằng giọng Voice-over.", "Dub: each character gets a voice matched to gender and age. The game must show speaker names; see the guide below. If a character voice isn't ready within 1 second, the line is read in the Voice-over voice.")
                      : L("Voice-over: một giọng Siri đọc mọi câu, nhanh và đồng nhất. Trong game: \(HotkeyCenter.Action.toggleDub.display) bật/tắt, \(HotkeyCenter.Action.replayLast.display) đọc lại câu vừa rồi.", "Voice-over: one Siri voice reads every line, fast and consistent. In game: \(HotkeyCenter.Action.toggleDub.display) turns it on or off, \(HotkeyCenter.Action.replayLast.display) repeats the last line."))
                 LabeledContent(L("Giọng Siri", "Siri voice")) {
                     Button(L("Nghe thử", "Preview")) { engine.previewVoice() }.buttonStyle(.glass)
@@ -56,7 +56,7 @@ private struct DubSettingsContent: View {
                     SliderRow(title: L("Tốc độ", "Speed"), value: $settings.speechRate, range: 0.35...0.65, step: 0.01, format: "%.2f")
                 }
                 Toggle(L("Bỏ câu đã trễ quá xa", "Skip lines that fall too far behind"), isOn: $settings.dropStaleLines)
-                Note(L("Câu cũ luôn được đọc hết, không bị cắt ngang. Câu chờ quá 6 giây mà đã có câu mới hơn thì bỏ, để giọng luôn bám theo màn hình.", "A line in progress is always finished, never cut off. A line that has waited more than 6 seconds while a newer one is ready is skipped, so the voice keeps up with the screen."))
+                Note(L("Câu cũ luôn được đọc hết, không bị cắt ngang. Nếu một câu chờ quá 6 giây mà đã có câu mới hơn, app bỏ câu đó để giọng luôn theo kịp màn hình.", "A line in progress is always finished, never cut off. A line that has waited more than 6 seconds while a newer one is ready is skipped, so the voice keeps up with the screen."))
                 Toggle(L("Đọc theo cảm xúc của câu", "Read with the line's emotion"), isOn: $settings.dubEmotion)
                 Note(L("Câu hét hay phấn khích đọc nhanh hơn, câu ngập ngừng hay buồn đọc chậm và nhỏ hơn. Dùng cho cả Voice-over lẫn Dub.",
                        "Shouted or excited lines are read faster; hesitant or sad lines slower and quieter. Applies to both Voice-over and Dub."))
@@ -68,7 +68,7 @@ private struct DubSettingsContent: View {
                     ForEach(AudioDevices.outputs()) { Text($0.name).tag($0.uid) }
                 }
                 Note(settings.dubDeviceUID.isEmpty
-                     ? L("Chọn tai nghe riêng nếu muốn tiếng game vẫn ra loa. Lưu ý: phát ra loa riêng thì mỗi câu chậm hơn khoảng 1 giây.", "Pick separate headphones if you want game audio to stay on the speakers. Note: with a separate output, each line starts about 1 second later.")
+                     ? L("Chọn tai nghe riêng nếu muốn tiếng game vẫn ra loa. Lưu ý: khi phát ra loa riêng, mỗi câu sẽ chậm hơn khoảng 1 giây.", "Pick separate headphones if you want game audio to stay on the speakers. Note: with a separate output, each line starts about 1 second later.")
                      : L("Đang phát ra loa riêng: mỗi câu chậm hơn khoảng 1 giây vì phải dựng âm thanh trước khi phát.", "Using a separate output: each line starts about 1 second later because the audio is rendered before it plays."))
                 Toggle(L("Giảm tiếng game khi đang đọc (beta)", "Lower game audio while reading (beta)"), isOn: $settings.duckEnabled)
                 if settings.duckEnabled {
@@ -87,7 +87,7 @@ private struct DubSettingsContent: View {
                     VStack(alignment: .leading, spacing: 6) {
                         Text(L("1. Mở System Settings → Accessibility → Read & Speak.", "1. Open System Settings → Accessibility → Read & Speak."))
                         Text(L("2. Bấm ⓘ cạnh System voice, chọn \(lang) ở danh sách bên trái.", "2. Click ⓘ next to System voice and choose \(lang) in the list on the left."))
-                        Text(L("3. Bấm Voice rồi chọn giọng Siri. Giọng có biểu tượng đám mây thì tải về trước.", "3. Click Voice and pick a Siri voice. Voices with a cloud icon need to be downloaded first."))
+                        Text(L("3. Bấm Voice rồi chọn giọng Siri. Nếu giọng có biểu tượng đám mây, bạn tải về trước.", "3. Click Voice and pick a Siri voice. Voices with a cloud icon need to be downloaded first."))
                         Text(L("4. Quay lại đây, bấm Nghe thử.", "4. Come back here and click Preview."))
                     }
                     .font(.callout)
@@ -109,10 +109,10 @@ private struct DubSettingsContent: View {
     private var dubSection: some View {
         Section {
             step(1, done: namesSeen > 0, title: L("Bật hiện tên nhân vật trong game", "Turn on speaker names in the game"),
-                 detail: L("Trong cài đặt của game, tìm mục kiểu \"Speaker Name\", \"Show Names\" hoặc \"Character Name in Subtitles\" và bật lên, để tên người nói hiện trong hộp thoại.", "In the game's settings, look for an option like \"Speaker Name\", \"Show Names\" or \"Character Name in Subtitles\" and turn it on so the speaker's name appears in the dialogue box."))
+                 detail: L("Trong cài đặt của game, bạn tìm mục kiểu \"Speaker Name\", \"Show Names\" hoặc \"Character Name in Subtitles\" và bật lên, để tên người nói hiện trong hộp thoại.", "In the game's settings, look for an option like \"Speaker Name\", \"Show Names\" or \"Character Name in Subtitles\" and turn it on so the speaker's name appears in the dialogue box."))
             step(2, done: namesSeen >= 3, title: L("Khung chọn bao cả nhãn tên và lời thoại", "Make the region cover both the name label and the dialogue"),
-                 detail: engine.recentNames.isEmpty ? L("Chơi vài câu thoại để app kiểm tra.", "Play through a few lines so the app can check.")
-                    : L("Trong \(engine.recentNames.count) câu gần nhất, app đọc được tên ở \(namesSeen) câu", "In the last \(engine.recentNames.count) lines, the app read a name in \(namesSeen)") + (engine.lastSpeaker.map { L(" (gần nhất: \($0))", " (latest: \($0))") } ?? "") + L(". Chưa thấy tên thì chọn lại vùng phụ đề và kéo rộng ra cho gồm cả nhãn tên.", ". If no names show up, reselect the subtitle region and widen it to include the name label."))
+                 detail: engine.recentNames.isEmpty ? L("Bạn chơi vài câu thoại để app kiểm tra nhé.", "Play through a few lines so the app can check.")
+                    : L("Trong \(engine.recentNames.count) câu gần nhất, app đọc được tên ở \(namesSeen) câu", "In the last \(engine.recentNames.count) lines, the app read a name in \(namesSeen)") + (engine.lastSpeaker.map { L(" (gần nhất: \($0))", " (latest: \($0))") } ?? "") + L(". Nếu chưa thấy tên, bạn chọn lại vùng phụ đề và kéo rộng ra để gồm cả nhãn tên.", ". If no names show up, reselect the subtitle region and widen it to include the name label."))
             let assigned = settings.cast.filter { !$0.isNarrator }
             step(3, done: !assigned.isEmpty, title: L("Kiểm tra giọng ở Dàn diễn viên", "Check the voices in Cast"),
                  detail: assigned.isEmpty ? L("Nhân vật sẽ tự hiện ở đây khi app đọc được tên.", "Characters appear here automatically once the app reads their names.") : L("Đã có \(assigned.count) nhân vật. Nghe thử và đổi giọng nếu chưa hợp.", "\(assigned.count) characters so far. Preview them and change any voice that doesn't fit."))
@@ -205,7 +205,7 @@ struct GeminiInfoSheet: View {
                         Text(String(format: L("$%.4f mỗi câu; giá gấp đôi từ 1/1/2027", "$%.4f per line; price doubles on Jan 1, 2027"), cost)).font(.caption).foregroundStyle(.tertiary) }
                     GridRow { Text(L("Key miễn phí", "Free API key")).foregroundStyle(.secondary)
                         Text(L("Giới hạn lượt mỗi ngày", "Daily request limit")).fontWeight(.semibold)
-                        Text(L("Google không công bố con số cho model TTS; thường không đủ cho cả buổi chơi. Hết lượt thì tự đọc bằng giọng Apple.", "Google doesn't publish a number for TTS models; it usually isn't enough for a full play session. When the quota runs out, lines are read with the Apple voice.")).font(.caption).foregroundStyle(.tertiary) }
+                        Text(L("Google không công bố con số cho model TTS; thường không đủ cho cả buổi chơi. Khi hết lượt, app tự đọc bằng giọng Apple.", "Google doesn't publish a number for TTS models; it usually isn't enough for a full play session. When the quota runs out, lines are read with the Apple voice.")).font(.caption).foregroundStyle(.tertiary) }
                 }
                 .font(.callout)
             }
@@ -217,7 +217,7 @@ struct GeminiInfoSheet: View {
                     Button(state.testing ? L("Đang đo…", "Testing…") : L("Đo thử 1 lượt", "Run a test")) { test() }.disabled(state.testing || tts.usableKeyCount == 0)
                 }
                 if tts.samples.isEmpty {
-                    Text(tts.usableKeyCount == 0 ? L("Chưa có key Gemini. Thêm key ở Cài đặt → Dịch.", "No Gemini API key yet. Add one in Settings → Translation.") : L("Chưa có số liệu. Bấm Đo thử để đọc một câu mẫu (tốn 1 lượt) và xem độ trễ thật.", "No data yet. Click Run a test to read a sample line (uses 1 request) and see the real delay."))
+                    Text(tts.usableKeyCount == 0 ? L("Chưa có key Gemini. Bạn thêm key ở Cài đặt → Dịch vụ dịch nhé.", "No Gemini API key yet. Add one in Settings → Translation services.") : L("Chưa có số liệu. Bạn bấm Đo thử để đọc một câu mẫu (tốn 1 lượt) và xem độ trễ thật.", "No data yet. Click Run a test to read a sample line (uses 1 request) and see the real delay."))
                         .font(.callout).foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, minHeight: 90)
                         .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 10))
@@ -320,7 +320,7 @@ private struct CastSettingsContent: View {
     var body: some View {
         Form {
             Section {
-                Note(L("Mỗi nhân vật (đọc từ nhãn tên trên hộp thoại) tự có giọng theo giới tính, tuổi; AI đoán ở câu đầu. Bạn đổi giọng, cao độ ở đây; chỉnh tay thì app giữ nguyên lựa chọn. Danh sách lưu theo hồ sơ game. Đổi về Voice-over ở trang Giọng đọc.", "Each character (read from the name label on the dialogue box) automatically gets a voice by gender and age; AI guesses on their first line. Change voice and pitch here; once you edit by hand, the app keeps your choice. The list is saved per game profile. Switch back to Voice-over on the Voice page."))
+                Note(L("Mỗi nhân vật (đọc từ nhãn tên trên hộp thoại) tự có giọng theo giới tính, tuổi; AI đoán ở câu đầu. Bạn đổi giọng, cao độ ở đây; khi bạn đã chỉnh tay, app giữ nguyên lựa chọn đó. Danh sách lưu theo hồ sơ game. Để đổi về Voice-over, bạn vào trang Giọng đọc.", "Each character (read from the name label on the dialogue box) automatically gets a voice by gender and age; AI guesses on their first line. Change voice and pitch here; once you edit by hand, the app keeps your choice. The list is saved per game profile. Switch back to Voice-over on the Voice page."))
             }
 
             Section {
