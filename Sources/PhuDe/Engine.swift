@@ -1410,6 +1410,10 @@ final class Engine: ObservableObject {
             return
         }
         progLatestRaw = text
+        // Câu hiện ra nguyên vẹn ngay (chuyển app rồi quay lại, OCR đọc chập chờn) là câu cũ còn nằm đó; câu dài dần từ đầu là game
+        // vừa gõ ra một lần nói mới (vd. nói chuyện lại với NPC), được đọc dù vừa đọc cách đây chưa tới 45 giây.
+        if progLine.firstSeen == 0 { progLine.firstSeen = text.count }
+        else if !progLine.typedIn, text.count >= progLine.firstSeen + 12 { progLine.typedIn = true }
         try await progressiveCommit(stable: false)
     }
 
@@ -1430,6 +1434,8 @@ final class Engine: ObservableObject {
         var finishWhenDone = false   // chữ đã đứng yên hoặc câu đã bị thay: ghép xong các cụm đang dịch thì đọc nốt
         var boost: Double?           // tốc độ đọc tính một lần cho cả câu, các cụm đọc cùng một nhịp
         var lastTask: Task<Void, Never>?   // cụm gửi dịch gần nhất: cụm sau chờ cụm trước để có bản dịch của nó làm ngữ cảnh
+        var firstSeen = 0            // số ký tự lần đầu thấy câu này
+        var typedIn = false          // câu được game gõ ra dần trên màn hình (chữ dài thêm hẳn so với lần đầu thấy)
         var pending: Int { nextSeq - applied }
     }
 
@@ -1556,7 +1562,7 @@ final class Engine: ObservableObject {
         let boost = line.boost ?? speechBoost(for: line.dub)
         line.boost = boost
         dub(line.dub, source: line.dubSource, language: line.language, speakerName: line.speaker ?? "", boost: boost,
-            group: ObjectIdentifier(line), dedupSource: true)
+            group: ObjectIdentifier(line), dedupSource: true, fresh: line.typedIn)
     }
 
     /// Chữ đã đứng yên, hộp thoại tắt, hoặc câu bị thay: đọc nốt phần đã dịch; cụm còn đang dịch thì đọc khi dịch xong.
@@ -1612,7 +1618,7 @@ final class Engine: ObservableObject {
     }
 
     private func dub(_ text: String, source: String, language: String? = nil, speakerName: String? = nil, boost: Double, force: Bool = false,
-                     group: ObjectIdentifier? = nil, dedupSource: Bool = false) {
+                     group: ObjectIdentifier? = nil, dedupSource: Bool = false, fresh: Bool = false) {
         let lang = language ?? settings.target.speech
         // speakerName "" = câu không có tên (người dẫn chuyện); nil = dùng tên người nói đang hiện.
         let raw = speakerName ?? lastSpeaker
@@ -1620,16 +1626,19 @@ final class Engine: ObservableObject {
         // Lớp chặn cuối: câu vừa đọc trong 45 giây qua thì không đọc lại. Gặp thực tế: chuyển sang app khác rồi quay lại game,
         // câu thoại vẫn nằm đó nên app tưởng câu mới và đọc lại sau 16 giây; OCR đọc chập chờn làm cùng một câu hiện lại.
         // So cả bản dịch lẫn câu gốc (`dedupSource`): cùng một câu gốc mà AI dịch ra hai cách khác nhau thì bản dịch không trùng.
-        // Đọc lại bằng tay (force) thì luôn đọc.
+        // Đọc lại bằng tay (force) thì luôn đọc. Câu game vừa gõ ra lại từ đầu (`fresh`, vd. nói chuyện lại với NPC) cũng đọc:
+        // gặp thực tế 07/10 16:31, nói lại với một NPC thì câu đầu được đọc (đã quá 45 giây) còn câu sau bị bỏ, đọc nửa chừng rồi im.
         if !force {
             let now = Date()
             recentDubs.removeAll { now.timeIntervalSince($0.at) > 45 }
             let n = TextUtil.normalize(text), ns = dedupSource ? TextUtil.normalize(source) : ""
-            if Self.alreadySpoken(n, speaker: name ?? "", in: recentDubs, key: \.norm)
-                || (!ns.isEmpty && Self.alreadySpoken(ns, speaker: name ?? "", in: recentDubs, key: \.source)) {
+            let repeated = Self.alreadySpoken(n, speaker: name ?? "", in: recentDubs, key: \.norm)
+                || (!ns.isEmpty && Self.alreadySpoken(ns, speaker: name ?? "", in: recentDubs, key: \.source))
+            if repeated, !fresh {
                 DebugLog.write("Lồng tiếng: bỏ, câu này vừa đọc rồi: \(text.prefix(40))")
                 return
             }
+            if repeated { DebugLog.write("Lồng tiếng: câu vừa đọc nhưng game gõ lại từ đầu (nói lại), đọc lại: \(text.prefix(40))") }
             recentDubs.append(SpokenLine(norm: n, source: ns, speaker: name ?? "", at: now))
         }
         guard settings.dubCharacters else {   // Voice-over: không dựng dàn diễn viên, không hỏi AI, không tốn lượt

@@ -487,6 +487,28 @@ enum DebugSnapshot {
                 DebugLog.write("=== Hết thử chữ chạy ===")
                 return
             }
+            if ProcessInfo.processInfo.environment["OVERSUB_PROG_TEST"] == "retalk" {
+                // Nhật ký thật 07/10 16:29–16:31: nói chuyện với NPC hai lần liền. Lần hai câu đầu được đọc còn câu sau bị bỏ ("vừa
+                // đọc rồi"). Giờ cả hai câu lần hai phải được đọc, vì game gõ lại chữ từ đầu.
+                let name = "Kind-Hearted Farmer"
+                let a = "Word of the border skirmish is making the rounds about town. I just hope it doesn't escalate into full-on war..."
+                let b = "But if war does come, I'll do everything I can to keep my pal here"
+                for round in 1...2 {
+                    DebugLog.write("--- Lần nói chuyện \(round) ---")
+                    await engine.debugRead(["Word of"], speaker: name, wait: 0.5)
+                    await engine.debugRead(["Word of the border skirmish is making the rounds about town. I just hope it d"], speaker: name, wait: 0.5)
+                    await engine.debugRead([a], speaker: name, wait: 8)
+                    await engine.debugRead(["But if w"], speaker: name, wait: 0.5)
+                    await engine.debugRead(["But if war does come, I'll do everything I c"], speaker: name, wait: 0.5)
+                    await engine.debugRead([b], speaker: name, wait: 9)
+                    await engine.debugRead([], speaker: nil, wait: 4)
+                }
+                // Chuyển app rồi quay lại: câu cũ hiện nguyên vẹn ngay thì vẫn không đọc lại.
+                DebugLog.write("--- Quay lại game, câu cũ còn nằm đó ---")
+                await engine.debugRead([b], speaker: name, wait: 6)
+                DebugLog.write("=== Hết thử chữ chạy ===")
+                return
+            }
             if ProcessInfo.processInfo.environment["OVERSUB_PROG_TEST"] == "label" {
                 // Tên người nói lúc tách lúc dính vào đầu câu (nhật ký thật 06/10 21:05–21:06): câu chỉ được đọc một lần.
                 let name = "Experienced Farmer"
