@@ -50,7 +50,7 @@ Cửa sổ chính có ba nút bật tắt riêng: Phụ đề bên trái, linh v
 
 Các tính năng khác:
 
-- Dịch nhanh (⌃⌥Q): bấm phím tắt ở đâu cũng được, kéo khung quanh chữ, thả chuột là có bản dịch tại chỗ. Có nút chép chữ gốc để tra cứu.
+- Dịch nhanh (⌃⌥Q): bấm phím tắt ở đâu cũng được, kéo khung quanh chữ, thả chuột là có bản dịch tại chỗ. Có nút chép bản dịch và nút xem chữ gốc để tra cứu.
 - Cửa sổ phụ đề: cửa sổ nổi chỉ có câu thoại, ghim trên mọi Space kể cả khi game toàn màn hình. Thu được còn một dải mỏng để không che game, chữ sáng dần theo giọng đọc.
 - Dịch vụ dịch: Gemini, Groq, Cerebras, Mistral, OpenRouter (đều có gói miễn phí), dịch vụ trả phí kiểu OpenAI (OpenAI, DeepSeek, xAI), và hai engine của Apple chạy trên máy không cần mạng. App đo tốc độ từng dịch vụ và đổi sang dịch vụ khác khi một dịch vụ chậm hay hết hạn mức.
 - Thể loại game: chọn Trung cổ châu Âu, Cổ trang kiếm hiệp, Anime/JRPG, Đường phố... để AI chọn xưng hô và văn phong, hoặc tự mô tả bối cảnh ở thể loại Tuỳ chỉnh. Xưng hô giữ nhất quán theo từng cặp nhân vật, tên riêng giữ nguyên, có từ điển thuật ngữ.
@@ -150,7 +150,7 @@ Có ba chế độ tốc độ: Tức thì (Dịch máy Apple), Tức thì rồi
 
 ### Dịch nhanh
 
-Bấm ⌃⌥Q ở đâu cũng được (không cần bấm Bắt đầu), kéo khung quanh chữ, thả chuột là bản dịch hiện tại chỗ. Dưới khung có nút xem dạng chữ (kèm nút chép bản dịch), nút chép chữ gốc và nút đóng. Phím ⌘C chép chữ gốc, ⇧⌘C chép bản dịch, Esc để thoát. Mặc định màn hình dừng hình lúc bạn chọn; bạn có thể tắt ở Cài đặt → Dịch màn hình.
+Bấm ⌃⌥Q ở đâu cũng được (không cần bấm Bắt đầu), kéo khung quanh chữ, thả chuột là bản dịch hiện tại chỗ. Dưới khung có nút xem chữ gốc (kèm nút chép chữ gốc), nút chép bản dịch và nút đóng. Phím ⌘C chép bản dịch, ⇧⌘C chép chữ gốc, Esc để thoát. Mặc định màn hình dừng hình lúc bạn chọn; bạn có thể tắt ở Cài đặt → Dịch màn hình.
 
 ### Văn phong, xưng hô và tên riêng
 

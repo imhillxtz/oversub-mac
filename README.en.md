@@ -50,7 +50,7 @@ The main window has three switches: Subtitles on the left, the OverSub mascot in
 
 Other features:
 
-- Quick translate (⌃⌥Q): press the shortcut anywhere, drag a box around some text and let go to see the translation in place. A button copies the original text so you can look it up.
+- Quick translate (⌃⌥Q): press the shortcut anywhere, drag a box around some text and let go to see the translation in place. Buttons copy the translation or show the original text so you can look it up.
 - Subtitle window: a floating window with just the dialogue. It stays above every Space, including full-screen games, and shrinks to a thin strip so it doesn't cover the game. The text lights up as it's read aloud.
 - Translation services: Gemini, Groq, Cerebras, Mistral and OpenRouter (all with free plans), paid OpenAI-style services (OpenAI, DeepSeek, xAI), and Apple's two on-device engines, which work offline. The app measures each service's speed and moves to another one when a service is slow or out of quota.
 - Game genres: pick Medieval Europe, Wuxia, Anime/JRPG, Street and so on, and the AI uses forms of address and tone to match, or describe the setting yourself with the Custom genre. Each pair of characters keeps the same forms of address, proper names stay as they are, and there's a glossary.
@@ -150,7 +150,7 @@ There are three speed modes: Instant (Apple Translation), Instant then refined b
 
 ### Quick translate
 
-Press ⌃⌥Q anywhere (you don't need to click Start), drag a box around some text and let go; the translation appears in place. Below the box are buttons to show it as text (with a button to copy the translation), copy the original, and close. ⌘C copies the original, ⇧⌘C the translation, Esc closes. The screen freezes while you select; you can turn that off in Settings → Screen translation.
+Press ⌃⌥Q anywhere (you don't need to click Start), drag a box around some text and let go; the translation appears in place. Below the box are buttons to show the original text (with a button to copy it), copy the translation, and close. ⌘C copies the translation, ⇧⌘C the original, Esc closes. The screen freezes while you select; you can turn that off in Settings → Screen translation.
 
 ### Style, forms of address and proper names
 

@@ -138,13 +138,14 @@ private final class QuickView: NSView {
         textLabel.font = .systemFont(ofSize: 14)
         textLabel.isSelectable = true
         textBox.addSubview(textLabel)
-        // Nút chép bản dịch nằm ngay trong hộp chữ, chỉ là biểu tượng để đỡ tốn chỗ.
-        copyIcon.image = NSImage(systemSymbolName: "doc.on.doc", accessibilityDescription: L("Chép bản dịch", "Copy translation"))
+        // Hộp dạng chữ hiện chữ gốc (bản dịch đã nằm ngay trên màn hình); nút chép chữ gốc nằm ngay trong hộp, chỉ là biểu tượng
+        // để đỡ tốn chỗ.
+        copyIcon.image = NSImage(systemSymbolName: "doc.on.doc", accessibilityDescription: L("Chép chữ gốc", "Copy original text"))
         copyIcon.isBordered = false
         copyIcon.contentTintColor = .secondaryLabelColor
         copyIcon.target = self
-        copyIcon.action = #selector(copyText)
-        copyIcon.toolTip = L("Chép bản dịch (⇧⌘C)", "Copy translation (⇧⌘C)")
+        copyIcon.action = #selector(copyOriginal)
+        copyIcon.toolTip = L("Chép chữ gốc để tra cứu (⇧⌘C)", "Copy the original text to look it up (⇧⌘C)")
         textBox.addSubview(copyIcon)
         textBox.isHidden = true
         tools.orientation = .horizontal
@@ -229,8 +230,8 @@ private final class QuickView: NSView {
     override func rightMouseDown(with e: NSEvent) { owner.close() }
     override func keyDown(with e: NSEvent) {
         if e.keyCode == 53 { owner.close() }   // Esc
-        else if e.keyCode == 8, e.modifierFlags.contains(.command) {   // ⌘C chép chữ gốc, ⇧⌘C chép bản dịch
-            if e.modifierFlags.contains(.shift) { copyText() } else { copyOriginal() }
+        else if e.keyCode == 8, e.modifierFlags.contains(.command) {   // ⌘C chép bản dịch, ⇧⌘C chép chữ gốc
+            if e.modifierFlags.contains(.shift) { copyOriginal() } else { copyText() }
         }
     }
 
@@ -257,8 +258,8 @@ private final class QuickView: NSView {
         host = h
         tools.arrangedSubviews.forEach { tools.removeArrangedSubview($0); $0.removeFromSuperview() }
         // Hàng nút chỉ dùng biểu tượng cho gọn; rê chuột vào thì hiện tên.
-        for (title, symbol, action) in [(L("Xem bản dịch dạng chữ", "Show the translation as text"), "text.alignleft", #selector(toggleText)),
-                                        (L("Chép chữ gốc để tra cứu (⌘C)", "Copy the original text to look it up (⌘C)"), "doc.on.doc", #selector(copyOriginal)),
+        for (title, symbol, action) in [(L("Xem chữ gốc", "Show the original text"), "text.alignleft", #selector(toggleText)),
+                                        (L("Chép bản dịch (⌘C)", "Copy the translation (⌘C)"), "doc.on.doc", #selector(copyText)),
                                         (L("Đóng (Esc)", "Close (Esc)"), "xmark", #selector(closeTapped))] {
             let b = NSButton(title: "", target: self, action: action)
             b.image = NSImage(systemSymbolName: symbol, accessibilityDescription: title)
@@ -270,11 +271,11 @@ private final class QuickView: NSView {
             tools.addArrangedSubview(b)
         }
         toolsBox.isHidden = false
-        textLabel.stringValue = plain
+        textLabel.stringValue = original
         #if DEVTOOLS
         if ProcessInfo.processInfo.environment["OVERSUB_QUICK_TEXT"] != nil { textBox.isHidden = false }   // chụp kiểm tra hộp dạng chữ
         #endif
-        setHint(L("Esc hoặc bấm ra ngoài để tắt · ⌘C chép chữ gốc · ⇧⌘C chép bản dịch", "Esc or click outside to close · ⌘C copies the original · ⇧⌘C the translation"))
+        setHint(L("Esc hoặc bấm ra ngoài để tắt · ⌘C chép bản dịch · ⇧⌘C chép chữ gốc", "Esc or click outside to close · ⌘C copies the translation · ⇧⌘C the original"))
         needsDisplay = true
     }
 

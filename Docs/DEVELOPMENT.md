@@ -161,7 +161,7 @@ App dịch mọi cụm còn thiếu trong một lần gọi AI (`TranslationHub.
 
 App nhận biết chữ đổi bằng dấu hiệu chữ (`OCR.screenSignature`) và độ giống `TextUtil.dice`, không so điểm ảnh, nên hiệu ứng động không làm bản dịch chớp. Chữ sáng thì được đọc nhanh trên ảnh tách riêng chữ sáng, nên cảnh phía sau chuyển động khi nhân vật đi lại cũng không sao; không có chữ sáng thì đọc trên ảnh gốc và bỏ mẩu rác dưới 3 chữ cái. Đang hiện bản dịch thì app quét 0,2 giây một lần: hết chữ hay chữ khác hẳn thì gỡ ngay (tắt dần 0,08 giây), hơi khác thì chờ thêm một lần quét. Chữ không đổi mà vệt chọn di chuyển thì chỉ dựng lại nền và màu chữ. `ScreenText.cleanRange` bỏ ký tự rác do đọc nhầm biểu tượng ở hai đầu dòng. Phụ đề đang chạy thì dịch màn hình bỏ qua chữ nằm trong vùng phụ đề, để không có hai lớp bản dịch đè nhau.
 
-Dịch nhanh (`QuickTranslate.swift`, ⌃⌥Q, không cần bấm Bắt đầu) mở lớp chọn toàn màn hình; kéo một khung, thả chuột là dịch tại chỗ bằng cùng quy trình với dịch màn hình. Vùng chỉ dùng một lần. Mặc định dừng hình lúc chọn và lúc đọc. Dưới vùng có ba nút biểu tượng: xem dạng chữ, chép chữ gốc, đóng; hộp dạng chữ có nút chép bản dịch. ⌘C chép chữ gốc, ⇧⌘C chép bản dịch, Esc hoặc bấm ra ngoài để tắt.
+Dịch nhanh (`QuickTranslate.swift`, ⌃⌥Q, không cần bấm Bắt đầu) mở lớp chọn toàn màn hình; kéo một khung, thả chuột là dịch tại chỗ bằng cùng quy trình với dịch màn hình. Vùng chỉ dùng một lần. Mặc định dừng hình lúc chọn và lúc đọc. Dưới vùng có ba nút biểu tượng: xem chữ gốc, chép bản dịch, đóng. Bản dịch đã nằm ngay trên màn hình nên hộp dạng chữ hiện chữ gốc (giữ xuống dòng theo từng cụm) kèm nút chép chữ gốc để tra cứu. ⌘C chép bản dịch, ⇧⌘C chép chữ gốc, Esc hoặc bấm ra ngoài để tắt.
 
 ## Giao diện
 
