@@ -841,6 +841,13 @@ final class Engine: ObservableObject {
     /// Giờ game không được chọn mà cửa sổ game vẫn nằm trên cùng ở vùng phụ đề thì vẫn đọc; chỉ tạm ngưng khi game bị ẩn hoặc
     /// cửa sổ app khác che vùng phụ đề (lúc đó vùng chọn chứa chữ của app khác).
     private func isGameInFront() -> Bool {
+        // Máy đang khoá, đang chạy bảo vệ màn hình hay màn hình tắt: không đọc được màn hình, tạm ngưng êm, không phải lỗi.
+        // (Khoá máy thì cửa sổ game vẫn được liệt kê là đang hiện, nếu không xét riêng thì app cố chụp mỗi nhịp và báo sai là
+        // "macOS từ chối chụp màn hình".) Không phụ thuộc tuỳ chọn tạm ngưng: lúc đó không chụp được gì cả.
+        if let away = screenAway() {
+            if behindNote != away { behindNote = away; DebugLog.write("Tạm ngưng vì \(away)") }
+            return false
+        }
         guard settings.pauseWhenGameHidden, let bundle = settings.gameBundleID else { return true }
         if NSWorkspace.shared.frontmostApplication?.bundleIdentifier == bundle {
             behindNote = nil
@@ -852,6 +859,23 @@ final class Engine: ObservableObject {
         let note = visible ? "Đang chọn \(front), game vẫn hiện ở vùng phụ đề: vẫn đọc" : "Đang chọn \(front), vùng phụ đề \(cover.map { "bị \($0) che" } ?? "không thấy game")"
         if note != behindNote { behindNote = note; DebugLog.write(note) }
         return visible
+    }
+
+    /// Màn hình không dùng được lúc này (khoá máy, bảo vệ màn hình, màn hình tắt, đang ở phiên người dùng khác): trả lý do.
+    private func screenAway() -> String? {
+        if let s = CGSessionCopyCurrentDictionary() as? [String: Any] {
+            if s["CGSSessionScreenIsLocked"] as? Bool == true { return "màn hình đang khoá" }
+            if s[kCGSessionOnConsoleKey as String] as? Bool == false { return "đang ở phiên người dùng khác" }
+        }
+        switch NSWorkspace.shared.frontmostApplication?.bundleIdentifier {
+        case "com.apple.loginwindow": return "màn hình đang khoá"
+        case "com.apple.ScreenSaver.Engine": return "đang chạy bảo vệ màn hình"
+        default: break
+        }
+        if let region = settings.region, let screen = resolveScreen(for: region), let id = displayIDOf(screen), CGDisplayIsAsleep(id) != 0 {
+            return "màn hình đang tắt"
+        }
+        return nil
     }
 
     /// Cửa sổ trên cùng chiếm vùng phụ đề có phải của game không. Xét các cửa sổ thường (từ trên xuống), bỏ qua cửa sổ của
@@ -1217,6 +1241,8 @@ final class Engine: ObservableObject {
             }
             try await handle(bodyText, mode: mode)
         } catch {
+            // Máy vừa khoá (hay màn hình vừa tắt) đúng lúc đang chụp: không phải lỗi, nhịp sau sẽ tạm ngưng êm.
+            if let away = screenAway() { DebugLog.write("Không chụp được vì \(away), bỏ qua"); return }
             report(error)
         }
     }
