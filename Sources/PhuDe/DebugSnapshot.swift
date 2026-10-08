@@ -711,6 +711,31 @@ enum DebugSnapshot {
         }
     }
 
+    /// Thử thu gọn hướng dẫn cấp quyền (OVERSUB_PERMISSION_DOCK_TEST=1, nên kèm OVERSUB_FAKE_NO_SCREEN_PERMISSION=1): hiện
+    /// hướng dẫn, bấm Mở Cài đặt hệ thống (chỉ mở trang xem, không đổi gì), ghi khung thẻ và khung Cài đặt, rồi ghi chỗ đặt thẻ
+    /// với vài kiểu màn hình giả (Cài đặt nằm giữa, sát phải, chiếm gần hết màn hình).
+    static func permissionDockTestIfRequested(engine: Engine) {
+        guard ProcessInfo.processInfo.environment["OVERSUB_PERMISSION_DOCK_TEST"] != nil else { return }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(3))
+            engine.showPermissionGuide()
+            try? await Task.sleep(for: .seconds(1.5))
+            PermissionGuide.shared.openSettings()
+            try? await Task.sleep(for: .seconds(5))
+            let card = PermissionGuide.shared.debugPanel?.frame ?? .zero
+            let settings = PermissionGuide.settingsWindowFrame() ?? .zero
+            DebugLog.write("Thử thu gọn: thẻ \(card), Cài đặt \(settings), đè nhau: \(card.intersects(settings)), tầng \(PermissionGuide.shared.debugPanel?.level.rawValue ?? -1)")
+            let v = NSRect(x: 0, y: 0, width: 1470, height: 919)
+            let s = card.size
+            for (name, f) in [("giữa", NSRect(x: 320, y: 150, width: 830, height: 700)),
+                              ("sát phải", NSRect(x: 600, y: 150, width: 830, height: 700)),
+                              ("gần kín", NSRect(x: 40, y: 40, width: 1400, height: 860))] {
+                let o = PermissionGuide.dockOrigin(card: s, settings: f, visible: v)
+                DebugLog.write("Thử thu gọn (\(name)): đặt ở \(o), đè Cài đặt: \(NSRect(origin: o, size: s).intersection(f).width)pt")
+            }
+        }
+    }
+
     /// Chụp hộp thoại báo tự khởi động lại (OVERSUB_RESTART_NOTICE=1): hiện hộp thoại, chụp lúc đang đếm ngược, hết giờ chỉ ghi nhật ký.
     static func restartNoticeTestIfRequested() {
         guard ProcessInfo.processInfo.environment["OVERSUB_RESTART_NOTICE"] != nil else { return }

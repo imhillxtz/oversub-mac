@@ -38,6 +38,7 @@ final class AppModel {
         DebugSnapshot.restartNoticeTestIfRequested()
         DebugSnapshot.noticesTestIfRequested(engine: engine)
         DebugSnapshot.reportTestIfRequested()
+        DebugSnapshot.permissionDockTestIfRequested(engine: engine)
         DebugSnapshot.screenRectIfRequested()
         if let s = ProcessInfo.processInfo.environment["OVERSUB_FRONT_TEST"], let n = Int(s) {
             let engine = engine

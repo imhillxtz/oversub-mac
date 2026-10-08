@@ -7,7 +7,22 @@ import SwiftUI
 enum NoticePanel {
     enum Position { case center, top }
 
-    static func show<V: View>(_ view: V, on screen: NSScreen?, at position: Position = .center) -> NSPanel {
+    /// Tầng trên cả game toàn màn hình, cho thông báo cần thấy ngay khi đang chơi.
+    nonisolated static let overGames = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()))
+
+    static func show<V: View>(_ view: V, on screen: NSScreen?, at position: Position = .center, level: NSWindow.Level = overGames) -> NSPanel {
+        let p = make(view, level: level)
+        let size = p.frame.size
+        if let f = (screen ?? NSScreen.main)?.visibleFrame {
+            let y = position == .center ? f.midY - size.height / 2 : f.maxY - size.height - 8
+            p.setFrameOrigin(NSPoint(x: f.midX - size.width / 2, y: y))
+        }
+        p.orderFrontRegardless()
+        return p
+    }
+
+    /// Tạo bảng đúng cỡ nội dung nhưng chưa hiện, để nơi gọi tự đặt vị trí.
+    static func make<V: View>(_ view: V, level: NSWindow.Level = overGames, movable: Bool = false) -> NSPanel {
         let host = NSHostingView(rootView: view)
         let size = host.fittingSize
         host.frame = NSRect(origin: .zero, size: size)
@@ -16,22 +31,18 @@ enum NoticePanel {
         p.isOpaque = false
         p.backgroundColor = .clear
         p.hasShadow = true
-        p.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()))
+        p.level = level
         p.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         p.hidesOnDeactivate = false
         p.becomesKeyOnlyIfNeeded = true
+        p.isMovableByWindowBackground = movable
         p.contentView = host
-        if let f = (screen ?? NSScreen.main)?.visibleFrame {
-            let y = position == .center ? f.midY - size.height / 2 : f.maxY - size.height - 8
-            p.setFrameOrigin(NSPoint(x: f.midX - size.width / 2, y: y))
-        }
-        p.orderFrontRegardless()
         return p
     }
 }
 
 /// Khung chung của các thông báo: nền đặc bo góc, viền mảnh, chừa chỗ cho bóng.
-private struct NoticeCard<Content: View>: View {
+struct NoticeCard<Content: View>: View {
     var width: CGFloat = 500
     @ViewBuilder let content: Content
 

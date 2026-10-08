@@ -17,28 +17,146 @@ enum ScreenPermission {
     static let settingsURL = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!
 }
 
-/// Hộp thoại hướng dẫn cấp quyền Ghi màn hình: hiện khi mở app mà chưa có quyền (sau hướng dẫn lần đầu), khi bấm một tính năng
-/// cần chụp màn hình, hoặc khi macOS từ chối chụp. macOS chỉ áp quyền mới sau khi app mở lại, nên có nút mở lại OverSub.
+/// Hướng dẫn cấp quyền Ghi màn hình: hiện khi mở app mà chưa có quyền (sau hướng dẫn lần đầu), khi bấm một tính năng cần chụp
+/// màn hình, hoặc khi macOS từ chối chụp. macOS chỉ áp quyền mới sau khi app mở lại, nên có nút mở lại OverSub.
+///
+/// Khi Cài đặt hệ thống mở ra (bằng nút của hướng dẫn hay nút của hộp thoại macOS), hướng dẫn thu gọn thành thẻ nhỏ đặt cạnh
+/// cửa sổ Cài đặt, để không che danh sách quyền người dùng cần bật. Hướng dẫn ở tầng nổi thường, không ở tầng trên game như các
+/// thông báo khác, để không che hộp thoại "thoát và mở lại" của macOS.
 @MainActor
 final class PermissionGuide {
     static let shared = PermissionGuide()
+    static let settingsBundleID = "com.apple.systempreferences"
+
     private var panel: NSPanel?
+    private var compact = false
+    private var relaunch: (() -> Void)?
+    private var docking: Task<Void, Never>?
+    private var settingsObserver: NSObjectProtocol?
 
     var isShowing: Bool { panel != nil }
 
     func show(relaunch: @escaping () -> Void) {
+        self.relaunch = relaunch
         guard panel == nil else { panel?.orderFrontRegardless(); return }
         DebugLog.write("Thiếu quyền Ghi màn hình: hiện hướng dẫn cấp quyền")
-        let view = PermissionGuideView(
-            openSettings: { NSWorkspace.shared.open(ScreenPermission.settingsURL) },
-            relaunch: { [weak self] in self?.hide(); relaunch() },
-            close: { [weak self] in self?.hide() })
-        panel = NoticePanel.show(view, on: NSScreen.main)
+        compact = false
+        panel = NoticePanel.show(PermissionGuideView(openSettings: { [weak self] in self?.openSettings() },
+                                                     relaunch: { [weak self] in self?.reopen() },
+                                                     close: { [weak self] in self?.hide() }),
+                                 on: NSScreen.main, level: .floating)
+        watchSettings()
     }
 
     func hide() {
+        docking?.cancel()
+        docking = nil
+        if let settingsObserver { NSWorkspace.shared.notificationCenter.removeObserver(settingsObserver) }
+        settingsObserver = nil
         panel?.orderOut(nil)
         panel = nil
+        compact = false
+    }
+
+    func openSettings() {
+        NSWorkspace.shared.open(ScreenPermission.settingsURL)
+        dock()
+    }
+
+    private func reopen() {
+        let action = relaunch
+        hide()
+        action?()
+    }
+
+    /// Cài đặt hệ thống được mở hoặc được chọn lại: thu gọn hướng dẫn và đặt cạnh nó. Thẻ đã thu gọn chỉ dời chỗ khi đang
+    /// đè lên cửa sổ Cài đặt (người dùng kéo cửa sổ đi), không giật về khi người dùng tự kéo thẻ ra chỗ khác.
+    private func watchSettings() {
+        settingsObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
+        ) { note in
+            let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+            guard app?.bundleIdentifier == PermissionGuide.settingsBundleID else { return }
+            MainActor.assumeIsolated {
+                let guide = PermissionGuide.shared
+                guard guide.panel != nil else { return }
+                if !guide.compact { guide.dock(); return }
+                if let card = guide.panel?.frame, let settings = Self.settingsWindowFrame(), card.intersects(settings) { guide.dock() }
+            }
+        }
+    }
+
+    private func dock() {
+        guard panel != nil else { return }
+        docking?.cancel()
+        // Ẩn bản đầy đủ ngay để không che Cài đặt trong lúc cửa sổ của nó đang mở ra.
+        if !compact { panel?.orderOut(nil) }
+        docking = Task { @MainActor [weak self] in
+            let settings = await Self.waitForSettingsWindow()
+            guard let self, !Task.isCancelled, self.panel != nil else { return }
+            self.showCompact(beside: settings)
+        }
+    }
+
+    private func showCompact(beside settings: NSRect?) {
+        let p = NoticePanel.make(PermissionCompactView(openSettings: { [weak self] in self?.openSettings() },
+                                                       relaunch: { [weak self] in self?.reopen() },
+                                                       close: { [weak self] in self?.hide() }),
+                                 level: .floating, movable: true)
+        let screen = settings.flatMap { f in NSScreen.screens.first { $0.frame.intersects(f) } } ?? NSScreen.main
+        let visible = screen?.visibleFrame ?? .zero
+        let origin = Self.dockOrigin(card: p.frame.size, settings: settings, visible: visible)
+        p.setFrameOrigin(origin)
+        panel?.orderOut(nil)
+        p.orderFrontRegardless()
+        panel = p
+        compact = true
+        DebugLog.write("Hướng dẫn cấp quyền: thu gọn, đặt ở \(Int(origin.x)),\(Int(origin.y)); cửa sổ Cài đặt "
+                       + (settings.map { "\(Int($0.minX)),\(Int($0.minY)) \(Int($0.width))x\(Int($0.height))" } ?? "không thấy"))
+    }
+
+    /// Chỗ đặt thẻ thu gọn: bên phải cửa sổ Cài đặt, không vừa thì bên trái, rồi bên dưới. Màn hình hẹp không chỗ nào vừa thì
+    /// đặt ở góc dưới bên trái, nếu có đè thì chỉ đè thanh bên của Cài đặt, không đè danh sách công tắc ở bên phải.
+    nonisolated static func dockOrigin(card s: NSSize, settings: NSRect?, visible v: NSRect) -> NSPoint {
+        let corner = NSPoint(x: v.minX + 8, y: v.minY + 8)
+        guard let f = settings else { return corner }
+        let topY = min(max(f.maxY - s.height, v.minY), v.maxY - s.height)
+        if v.maxX - f.maxX >= s.width { return NSPoint(x: f.maxX, y: topY) }
+        if f.minX - v.minX >= s.width { return NSPoint(x: f.minX - s.width, y: topY) }
+        if f.minY - v.minY >= s.height {
+            return NSPoint(x: min(max(f.midX - s.width / 2, v.minX), v.maxX - s.width), y: f.minY - s.height)
+        }
+        return corner
+    }
+
+    /// Chờ cửa sổ Cài đặt hệ thống hiện và đứng yên (tối đa 4 giây), trả về khung theo toạ độ AppKit.
+    private static func waitForSettingsWindow() async -> NSRect? {
+        var last: NSRect?
+        for _ in 0..<27 {
+            try? await Task.sleep(for: .seconds(0.15))
+            if Task.isCancelled { return nil }
+            let now = settingsWindowFrame()
+            if let now, now == last { return now }
+            last = now
+        }
+        return last
+    }
+
+    /// Khung cửa sổ chính của Cài đặt hệ thống. Danh sách cửa sổ vẫn cho biết vị trí và chủ cửa sổ khi chưa có quyền Ghi màn
+    /// hình (chỉ giấu tên cửa sổ), nên dùng được đúng lúc cần.
+    static func settingsWindowFrame() -> NSRect? {
+        guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: settingsBundleID).first,
+              let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]],
+              let primary = NSScreen.screens.first?.frame else { return nil }
+        for w in list {
+            guard (w[kCGWindowOwnerPID as String] as? pid_t) == app.processIdentifier,
+                  (w[kCGWindowLayer as String] as? Int) == 0,
+                  let dict = w[kCGWindowBounds as String] as? NSDictionary,
+                  let r = CGRect(dictionaryRepresentation: dict),
+                  r.width > 300, r.height > 200 else { continue }
+            return NSRect(x: r.minX, y: primary.maxY - r.maxY, width: r.width, height: r.height)
+        }
+        return nil
     }
 
     #if DEVTOOLS
@@ -52,51 +170,94 @@ private struct PermissionGuideView: View {
     let close: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 16) {
-                Image(systemName: "rectangle.dashed.badge.record")
-                    .font(.system(size: 34))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 52)
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(L("OverSub cần quyền Ghi màn hình", "OverSub needs Screen Recording permission"))
-                        .font(.headline)
-                    Text(L("OverSub đọc phụ đề bằng cách chụp vùng bạn chọn trên màn hình. Ảnh chụp chỉ được xử lý ngay trên máy, không gửi đi đâu.",
-                           "OverSub reads subtitles by capturing the region you select on screen. Captures are processed on your Mac and never sent anywhere."))
-                        .font(.callout)
+        NoticeCard(width: 540) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .top, spacing: 16) {
+                    Image(systemName: "rectangle.dashed.badge.record")
+                        .font(.system(size: 34))
                         .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    VStack(alignment: .leading, spacing: 6) {
-                        step(1, L("Bấm Mở Cài đặt hệ thống.", "Click Open System Settings."))
-                        step(2, L("Ở mục Ghi màn hình & âm thanh hệ thống (Screen & System Audio Recording), bật OverSub. Nếu chưa thấy OverSub, bấm dấu + rồi chọn OverSub trong thư mục Applications.",
-                                  "Under Screen & System Audio Recording, turn on OverSub. If OverSub isn't listed, click + and choose OverSub in the Applications folder."))
-                        step(3, L("Quay lại đây và bấm Mở lại OverSub để quyền có hiệu lực.", "Come back here and click Reopen OverSub so the permission takes effect."))
+                        .frame(width: 52)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(L("OverSub cần quyền Ghi màn hình", "OverSub needs Screen Recording permission"))
+                            .font(.headline)
+                        Text(L("OverSub đọc phụ đề bằng cách chụp vùng bạn chọn trên màn hình. Ảnh chụp chỉ được xử lý ngay trên máy, không gửi đi đâu.",
+                               "OverSub reads subtitles by capturing the region you select on screen. Captures are processed on your Mac and never sent anywhere."))
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        VStack(alignment: .leading, spacing: 6) {
+                            PermissionStep(n: 1, text: L("Bấm Mở Cài đặt hệ thống. Hướng dẫn này sẽ thu gọn và nằm cạnh cửa sổ Cài đặt.",
+                                                         "Click Open System Settings. This guide will shrink and move next to the Settings window."))
+                            PermissionStep(n: 2, text: L("Ở mục Ghi màn hình & âm thanh hệ thống (Screen & System Audio Recording), bật OverSub. Nếu chưa thấy OverSub, bấm dấu + rồi chọn OverSub trong thư mục Applications.",
+                                                         "Under Screen & System Audio Recording, turn on OverSub. If OverSub isn't listed, click + and choose OverSub in the Applications folder."))
+                            PermissionStep(n: 3, text: L("Bấm Mở lại OverSub để quyền có hiệu lực.", "Click Reopen OverSub so the permission takes effect."))
+                        }
+                        .padding(.top, 2)
                     }
-                    .padding(.top, 2)
+                }
+                HStack(spacing: 10) {
+                    Button(L("Để sau", "Later"), action: close)
+                        .buttonStyle(.link)
+                    Spacer(minLength: 8)
+                    Button(L("Mở lại OverSub", "Reopen OverSub"), action: relaunch)
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                        .fixedSize()
+                    Button(L("Mở Cài đặt hệ thống", "Open System Settings"), action: openSettings)
+                        .buttonStyle(CTAButtonStyle())
+                        .lineLimit(1)
+                        .fixedSize()
                 }
             }
-            HStack(spacing: 10) {
-                Button(L("Để sau", "Later"), action: close)
-                    .buttonStyle(.link)
-                Spacer(minLength: 8)
-                Button(L("Mở lại OverSub", "Reopen OverSub"), action: relaunch)
-                    .buttonStyle(.bordered)
-                    .controlSize(.large)
-                    .fixedSize()
-                Button(L("Mở Cài đặt hệ thống", "Open System Settings"), action: openSettings)
-                    .buttonStyle(CTAButtonStyle())
-                    .lineLimit(1)
-                    .fixedSize()
+        }
+    }
+}
+
+/// Thẻ thu gọn đặt cạnh Cài đặt hệ thống: nhắc việc cần bật và nút mở lại, đủ nhỏ để không che danh sách quyền.
+private struct PermissionCompactView: View {
+    let openSettings: () -> Void
+    let relaunch: () -> Void
+    let close: () -> Void
+
+    var body: some View {
+        NoticeCard(width: 380) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 10) {
+                    Image(systemName: "rectangle.dashed.badge.record")
+                        .font(.system(size: 22))
+                        .foregroundStyle(.secondary)
+                    Text(L("Cấp quyền Ghi màn hình cho OverSub", "Give OverSub Screen Recording permission"))
+                        .font(.headline)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                PermissionStep(n: 1, text: L("Ở mục Ghi màn hình & âm thanh hệ thống, bật OverSub. Nếu chưa thấy OverSub, bấm dấu + rồi chọn OverSub trong thư mục Applications.",
+                                             "Under Screen & System Audio Recording, turn on OverSub. If OverSub isn't listed, click + and choose OverSub in the Applications folder."))
+                PermissionStep(n: 2, text: L("Bấm Mở lại OverSub. Nếu macOS hỏi có thoát và mở lại OverSub không, hãy đồng ý.",
+                                             "Click Reopen OverSub. If macOS asks whether to quit and reopen OverSub, agree."))
+                HStack(spacing: 10) {
+                    Button(L("Đóng", "Close"), action: close)
+                        .buttonStyle(.link)
+                    Spacer(minLength: 8)
+                    Button(L("Mở Cài đặt", "Open Settings"), action: openSettings)
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                        .fixedSize()
+                    Button(L("Mở lại OverSub", "Reopen OverSub"), action: relaunch)
+                        .buttonStyle(CTAButtonStyle())
+                        .lineLimit(1)
+                        .fixedSize()
+                }
+                .padding(.top, 2)
             }
         }
-        .padding(20)
-        .frame(width: 540)
-        .background(Color(nsColor: .windowBackgroundColor), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(.primary.opacity(0.1)))
-        .padding(12)
     }
+}
 
-    private func step(_ n: Int, _ text: String) -> some View {
+private struct PermissionStep: View {
+    let n: Int
+    let text: String
+
+    var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text("\(n)")
                 .font(.caption.weight(.bold).monospacedDigit())

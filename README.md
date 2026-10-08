@@ -265,7 +265,7 @@ Vì app chưa được Apple công chứng nên macOS chặn ở lần mở đ�
 <details>
 <summary><b>Đã cấp quyền Ghi màn hình mà app vẫn báo thiếu quyền</b></summary>
 
-macOS chỉ áp dụng quyền mới sau khi app khởi động lại. Khi thiếu quyền, OverSub hiện hướng dẫn từng bước: bấm Mở Cài đặt hệ thống, bật OverSub ở mục Ghi màn hình & âm thanh hệ thống, rồi bấm Mở lại OverSub. Cũng có thể thoát hẳn OverSub (⌘Q, hoặc biểu tượng tay cầm trên thanh menu → Thoát) rồi mở lại.
+macOS chỉ áp dụng quyền mới sau khi app khởi động lại. Khi thiếu quyền, OverSub hiện hướng dẫn từng bước: bấm Mở Cài đặt hệ thống, bật OverSub ở mục Ghi màn hình & âm thanh hệ thống, rồi bấm Mở lại OverSub. Khi Cài đặt hệ thống mở ra, hướng dẫn thu gọn thành một thẻ nhỏ nằm cạnh cửa sổ Cài đặt để không che danh sách quyền. Cũng có thể thoát hẳn OverSub (⌘Q, hoặc biểu tượng tay cầm trên thanh menu → Thoát) rồi mở lại.
 </details>
 
 <details>

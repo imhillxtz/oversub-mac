@@ -265,7 +265,7 @@ The app isn't notarized by Apple, so it's blocked the first time. Go to System S
 <details>
 <summary><b>I granted Screen Recording but the app still says it's missing</b></summary>
 
-macOS applies a new permission only after the app restarts. When the permission is missing, OverSub shows step-by-step instructions: click Open System Settings, turn on OverSub under Screen & System Audio Recording, then click Reopen OverSub. You can also quit OverSub completely (⌘Q, or the controller icon in the menu bar → Quit) and open it again.
+macOS applies a new permission only after the app restarts. When the permission is missing, OverSub shows step-by-step instructions: click Open System Settings, turn on OverSub under Screen & System Audio Recording, then click Reopen OverSub. When System Settings opens, the guide shrinks to a small card next to the Settings window so it doesn't cover the permission list. You can also quit OverSub completely (⌘Q, or the controller icon in the menu bar → Quit) and open it again.
 </details>
 
 <details>
