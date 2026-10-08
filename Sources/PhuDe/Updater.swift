@@ -22,6 +22,14 @@ final class Updater: ObservableObject {
         var page: URL
         var dmg: URL
         var signature: URL?
+        /// Ghi chú của các bản từ sau bản đang dùng tới bản này, mới nhất trước (hộp thoại cập nhật hiện hết).
+        var changes: [Change] = []
+    }
+
+    struct Change: Equatable, Identifiable {
+        var version: String
+        var notes: String
+        var id: String { version }
     }
 
     enum State: Equatable {
@@ -100,9 +108,11 @@ final class Updater: ObservableObject {
                 DebugLog.write("Cập nhật: đang là bản mới nhất (\(Self.currentVersion))")
                 return
             }
-            DebugLog.write("Cập nhật: có bản \(release.version) (đang dùng \(Self.currentVersion))")
-            state = .available(release)
-            if autoInstall { await download(release) }
+            var found = release
+            found.changes = await fetchChanges(upTo: release)
+            DebugLog.write("Cập nhật: có bản \(release.version) (đang dùng \(Self.currentVersion)), \(found.changes.count) bản có ghi chú")
+            state = .available(found)
+            if autoInstall { await download(found) }
         } catch {
             state = manual ? .failed(error.localizedDescription) : .idle
             DebugLog.write("Cập nhật: không kiểm tra được: \(error.localizedDescription)")
@@ -127,6 +137,42 @@ final class Updater: ObservableObject {
         let page = (json["html_url"] as? String).flatMap(URL.init(string:)) ?? URL(string: "https://github.com/\(Self.repo)/releases")!
         let version = tag.hasPrefix("v") ? String(tag.dropFirst()) : tag
         return Release(version: version, notes: (json["body"] as? String) ?? "", page: page, dmg: dmg, signature: asset(".dmg.sig"))
+    }
+
+    /// Ghi chú của mọi bản mới hơn bản đang dùng (tối đa 8 bản, mới nhất trước), để người bỏ qua vài bản vẫn thấy đủ thay
+    /// đổi. Không lấy được danh sách thì chỉ dùng ghi chú của bản mới nhất.
+    private func fetchChanges(upTo latest: Release) async -> [Change] {
+        let fallback = [Change(version: latest.version, notes: latest.notes)]
+        guard let url = Self.listURL else { return fallback }
+        var req = URLRequest(url: url)
+        req.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        req.setValue("OverSub/\(Self.currentVersion)", forHTTPHeaderField: "User-Agent")
+        req.timeoutInterval = 10
+        guard let result = try? await URLSession.shared.data(for: req),
+              let list = try? JSONSerialization.jsonObject(with: result.0) as? [[String: Any]] else {
+            DebugLog.write("Cập nhật: không lấy được danh sách bản phát hành, chỉ hiện ghi chú bản \(latest.version)")
+            return fallback
+        }
+        let changes = list.compactMap { item -> Change? in
+            guard item["draft"] as? Bool != true, item["prerelease"] as? Bool != true,
+                  let tag = item["tag_name"] as? String else { return nil }
+            let v = tag.hasPrefix("v") ? String(tag.dropFirst()) : tag
+            guard Self.isNewer(v, than: Self.currentVersion), !Self.isNewer(v, than: latest.version) else { return nil }
+            return Change(version: v, notes: item["body"] as? String ?? "")
+        }
+        .sorted { Self.isNewer($0.version, than: $1.version) }
+        return changes.isEmpty ? fallback : Array(changes.prefix(8))
+    }
+
+    private static var listURL: URL? {
+        #if DEVTOOLS
+        // Thử: OVERSUB_UPDATE_LIST=file:///…/releases.json theo dạng API danh sách của GitHub. Có nguồn thử mà không có danh
+        // sách thì bỏ qua, chỉ dùng ghi chú của bản trong nguồn thử.
+        let env = ProcessInfo.processInfo.environment
+        if let s = env["OVERSUB_UPDATE_LIST"] { return URL(string: s) }
+        if env["OVERSUB_UPDATE_FEED"] != nil { return nil }
+        #endif
+        return URL(string: "https://api.github.com/repos/\(repo)/releases?per_page=30")
     }
 
     private static var feedURL: URL {

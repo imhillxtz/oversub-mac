@@ -165,7 +165,7 @@ struct ContentView: View {
                 else { Text(L("Có bản mới \(r.version)", "Version \(r.version) is available")).fontWeight(.semibold) }
             }
             .lineLimit(1).monospacedDigit()
-            Link(L("Có gì mới", "What's new"), destination: r.page)
+            Button(L("Có gì mới", "What's new")) { UpdatePrompt.shared.show() }.buttonStyle(.link)
             Button(L("Để sau", "Later")) { updater.dismissedVersion = r.version }.buttonStyle(.link)
             Button { updater.updateNow() } label: {
                 Text(L("Cập nhật", "Update")).fontWeight(.semibold).foregroundStyle(.white)

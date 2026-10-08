@@ -79,7 +79,7 @@ Other features:
 
 ### Updates
 
-Since version 1.1.42, OverSub checks the Releases page for new versions about twice a day. When one is out, the status line at the bottom of the main window shows "Version x is available · Update". Click Update and the app downloads it, verifies its digital signature, replaces the old version and reopens. If you don't want an interruption while you play, turn on "Download updates automatically and install when quitting" in Settings → General; the new version is then swapped in when you quit OverSub. Settings, keys, game profiles and the Screen Recording permission are kept.
+Since version 1.1.42, OverSub checks the Releases page for new versions about twice a day. When one is out, the status line at the bottom of the main window shows "Version x is available · Update". Click Update and the app downloads it, verifies its digital signature, replaces the old version and reopens. Click "What's new" on that line, or choose OverSub → Check for Updates… in the menu bar, to open the update window: it lists the changes in every version since the one you have, with Update, Later and Skip This Version buttons. If you don't want an interruption while you play, turn on "Download updates automatically and install when quitting" in Settings → General; the new version is then swapped in when you quit OverSub. Settings, keys, game profiles and the Screen Recording permission are kept.
 
 Versions 1.1.41 and earlier can't update themselves. If you're on one of those, download the new `.dmg` and drag it over the old app once; later versions update themselves.
 
@@ -250,7 +250,7 @@ Screenshots never leave your Mac; text recognition runs entirely on it.
 
 With an online translation service, only text is sent, and only to the service you chose: the line to translate, a few previous lines for context, and character names. With Apple Translation or Apple Intelligence nothing leaves your Mac.
 
-OverSub has no server of its own, collects no analytics and shows no ads. Send Bug Report only drafts an email in your Mail app; nothing is sent until you click send yourself. Update checks only query the public Releases page on GitHub and send nothing about you. A downloaded installer is only installed if its digital signature matches the author's key built into the app.
+OverSub has no server of its own, collects no analytics and shows no ads. Send Bug Report only creates a .zip file on your Mac and opens a prefilled report page or email; nothing is sent until you click send yourself. Update checks only query the public Releases page on GitHub and send nothing about you. A downloaded installer is only installed if its digital signature matches the author's key built into the app.
 
 API keys are stored in `~/Library/Application Support/OverSub/keys.json`, readable only by your user account (permissions 0600). Profiles, context and translation memory are in `~/Library/Application Support/OverSub`. The diagnostic log at `~/Library/Logs/OverSub/debug.log` contains text read from your games and can be deleted at any time.
 
@@ -325,7 +325,7 @@ Turn on Keep proper names as is and add the names in Settings → Style & glossa
 
 ## Feedback and bug reports
 
-The quickest way to report a bug is Send Bug Report… in Settings → General (or the Help menu). The app packs the log and system information (no API keys) into a .zip file, then opens a ready-to-send email in Mail to hillx.design@gmail.com; you review it before sending. You can also open an [Issue](https://github.com/imhillxtz/oversub-mac/issues) for bugs or feature ideas. To help track it down, include your OverSub version (shown in Settings → General), the game, how it shows subtitles, and if you can, part of the log around the problem (`~/Library/Logs/OverSub/debug.log`). Please read the log before sending it, since it contains text from your game.
+The quickest way to report a bug is Send Bug Report… in Settings → General (or the Help menu). The app packs the log and system information (no API keys) into a .zip file and shows a window with that file. Click Open Bug Report Page to open a new GitHub [Issue](https://github.com/imhillxtz/oversub-mac/issues) with the title and system information filled in, drag the .zip file into the description box, then click Create. Without a GitHub account, click Send by Email and attach the file to an email to hillx.design@gmail.com. Feature ideas are welcome as Issues too. To help track it down, include your OverSub version (shown in Settings → General), the game, how it shows subtitles, and if you can, part of the log around the problem (`~/Library/Logs/OverSub/debug.log`). Please read the log before sending it, since it contains text from your game.
 
 Reports of games that work well are welcome too. A short Issue like "game X works with mode Y" saves the next player some trial and error.
 

@@ -677,11 +677,25 @@ enum DebugSnapshot {
 
     /// Thử tạo gói báo lỗi (OVERSUB_REPORT_TEST=1): chỉ tạo tệp .zip và ghi đường dẫn vào nhật ký, không mở Mail.
     static func reportTestIfRequested() {
-        guard ProcessInfo.processInfo.environment["OVERSUB_REPORT_TEST"] != nil else { return }
+        let env = ProcessInfo.processInfo.environment
+        guard let mode = env["OVERSUB_REPORT_TEST"] else { return }
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(2))
-            let zip = ErrorReport.makeArchive()
-            DebugLog.write("Thử gói báo lỗi: \(zip?.path ?? "không tạo được")")
+            let t = Date()
+            let zip = await ErrorReport.makeArchive()
+            DebugLog.write("Thử gói báo lỗi: \(zip?.path ?? "không tạo được") sau \(Int(Date().timeIntervalSince(t) * 1000)) ms")
+            // OVERSUB_REPORT_TEST=show: hiện cửa sổ Gửi báo lỗi, chụp lại (OVERSUB_SHOT_DIR, không kéo theo lượt chụp toàn bộ như OVERSUB_SNAPSHOT_DIR), ghi độ dài liên kết Issue.
+            // OVERSUB_REPORT_TEST=issue: thêm bước mở trang Issue điền sẵn trong trình duyệt mặc định (không bấm gửi).
+            guard mode == "show" || mode == "issue", let zip else { return }
+            ErrorReport.send(reason: mode == "issue" ? L("Thử báo lỗi", "Test report") : nil)
+            try? await Task.sleep(for: .seconds(1.5))
+            if let url = ErrorReport.issueURL(zip: zip, reason: nil) { DebugLog.write("Thử báo lỗi: liên kết Issue \(url.absoluteString.count) ký tự") }
+            if let dir = env["OVERSUB_SHOT_DIR"] { await shoot("report-window", dir: dir, window: ErrorReport.debugWindow) }
+            if mode == "issue" {
+                ErrorReport.debugOpenIssue(zip: zip)
+                try? await Task.sleep(for: .seconds(1))
+                if let dir = env["OVERSUB_SHOT_DIR"] { await shoot("report-dock", dir: dir, window: ErrorReport.debugDock) }
+            }
         }
     }
 
@@ -724,15 +738,38 @@ enum DebugSnapshot {
             try? await Task.sleep(for: .seconds(5))
             let card = PermissionGuide.shared.debugPanel?.frame ?? .zero
             let settings = PermissionGuide.settingsWindowFrame() ?? .zero
-            DebugLog.write("Thử thu gọn: thẻ \(card), Cài đặt \(settings), đè nhau: \(card.intersects(settings)), tầng \(PermissionGuide.shared.debugPanel?.level.rawValue ?? -1)")
+            DebugLog.write("Thử thu gọn: thẻ \(card), Cài đặt \(settings), mép thẻ đè Cài đặt: \(card.insetBy(dx: 12, dy: 12).intersects(settings)), tầng \(PermissionGuide.shared.debugPanel?.level.rawValue ?? -1)")
+            if let dir = ProcessInfo.processInfo.environment["OVERSUB_SHOT_DIR"] {
+                await shoot("permission-compact", dir: dir, window: PermissionGuide.shared.debugPanel)
+            }
             let v = NSRect(x: 0, y: 0, width: 1470, height: 919)
             let s = card.size
             for (name, f) in [("giữa", NSRect(x: 320, y: 150, width: 830, height: 700)),
                               ("sát phải", NSRect(x: 600, y: 150, width: 830, height: 700)),
                               ("gần kín", NSRect(x: 40, y: 40, width: 1400, height: 860))] {
                 let o = PermissionGuide.dockOrigin(card: s, settings: f, visible: v)
-                DebugLog.write("Thử thu gọn (\(name)): đặt ở \(o), đè Cài đặt: \(NSRect(origin: o, size: s).intersection(f).width)pt")
+                DebugLog.write("Thử thu gọn (\(name)): đặt ở \(o), mép thẻ đè Cài đặt: \(NSRect(origin: o, size: s).insetBy(dx: 12, dy: 12).intersection(f).width)pt")
             }
+        }
+    }
+
+    /// Thử hộp thoại cập nhật (OVERSUB_UPDATE_PROMPT_TEST=1, kèm OVERSUB_UPDATE_FEED, có thể kèm OVERSUB_UPDATE_LIST và
+    /// OVERSUB_SHOT_DIR): bấm Kiểm tra cập nhật như ở menu, chụp hộp thoại sau khi có kết quả. Không tải, không cài.
+    static func updatePromptTestIfRequested() {
+        let env = ProcessInfo.processInfo.environment
+        guard env["OVERSUB_UPDATE_PROMPT_TEST"] != nil else { return }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2.5))
+            UpdatePrompt.shared.checkNow()
+            for _ in 0..<40 {
+                try? await Task.sleep(for: .seconds(0.25))
+                if case .checking = Updater.shared.state { continue }
+                break
+            }
+            try? await Task.sleep(for: .seconds(0.8))
+            let w = UpdatePrompt.shared.debugWindow
+            DebugLog.write("Thử hộp thoại cập nhật: \(Updater.shared.state), cửa sổ \(w.map { "\(Int($0.frame.width))x\(Int($0.frame.height))" } ?? "không có")")
+            if let dir = env["OVERSUB_SHOT_DIR"] { await shoot("update-prompt", dir: dir, window: w) }
         }
     }
 

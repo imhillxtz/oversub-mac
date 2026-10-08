@@ -39,6 +39,7 @@ final class AppModel {
         DebugSnapshot.noticesTestIfRequested(engine: engine)
         DebugSnapshot.reportTestIfRequested()
         DebugSnapshot.permissionDockTestIfRequested(engine: engine)
+        DebugSnapshot.updatePromptTestIfRequested()
         DebugSnapshot.screenRectIfRequested()
         if let s = ProcessInfo.processInfo.environment["OVERSUB_FRONT_TEST"], let n = Int(s) {
             let engine = engine
@@ -106,10 +107,7 @@ struct OverSubCommands: Commands {
 
     var body: some Commands {
         CommandGroup(after: .appInfo) {
-            Button(L("Kiểm tra cập nhật…", "Check for Updates…")) {
-                engine.openSettings(.about)
-                Task { await Updater.shared.check(manual: true) }
-            }
+            Button(L("Kiểm tra cập nhật…", "Check for Updates…")) { UpdatePrompt.shared.checkNow() }
             Button(L("Ủng hộ OverSub…", "Support OverSub…")) { openWindow(id: "donate") }
         }
         CommandGroup(replacing: .help) {

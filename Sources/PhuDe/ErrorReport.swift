@@ -1,70 +1,151 @@
 import AppKit
+import SwiftUI
 
-/// Gửi báo lỗi qua email: gói nhật ký và thông tin máy thành một tệp .zip, rồi mở thư soạn sẵn trong app Mail có đính kèm tệp đó,
-/// gửi tới hộp thư hỗ trợ. Người dùng xem được thư và tệp trước khi bấm gửi; app không tự gửi gì. Máy chưa cài tài khoản Mail
-/// thì mở thư trống qua mailto (không đính kèm được) và mở Finder ở tệp .zip để người dùng tự đính kèm.
+/// Gửi báo lỗi: gói nhật ký và thông tin máy thành một tệp .zip, rồi hiện cửa sổ nhỏ có tệp đó (kéo thẳng vào trang báo lỗi
+/// được) và hai cách gửi: mở trang Issue mới trên GitHub với tiêu đề và thông tin máy điền sẵn (cách chính), hoặc mở thư trong
+/// app thư mặc định tới hộp thư hỗ trợ (cho người không có tài khoản GitHub). App không tự gửi gì.
+///
+/// Bản 1.1.65 mở thư soạn sẵn có đính kèm qua app Mail; Mail khởi động chậm (và hiện màn thêm tài khoản nếu chưa dùng Mail)
+/// nên người dùng tưởng nút không phản hồi và bấm lại. Giờ cửa sổ hiện ngay sau khi gói xong, trình duyệt hay app thư chỉ mở
+/// khi người dùng chọn.
 @MainActor
 enum ErrorReport {
     /// Hộp thư nhận báo lỗi (người dùng chọn ngày 08/10/2026, công khai trong app).
     static let supportEmail = "hillx.design@gmail.com"
+    static let newIssueURL = "https://github.com/\(Updater.repo)/issues/new"
+
+    private static var window: NSWindow?
+    private static var dock: NSPanel?
 
     static func send(reason: String? = nil) {
         DebugLog.write("Báo lỗi: tạo gói nhật ký" + (reason.map { " (\($0))" } ?? ""))
-        // Chờ dòng nhật ký vừa ghi xuống đĩa rồi mới chép tệp.
+        let started = Date()
         Task { @MainActor in
-            try? await Task.sleep(for: .seconds(0.3))
-            guard let zip = makeArchive() else {
+            // Chờ dòng nhật ký vừa ghi xuống đĩa rồi mới chép tệp.
+            try? await Task.sleep(for: .seconds(0.2))
+            guard let zip = await makeArchive() else {
                 DebugLog.write("Báo lỗi: không tạo được gói, mở Finder ở nhật ký")
                 DebugLog.reveal()
                 return
             }
-            compose(zip: zip, reason: reason)
+            show(zip: zip, reason: reason)
+            DebugLog.write("Báo lỗi: hiện cửa sổ gửi sau \(Int(Date().timeIntervalSince(started) * 1000)) ms, tệp \(zip.lastPathComponent)")
         }
     }
 
-    private static func compose(zip: URL, reason: String?) {
-        let subject = L("[OverSub \(appVersion)] Báo lỗi", "[OverSub \(appVersion)] Bug report") + (reason.map { ": \($0)" } ?? "")
-        let body = L("""
-            Mô tả lỗi (bạn đang làm gì, chuyện gì xảy ra):
+    private static func show(zip: URL, reason: String?) {
+        window?.close()
+        hideDock()
+        let view = ReportView(zip: zip,
+                              openIssue: { openIssue(zip: zip, reason: reason) },
+                              sendEmail: { sendEmail(zip: zip, reason: reason) },
+                              close: { window?.close() })
+        let w = DialogWindow.make(NSHostingView(rootView: view), title: L("Gửi báo lỗi", "Send Bug Report"))
+        // Nổi trên trình duyệt để kéo tệp vào trang báo lỗi; hiện được cả khi bấm từ hộp thoại nằm trên game toàn màn hình.
+        w.level = .floating
+        w.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
+        window = w
+        NSApp.activate()
+        w.makeKeyAndOrderFront(nil)
+    }
 
-
-
-            Thông tin máy:
-            \(summary())
-
-            Tệp đính kèm có nhật ký của OverSub. Nhật ký có chữ đọc được trong game; bạn có thể mở tệp xem trước khi gửi.
-            """, """
-            What went wrong (what you were doing, what happened):
-
-
-
-            System information:
-            \(summary())
-
-            The attached file contains OverSub's log. The log includes text read from your games; you can open the file to review it before sending.
-            """)
-        if let service = NSSharingService(named: .composeEmail), service.canPerform(withItems: [body, zip]) {
-            service.recipients = [supportEmail]
-            service.subject = subject
-            service.perform(withItems: [body, zip])
-            DebugLog.write("Báo lỗi: đã mở thư soạn sẵn trong Mail, đính kèm \(zip.lastPathComponent)")
-            return
+    /// Sau khi mở trang báo lỗi hay app thư: thu hộp thoại thành thẻ nhỏ chỉ có tệp, đặt ở mép phải giữa màn hình (ngang cột
+    /// bên của trang GitHub, không che ô nội dung hay nút Create). Thẻ là bảng nổi trên mọi Space như các thông báo khác, nên
+    /// vẫn thấy khi trình duyệt chạy toàn màn hình (cửa sổ thường ở lại Space cũ, thử ngày 08/10/2026).
+    private static func showDock(zip: URL) {
+        let screen = window?.screen ?? NSScreen.main
+        window?.close()
+        hideDock()
+        let p = NoticePanel.make(ReportDockView(zip: zip, close: { hideDock() }), level: .floating)
+        if let v = screen?.visibleFrame {
+            p.setFrameOrigin(NSPoint(x: v.maxX - p.frame.width - 4, y: v.midY - p.frame.height / 2))
         }
+        p.orderFrontRegardless()
+        dock = p
+    }
+
+    private static func hideDock() {
+        dock?.orderOut(nil)
+        dock = nil
+    }
+
+    static func issueURL(zip: URL, reason: String?) -> URL? {
+        let title = "[OverSub \(appVersion)] " + (reason ?? L("Báo lỗi", "Bug report"))
+        let body = L("""
+            **Mô tả lỗi** (bạn đang làm gì, chuyện gì xảy ra):
+
+
+
+            **Tệp nhật ký:** kéo tệp `\(zip.lastPathComponent)` từ thẻ Đính kèm tệp báo lỗi của OverSub (mép phải màn hình) vào ô này.
+
+            **Thông tin máy:**
+            ```
+            \(summary())
+            ```
+            """, """
+            **What went wrong** (what you were doing, what happened):
+
+
+
+            **Log file:** drag `\(zip.lastPathComponent)` from OverSub's Attach the bug report file card (right edge of the screen) into this box.
+
+            **System information:**
+            ```
+            \(summary())
+            ```
+            """)
+        var c = URLComponents(string: newIssueURL)
+        c?.queryItems = [URLQueryItem(name: "title", value: title), URLQueryItem(name: "body", value: body)]
+        return c?.url
+    }
+
+    private static func openIssue(zip: URL, reason: String?) {
+        guard let url = issueURL(zip: zip, reason: reason) else { return }
+        NSWorkspace.shared.open(url)
+        DebugLog.write("Báo lỗi: mở trang Issue trên GitHub (\(url.absoluteString.count) ký tự)")
+        showDock(zip: zip)
+    }
+
+    private static func sendEmail(zip: URL, reason: String?) {
         var c = URLComponents()
         c.scheme = "mailto"
         c.path = supportEmail
         c.queryItems = [
-            URLQueryItem(name: "subject", value: subject),
-            URLQueryItem(name: "body", value: body + "\n\n" + L("Vui lòng đính kèm tệp \(zip.lastPathComponent) vừa được mở trong Finder.",
-                                                                "Please attach the file \(zip.lastPathComponent) that was just shown in Finder.")),
+            URLQueryItem(name: "subject", value: "[OverSub \(appVersion)] " + (reason ?? L("Báo lỗi", "Bug report"))),
+            URLQueryItem(name: "body", value: L("""
+                Mô tả lỗi (bạn đang làm gì, chuyện gì xảy ra):
+
+
+
+                Vui lòng đính kèm tệp \(zip.lastPathComponent) (kéo từ thẻ Đính kèm tệp báo lỗi của OverSub ở mép phải màn hình vào thư này).
+
+                Thông tin máy:
+                \(summary())
+                """, """
+                What went wrong (what you were doing, what happened):
+
+
+
+                Please attach \(zip.lastPathComponent) (drag it from OverSub's Attach the bug report file card at the right edge of the screen into this email).
+
+                System information:
+                \(summary())
+                """)),
         ]
-        if let url = c.url { NSWorkspace.shared.open(url) }
-        NSWorkspace.shared.activateFileViewerSelecting([zip])
-        DebugLog.write("Báo lỗi: không mở được thư soạn sẵn có đính kèm, mở mailto và Finder ở \(zip.lastPathComponent)")
+        guard let url = c.url else { return }
+        NSWorkspace.shared.open(url)
+        DebugLog.write("Báo lỗi: mở thư trong app thư mặc định")
+        showDock(zip: zip)
     }
 
-    /// Thư mục tạm gồm nhật ký và tệp thông tin máy, nén thành .zip đặt cạnh nhật ký (~/Library/Logs/OverSub).
-    static func makeArchive() -> URL? {
+    /// Thư mục tạm gồm nhật ký và tệp thông tin máy, nén thành .zip đặt cạnh nhật ký (~/Library/Logs/OverSub). Chép và nén
+    /// chạy ngoài luồng chính để cửa sổ không khựng khi nhật ký lớn.
+    static func makeArchive() async -> URL? {
+        let info = summary() + "\n\n" + L("Các dòng nhật ký đáng chú ý gần đây:", "Recent notable log lines:") + "\n" + notableLines()
+        return await Task.detached(priority: .userInitiated) { archive(info: info) }.value
+    }
+
+    nonisolated private static func archive(info: String) -> URL? {
         let fm = FileManager.default
         let f = DateFormatter()
         f.dateFormat = "yyyyMMdd-HHmmss"
@@ -76,7 +157,6 @@ enum ErrorReport {
             if fm.fileExists(atPath: DebugLog.url.path) {
                 try fm.copyItem(at: DebugLog.url, to: dir.appendingPathComponent("debug.log"))
             }
-            let info = summary() + "\n\n" + L("Các dòng nhật ký đáng chú ý gần đây:", "Recent notable log lines:") + "\n" + notableLines()
             try info.write(to: dir.appendingPathComponent("thong-tin-may.txt"), atomically: true, encoding: .utf8)
             let p = Process()
             p.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
@@ -138,5 +218,135 @@ enum ErrorReport {
         var buf = [CChar](repeating: 0, count: size)
         guard sysctlbyname(name, &buf, &size, nil, 0) == 0 else { return "?" }
         return String(cString: buf)
+    }
+
+    #if DEVTOOLS
+    static var debugWindow: NSWindow? { window }
+    /// Như bấm Mở trang báo lỗi (mở trình duyệt, dời cửa sổ sang góc).
+    static func debugOpenIssue(zip: URL) { openIssue(zip: zip, reason: L("Thử báo lỗi", "Test report")) }
+    static var debugDock: NSPanel? { dock }
+    #endif
+}
+
+private struct ReportView: View {
+    let zip: URL
+    let openIssue: () -> Void
+    let sendEmail: () -> Void
+    let close: () -> Void
+
+    var body: some View {
+        DialogLayout(badge: "ladybug.fill", width: 560) {
+            DialogHeader(title: L("Gửi báo lỗi", "Send a bug report"),
+                         message: L("OverSub đã gói nhật ký và thông tin máy (không có key) vào tệp bên dưới. Nhật ký có chữ đọc được trong game; bạn có thể mở tệp xem trước khi gửi.",
+                                    "OverSub packed the log and system information (no API keys) into the file below. The log includes text read from your games; you can open the file to review it before sending."))
+            FileChip(zip: zip)
+            VStack(alignment: .leading, spacing: 6) {
+                DialogStep(n: 1, text: L("Bấm Mở trang báo lỗi. Trang Issue trên GitHub mở ra với tiêu đề và thông tin máy điền sẵn (cần đăng nhập GitHub).",
+                                         "Click Open Bug Report Page. A new GitHub issue opens with the title and system information filled in (you need to sign in to GitHub)."))
+                DialogStep(n: 2, text: L("Kéo tệp ở trên vào ô nội dung, mô tả ngắn lỗi bạn gặp rồi bấm Create.",
+                                         "Drag the file above into the description box, describe what happened, then click Create."))
+            }
+            Text(L("Chưa có tài khoản GitHub? Bấm Gửi qua email rồi đính kèm tệp này vào thư gửi tới \(ErrorReport.supportEmail).",
+                   "No GitHub account? Click Send by Email and attach this file to the email to \(ErrorReport.supportEmail)."))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 8) {
+                Button(L("Đóng", "Close"), action: close)
+                    .buttonStyle(.link)
+                    .font(.callout)
+                    .keyboardShortcut(.cancelAction)
+                Spacer(minLength: 8)
+                Button(L("Gửi qua email", "Send by Email"), action: sendEmail)
+                    .buttonStyle(DialogButtonStyle())
+                Button(L("Mở trang báo lỗi", "Open Bug Report Page"), action: openIssue)
+                    .buttonStyle(DialogButtonStyle(prominent: true))
+                    .keyboardShortcut(.defaultAction)
+            }
+            .padding(.top, 4)
+        }
+    }
+}
+
+/// Tệp báo lỗi: kéo thẳng vào trang báo lỗi hay vào thư, hoặc mở Finder ở tệp.
+private struct FileChip: View {
+    let zip: URL
+    var compact = false
+    @State private var hovering = false
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(nsImage: NSWorkspace.shared.icon(forFile: zip.path))
+                .resizable()
+                .frame(width: 32, height: 32)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(zip.lastPathComponent)
+                    .font(.callout.weight(.medium))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                if compact {
+                    HStack(spacing: 4) {
+                        Text(size).foregroundStyle(.secondary)
+                        Text("·").foregroundStyle(.secondary)
+                        finderLink
+                    }
+                    .font(.caption)
+                } else {
+                    Text(L("\(size) · Kéo tệp này vào trang báo lỗi", "\(size) · Drag this file into the report"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            if !compact {
+                Spacer(minLength: 8)
+                finderLink.font(.callout)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Color.primary.opacity(hovering ? 0.07 : 0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(.primary.opacity(0.08)))
+        .onHover { hovering = $0 }
+        .pointerStyle(.grabIdle)
+        .onDrag { NSItemProvider(object: zip as NSURL) }
+    }
+
+    private var finderLink: some View {
+        Button(L("Hiện trong Finder", "Show in Finder")) { NSWorkspace.shared.activateFileViewerSelecting([zip]) }
+            .buttonStyle(.link)
+    }
+
+    private var size: String {
+        let bytes = (try? zip.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+        return ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
+    }
+}
+
+/// Thẻ nhỏ nổi ở mép phải sau khi mở trang báo lỗi hay app thư: chỉ còn tệp để kéo vào và lời nhắc bước cuối.
+private struct ReportDockView: View {
+    let zip: URL
+    let close: () -> Void
+
+    var body: some View {
+        NoticeCard(width: 320) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 8) {
+                    Image(nsImage: NSApp.applicationIconImage)
+                        .resizable()
+                        .frame(width: 22, height: 22)
+                    Text(L("Đính kèm tệp báo lỗi", "Attach the bug report file"))
+                        .font(.headline)
+                    Spacer(minLength: 4)
+                    DialogCloseButton(action: close)
+                }
+                FileChip(zip: zip, compact: true)
+                Text(L("Kéo tệp vào ô nội dung trên trang báo lỗi hoặc vào thư, mô tả lỗi rồi bấm gửi.",
+                       "Drag the file into the description box on the report page or into your email, describe what happened, then send it."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 }

@@ -137,9 +137,7 @@ private struct RestartCountdownView: View {
                             .fixedSize()
                         Spacer(minLength: 8)
                         Button(L("Khởi động lại ngay", "Restart now"), action: restartNow)
-                            .buttonStyle(CTAButtonStyle())
-                            .lineLimit(1)
-                            .fixedSize()
+                            .buttonStyle(DialogButtonStyle(prominent: true))
                     }
                     .padding(.top, 4)
                 }
@@ -165,18 +163,15 @@ private struct StuckAgainView: View {
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    HStack(spacing: 10) {
+                    HStack(spacing: 8) {
                         Button(L("Đóng", "Close"), action: close)
                             .buttonStyle(.link)
+                            .font(.callout)
                         Spacer(minLength: 8)
                         Button(L("Gửi báo lỗi", "Send Bug Report"), action: sendReport)
-                            .buttonStyle(.bordered)
-                            .controlSize(.large)
-                            .fixedSize()
+                            .buttonStyle(DialogButtonStyle())
                         Button(L("Khởi động lại OverSub", "Restart OverSub"), action: restart)
-                            .buttonStyle(CTAButtonStyle())
-                            .lineLimit(1)
-                            .fixedSize()
+                            .buttonStyle(DialogButtonStyle(prominent: true))
                     }
                     .padding(.top, 4)
                 }

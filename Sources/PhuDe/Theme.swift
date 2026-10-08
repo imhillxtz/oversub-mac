@@ -355,3 +355,72 @@ private struct SecondaryCTABody<Label: View>: View {
             .onHover { hover.on = $0 }
     }
 }
+
+/// Nút trong hộp thoại và thông báo (cập nhật, báo lỗi, cấp quyền, khởi động lại). Nút chính và nút phụ cùng cỡ chữ, cùng
+/// chiều cao, cùng bề rộng tối thiểu; nút chính tô gradient cam, nút phụ nền trung tính. Nhỏ hơn CTAButtonStyle của cửa sổ
+/// chính để hợp cỡ hộp thoại macOS.
+struct DialogButtonStyle: ButtonStyle {
+    var prominent = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        DialogButtonBody(label: configuration.label, prominent: prominent, pressed: configuration.isPressed)
+    }
+}
+
+private struct DialogButtonBody<Label: View>: View {
+    let label: Label
+    let prominent: Bool
+    let pressed: Bool
+    @StateObject private var hover = HoverState()
+    @Environment(\.isEnabled) private var enabled
+
+    var body: some View {
+        label
+            .font(.system(size: 13, weight: .semibold))
+            .lineLimit(1)
+            .foregroundStyle(prominent ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
+            .padding(.horizontal, 16)
+            .frame(minWidth: 84, minHeight: 30)
+            .background {
+                if prominent {
+                    ZStack {
+                        Capsule().fill(Theme.gradient)
+                        Capsule().fill(LinearGradient(colors: [.white.opacity(0.2), .white.opacity(0)], startPoint: .top, endPoint: .center))
+                    }
+                    .shadow(color: Theme.orangeEnd.opacity(hover.on ? 0.35 : 0.22), radius: hover.on ? 8 : 5, y: 2)
+                } else {
+                    Capsule().fill(Color.primary.opacity(hover.on ? 0.11 : 0.07))
+                }
+            }
+            .overlay(Capsule().strokeBorder(prominent ? Color.white.opacity(0.18) : Color.primary.opacity(0.08), lineWidth: 1))
+            .opacity(enabled ? 1 : 0.45)
+            .scaleEffect(pressed ? 0.97 : 1)
+            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: pressed)
+            .animation(.smooth(duration: 0.15), value: hover.on)
+            .contentShape(Capsule())
+            .onHover { hover.on = $0 && enabled }
+            .fixedSize()
+    }
+}
+
+/// Biểu tượng app cho hộp thoại, kèm huy hiệu nhỏ ở góc dưới phải như hộp thoại của macOS (vd. con bọ cho báo lỗi).
+struct DialogAppIcon: View {
+    var badge: String?
+
+    var body: some View {
+        Image(nsImage: NSApp.applicationIconImage)
+            .resizable()
+            .frame(width: 64, height: 64)
+            .overlay(alignment: .bottomTrailing) {
+                if let badge {
+                    Image(systemName: badge)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 26, height: 26)
+                        .background(Circle().fill(Color(nsColor: .windowBackgroundColor)))
+                        .overlay(Circle().strokeBorder(.primary.opacity(0.1)))
+                        .offset(x: 4, y: 4)
+                }
+            }
+    }
+}

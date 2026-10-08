@@ -110,7 +110,7 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         typealias A = HotkeyCenter.Action
         let e = engine, s = settings
         if let r = Updater.shared.pending {
-            add(menu, L("Cập nhật lên bản \(r.version)…", "Update to version \(r.version)…")) { Updater.shared.updateNow() }
+            add(menu, L("Cập nhật lên bản \(r.version)…", "Update to version \(r.version)…")) { UpdatePrompt.shared.show() }
             menu.addItem(.separator())
         }
         add(menu, e.anyRunning ? L("Dừng", "Stop") : L("Bắt đầu", "Start"), key: A.toggleRunning) { e.toggleRunning() }

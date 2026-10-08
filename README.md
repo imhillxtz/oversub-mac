@@ -79,7 +79,7 @@ Các tính năng khác:
 
 ### Cập nhật
 
-Từ bản 1.1.42, OverSub tự kiểm tra bản mới trên trang Releases, khoảng hai lần mỗi ngày. Khi có bản mới, dòng trạng thái ở chân cửa sổ chính hiện "Có bản mới · Cập nhật". Bấm Cập nhật là app tải về, kiểm tra chữ ký số, thay bản cũ rồi tự mở lại. Nếu không muốn bị gián đoạn lúc đang chơi, hãy bật "Tự tải bản mới và cài khi thoát app" ở Cài đặt → Chung; bản mới sẽ được thay vào lúc bạn thoát OverSub. Cài đặt, key, hồ sơ game và quyền Ghi màn hình đều giữ nguyên.
+Từ bản 1.1.42, OverSub tự kiểm tra bản mới trên trang Releases, khoảng hai lần mỗi ngày. Khi có bản mới, dòng trạng thái ở chân cửa sổ chính hiện "Có bản mới · Cập nhật". Bấm Cập nhật là app tải về, kiểm tra chữ ký số, thay bản cũ rồi tự mở lại. Bấm "Có gì mới" ở dòng đó, hoặc chọn OverSub → Kiểm tra cập nhật… trên thanh menu, để mở hộp thoại cập nhật: hộp thoại liệt kê thay đổi của mọi bản kể từ bản bạn đang dùng, có nút Cập nhật, Để sau và Bỏ qua bản này. Nếu không muốn bị gián đoạn lúc đang chơi, hãy bật "Tự tải bản mới và cài khi thoát app" ở Cài đặt → Chung; bản mới sẽ được thay vào lúc bạn thoát OverSub. Cài đặt, key, hồ sơ game và quyền Ghi màn hình đều giữ nguyên.
 
 Bản 1.1.41 trở về trước chưa có tính năng này. Nếu đang dùng các bản này, hãy tải `.dmg` mới và kéo đè vào Applications một lần; các bản sau sẽ tự cập nhật.
 
@@ -250,7 +250,7 @@ Chi tiết kỹ thuật: [Docs/DEVELOPMENT.md](Docs/DEVELOPMENT.md).
 
 Khi dùng dịch vụ dịch qua mạng, chỉ chữ được gửi tới đúng dịch vụ bạn chọn: câu cần dịch, vài câu trước làm ngữ cảnh và tên nhân vật. Dùng Dịch máy Apple hay Apple Intelligence thì không có gì được gửi ra ngoài.
 
-OverSub không có máy chủ riêng, không thu thập thống kê và không có quảng cáo. Nút Gửi báo lỗi chỉ soạn sẵn một email trong app Mail của bạn; không có gì được gửi đi cho tới khi bạn tự bấm gửi. Việc kiểm tra cập nhật chỉ hỏi trang Releases công khai trên GitHub, không gửi gì về bạn. File cài tải về phải có chữ ký số khớp khoá của tác giả nhúng trong app thì mới được cài.
+OverSub không có máy chủ riêng, không thu thập thống kê và không có quảng cáo. Nút Gửi báo lỗi chỉ tạo tệp .zip trên máy và mở trang báo lỗi hoặc thư điền sẵn; không có gì được gửi đi cho tới khi bạn tự bấm gửi. Việc kiểm tra cập nhật chỉ hỏi trang Releases công khai trên GitHub, không gửi gì về bạn. File cài tải về phải có chữ ký số khớp khoá của tác giả nhúng trong app thì mới được cài.
 
 Key API nằm trong `~/Library/Application Support/OverSub/keys.json` và chỉ tài khoản người dùng của bạn đọc được (quyền 0600). Hồ sơ, ngữ cảnh và trí nhớ dịch cũng ở `~/Library/Application Support/OverSub`. Nhật ký chẩn đoán ở `~/Library/Logs/OverSub/debug.log`; nhật ký có chữ đọc được trong game và xoá được bất cứ lúc nào.
 
@@ -325,7 +325,7 @@ Bật Giữ nguyên tên riêng và thêm tên vào danh sách ở Cài đặt �
 
 ## Góp ý và báo lỗi
 
-Cách nhanh nhất để báo lỗi là bấm Gửi báo lỗi… ở Cài đặt → Chung (hoặc menu Trợ giúp). App gói nhật ký và thông tin máy (không có key) thành một tệp .zip, rồi mở thư soạn sẵn trong Mail tới hillx.design@gmail.com; bạn xem lại rồi mới bấm gửi. Bạn cũng có thể mở một [Issue](https://github.com/imhillxtz/oversub-mac/issues) để báo lỗi hoặc đề xuất tính năng. Để việc tìm lỗi nhanh hơn, hãy ghi kèm phiên bản OverSub (xem ở Cài đặt → Chung), tên game, cách game hiện phụ đề, và nếu được thì một đoạn nhật ký quanh lúc gặp lỗi (`~/Library/Logs/OverSub/debug.log`). Vui lòng đọc lại nhật ký trước khi gửi, vì nhật ký có chứa chữ trong game.
+Cách nhanh nhất để báo lỗi là bấm Gửi báo lỗi… ở Cài đặt → Chung (hoặc menu Trợ giúp). App gói nhật ký và thông tin máy (không có key) thành một tệp .zip rồi hiện cửa sổ có tệp đó. Bấm Mở trang báo lỗi để mở một [Issue](https://github.com/imhillxtz/oversub-mac/issues) mới trên GitHub với tiêu đề và thông tin máy điền sẵn, kéo tệp .zip vào ô nội dung rồi bấm Create. Nếu chưa có tài khoản GitHub, bấm Gửi qua email và đính kèm tệp vào thư gửi tới hillx.design@gmail.com. Đề xuất tính năng cũng gửi qua Issue. Để việc tìm lỗi nhanh hơn, hãy ghi kèm phiên bản OverSub (xem ở Cài đặt → Chung), tên game, cách game hiện phụ đề, và nếu được thì một đoạn nhật ký quanh lúc gặp lỗi (`~/Library/Logs/OverSub/debug.log`). Vui lòng đọc lại nhật ký trước khi gửi, vì nhật ký có chứa chữ trong game.
 
 Báo cáo về những game chạy tốt cũng rất hữu ích: một Issue ngắn như "game X chạy tốt với chế độ Y" giúp người chơi sau đỡ mất thời gian thử.
 
