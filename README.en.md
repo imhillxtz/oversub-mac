@@ -291,6 +291,12 @@ Usually a key has run out of quota. Settings → Translation services shows each
 </details>
 
 <details>
+<summary><b>OverSub says macOS text recognition stopped responding, then restarts</b></summary>
+
+Vision, the text recognition built into macOS, occasionally gets stuck (seen when the Siri voice loads at the same moment the app is reading text). Subtitles and voice then stop completely, and clicking Stop and Start doesn't help. Since version 1.1.58, OverSub detects this, shows a dialog that counts down 5 seconds, then restarts and picks up where it left off. You don't need to do anything; to skip the wait, click Restart now. If this happens often, please open an Issue and include the log.
+</details>
+
+<details>
 <summary><b>The app translates a logo or fixed on-screen text</b></summary>
 
 Click Ignore this line (the text-and-× icon). You can review and clear the list of ignored lines in Settings → Style & glossary.

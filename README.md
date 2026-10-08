@@ -291,6 +291,12 @@ Thường là do key đã hết hạn mức. Mở Cài đặt → Dịch vụ d�
 </details>
 
 <details>
+<summary><b>OverSub báo bộ nhận chữ của macOS không phản hồi rồi tự khởi động lại</b></summary>
+
+Vision, phần nhận chữ có sẵn trong macOS, thỉnh thoảng bị treo (đã gặp khi giọng Siri nạp giọng đọc đúng lúc app đang nhận chữ). Khi đó phụ đề và giọng đọc dừng hẳn, bấm Dừng rồi Bắt đầu cũng không gỡ được. Từ bản 1.1.58, OverSub tự phát hiện, hiện hộp thoại đếm ngược 5 giây rồi khởi động lại và chạy tiếp. Bạn không cần thao tác gì; nếu không muốn chờ, hãy bấm Khởi động lại ngay. Nếu chuyện này xảy ra thường xuyên, vui lòng mở một Issue kèm nhật ký.
+</details>
+
+<details>
 <summary><b>App dịch nhầm logo, chữ cố định trên màn hình</b></summary>
 
 Bấm Bỏ qua câu này (biểu tượng chữ kèm dấu ×). Danh sách câu đã bỏ qua có thể xem và xoá ở Cài đặt → Văn phong & thuật ngữ.
