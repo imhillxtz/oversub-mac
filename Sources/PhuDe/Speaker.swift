@@ -495,7 +495,8 @@ final class Speaker: NSObject, ObservableObject, NSSpeechSynthesizerDelegate {
     func debugScaleLiveRate(_ k: Float) { if let s = live { s.rate = s.rate * k } }
 
     private func logStart(_ job: Job) {
-        DebugLog.write(String(format: "Lồng tiếng: đọc [%@] sau %.0f ms: %@", lastRoute,
+        // Ghi cả hệ số tốc độ (cảm xúc × đuổi kịp) để nhật ký cho thấy câu nào bị đọc chậm hay nhanh hơn bình thường.
+        DebugLog.write(String(format: "Lồng tiếng: đọc [%@ ×%.2f] sau %.0f ms: %@", lastRoute, job.plan.rate * job.line.boost,
                               Date().timeIntervalSince(job.line.created) * 1000, String(job.line.text.prefix(50))))
     }
 

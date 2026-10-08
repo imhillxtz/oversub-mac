@@ -139,15 +139,17 @@ enum Emotion: String {
     }
 
     /// Điều chỉnh cho giọng Apple: tốc độ (nhân), cao độ (nửa cung), âm lượng (nhân).
+    /// Không bao giờ đọc chậm hơn bình thường: câu được đọc sau khi chữ đã hiện xong, kéo dài thêm chỉ làm giọng tụt lại sau game
+    /// (người dùng 08/10/2026: "lâu lâu thoại đọc chậm rãi, không cần thiết, tốn thời gian"). Do dự, buồn chỉ hạ cao độ và âm lượng.
     var appleAdjust: (rate: Double, pitch: Double, volume: Double) {
         switch self {
         case .neutral: return (1, 0, 0.92)
         case .question: return (1, 0.5, 0.94)
         case .shout: return (1.12, 1.5, 1)
         case .excited: return (1.06, 1, 1)
-        case .hesitant: return (0.88, -0.5, 0.84)
+        case .hesitant: return (1, -0.5, 0.84)
         case .laugh: return (1.06, 1.2, 1)
-        case .sad: return (0.88, -1.2, 0.85)
+        case .sad: return (1, -1.2, 0.85)
         }
     }
 

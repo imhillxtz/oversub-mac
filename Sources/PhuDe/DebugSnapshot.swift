@@ -537,6 +537,15 @@ enum DebugSnapshot {
                 DebugLog.write("=== Hết thử chữ chạy ===")
                 return
             }
+            if ProcessInfo.processInfo.environment["OVERSUB_PROG_TEST"] == "emotion" {
+                // Người dùng 08/10: "lâu lâu thoại đọc chậm rãi, câu đã chạy xong rồi mới đọc mà còn kéo dài thì tốn thời gian".
+                // Ba câu: do dự ("..." ở đầu), buồn (sorry, gone), hét (!!). Xem hệ số ×  trong dòng "Lồng tiếng: đọc": không câu nào dưới ×1.00.
+                for (text, wait) in [("...I don't know. Maybe we should turn back...", 5.0), ("I'm sorry. He's gone.", 4.0), ("Run! Now!!", 3.0)] {
+                    await engine.debugRead([text], speaker: nil, wait: wait)
+                }
+                DebugLog.write("=== Hết thử chữ chạy ===")
+                return
+            }
             if ProcessInfo.processInfo.environment["OVERSUB_PROG_TEST"] == "label" {
                 // Tên người nói lúc tách lúc dính vào đầu câu (nhật ký thật 06/10 21:05–21:06): câu chỉ được đọc một lần.
                 let name = "Experienced Farmer"
