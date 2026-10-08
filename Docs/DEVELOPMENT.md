@@ -67,7 +67,7 @@ Gửi báo lỗi (`ErrorReport`, ở Cài đặt → Chung, menu Trợ giúp và
 
 Hộp thoại cập nhật (`UpdatePrompt`) mở từ menu Kiểm tra cập nhật…, "Có gì mới" ở chân cửa sổ, menu trên thanh menu, và Kiểm tra ngay ở Cài đặt khi có bản mới; lần tự kiểm tra định kỳ không mở nó. Ghi chú lấy từ `releases?per_page=30` (mọi bản mới hơn bản đang dùng, tối đa 8), tách phần đúng ngôn ngữ giao diện, bỏ mục Tải về và Ủng hộ (`ReleaseNotes.blocks`).
 
-Hộp thoại dùng `DialogWindow` và `DialogButtonStyle` (Dialog.swift, Theme.swift). Đừng dùng `NSHostingController.sizingOptions = .preferredContentSize` hay `.help` trong các cửa sổ này: thử ngày 08/10/2026 cả hai làm AppKit tính lại bố cục mãi rồi dừng app. Hộp thoại đổi cỡ theo trạng thái thì gọi `DialogWindow.fit`.
+Hộp thoại dùng `DialogWindow` và `DialogButtonStyle` (Dialog.swift, Theme.swift). Đừng dùng `NSHostingController.sizingOptions = .preferredContentSize` hay `.help` trong các cửa sổ này: thử ngày 08/10/2026 cả hai làm AppKit tính lại bố cục mãi rồi dừng app. Hộp thoại đổi cỡ theo trạng thái thì gọi `DialogWindow.fit` với cỡ đo trên một `NSHostingView` mới tạo; đo trên chính view trong cửa sổ trả về 0x0 và làm cửa sổ co giãn liên tục (lỗi của 1.1.66). Khi thử hộp thoại đổi cỡ, ghi chiều cao cửa sổ theo thời gian (`OVERSUB_UPDATE_PROMPT_TEST` ghi mỗi 0,1 giây trong 5 giây), đừng chỉ chụp một ảnh lúc đã ổn định.
 
 Nhãn tên người nói được tách khỏi câu thoại theo cỡ và màu chữ. Có lúc nhãn không tách được và dính vào đầu câu ("Experienced Farmer These vineyards..."); nếu dòng đầu trùng một tên vừa gặp (cho phép lệch một ký tự, như "Hill×") thì `Engine.splitKnownLabel` vẫn coi đó là nhãn. Không có bước này, app tưởng câu mới và đọc lại; đo thực có câu bị đọc 5 lần.
 

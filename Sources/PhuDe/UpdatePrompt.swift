@@ -10,7 +10,6 @@ import SwiftUI
 final class UpdatePrompt: NSObject, NSWindowDelegate {
     static let shared = UpdatePrompt()
     private var window: NSWindow?
-    private var content: NSView?
     private var stateWatch: AnyCancellable?
 
     /// Mở hộp thoại ở trạng thái đang kiểm tra rồi kiểm tra; kết quả hiện ngay trong hộp thoại.
@@ -23,14 +22,13 @@ final class UpdatePrompt: NSObject, NSWindowDelegate {
         if window == nil {
             let host = NSHostingView(rootView: UpdatePromptView(close: { [weak self] in self?.close() }))
             host.sizingOptions = []   // cỡ cửa sổ do fit(_:to:) đặt, không để SwiftUI tự kéo (xem DialogWindow)
-            let w = DialogWindow.make(host, title: L("Cập nhật OverSub", "OverSub Update"))
+            let w = DialogWindow.make(host, title: L("Cập nhật OverSub", "OverSub Update"), size: Self.measure())
             w.delegate = self
             window = w
-            content = host
-            // Trạng thái đổi (đang kiểm tra → có bản mới, đang tải…) thì đo lại; lần đo sau chờ khung ghi chú đo xong chiều cao.
+            // Trạng thái đổi (đang kiểm tra → có bản mới, đang tải…) thì đo lại một lần. $state báo trước khi giá trị đổi, nên
+            // đo ở vòng chạy kế tiếp.
             stateWatch = Updater.shared.$state.removeDuplicates().sink { [weak self] _ in
                 DispatchQueue.main.async { self?.refit() }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { self?.refit() }
             }
         }
         NSApp.activate()
@@ -38,16 +36,21 @@ final class UpdatePrompt: NSObject, NSWindowDelegate {
     }
 
     private func refit() {
-        guard let window, let content else { return }
-        DialogWindow.fit(window, to: content)
+        guard let window else { return }
+        DialogWindow.fit(window, to: Self.measure())
+    }
+
+    /// Cỡ nội dung theo trạng thái hiện tại, đo trên một bản sao không nằm trong cửa sổ (xem DialogWindow.fit).
+    private static func measure() -> NSSize {
+        NSHostingView(rootView: UpdatePromptView(close: {})).fittingSize
     }
 
     func close() { window?.close() }
 
     func windowWillClose(_ notification: Notification) {
+        DebugLog.write("Hộp thoại cập nhật: đóng")
         stateWatch = nil
         window = nil
-        content = nil
     }
 
     #if DEVTOOLS
@@ -155,12 +158,13 @@ private struct UpdatePromptView: View {
     }
 }
 
-/// Khung ghi chú phát hành: cao theo nội dung, tối đa 300 điểm rồi cuộn.
+/// Khung ghi chú phát hành: cao cố định 260 điểm, dài hơn thì cuộn, mép dưới mờ dần.
 private struct ReleaseNotesBox: View {
     let changes: [Updater.Change]
-    @State private var contentHeight: CGFloat = 120
-    private static let maxHeight: CGFloat = 300
-    private var overflows: Bool { contentHeight > Self.maxHeight }
+    @State private var contentHeight: CGFloat = 0
+    /// Cao cố định để cỡ hộp thoại không phụ thuộc vào việc đo ghi chú (đo theo nội dung từng làm cửa sổ co giãn).
+    private static let height: CGFloat = 260
+    private var overflows: Bool { contentHeight > Self.height }
 
     var body: some View {
         ScrollView {
@@ -172,7 +176,7 @@ private struct ReleaseNotesBox: View {
                 .background(GeometryReader { g in Color.clear.preference(key: NotesHeightKey.self, value: g.size.height) })
         }
         .scrollBounceBehavior(.basedOnSize)
-        .frame(height: min(max(contentHeight, 60), Self.maxHeight))
+        .frame(height: Self.height)
         // Còn chữ bên dưới thì mờ dần ở mép dưới, để biết là cuộn được.
         .mask {
             VStack(spacing: 0) {

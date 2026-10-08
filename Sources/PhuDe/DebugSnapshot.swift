@@ -761,6 +761,14 @@ enum DebugSnapshot {
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(2.5))
             UpdatePrompt.shared.checkNow()
+            // Ghi cỡ cửa sổ mỗi 0,1 giây trong 5 giây để bắt cửa sổ co giãn liên tục.
+            var sizes: [String] = []
+            for _ in 0..<50 {
+                try? await Task.sleep(for: .seconds(0.1))
+                let w = UpdatePrompt.shared.debugWindow
+                sizes.append(w.map { $0.isVisible ? "\(Int($0.frame.height))" : "ẩn" } ?? "-")
+            }
+            DebugLog.write("Thử hộp thoại cập nhật: chiều cao theo thời gian \(sizes.joined(separator: " "))")
             for _ in 0..<40 {
                 try? await Task.sleep(for: .seconds(0.25))
                 if case .checking = Updater.shared.state { continue }
