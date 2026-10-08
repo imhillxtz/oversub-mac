@@ -37,6 +37,7 @@ final class AppModel {
         DebugSnapshot.hideTestIfRequested()
         DebugSnapshot.restartNoticeTestIfRequested()
         DebugSnapshot.noticesTestIfRequested(engine: engine)
+        DebugSnapshot.reportTestIfRequested()
         DebugSnapshot.screenRectIfRequested()
         if let s = ProcessInfo.processInfo.environment["OVERSUB_FRONT_TEST"], let n = Int(s) {
             let engine = engine
@@ -109,6 +110,9 @@ struct OverSubCommands: Commands {
                 Task { await Updater.shared.check(manual: true) }
             }
             Button(L("Ủng hộ OverSub…", "Support OverSub…")) { openWindow(id: "donate") }
+        }
+        CommandGroup(replacing: .help) {
+            Button(L("Gửi báo lỗi…", "Send Bug Report…")) { ErrorReport.send() }
         }
         CommandMenu(L("Dịch", "Translate")) {
             Button(L("Bắt đầu / Dừng", "Start / Stop")) { engine.toggleRunning() }

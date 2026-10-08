@@ -675,6 +675,16 @@ enum DebugSnapshot {
         }
     }
 
+    /// Thử tạo gói báo lỗi (OVERSUB_REPORT_TEST=1): chỉ tạo tệp .zip và ghi đường dẫn vào nhật ký, không mở Mail.
+    static func reportTestIfRequested() {
+        guard ProcessInfo.processInfo.environment["OVERSUB_REPORT_TEST"] != nil else { return }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
+            let zip = ErrorReport.makeArchive()
+            DebugLog.write("Thử gói báo lỗi: \(zip?.path ?? "không tạo được")")
+        }
+    }
+
     /// Chụp các thông báo mới (OVERSUB_SNAPSHOT_NOTICES=1): đang chuẩn bị bộ nhận chữ, đã sẵn sàng, Vision treo lần nữa và hướng
     /// dẫn cấp quyền Ghi màn hình. Không khởi động lại, không mở Cài đặt hệ thống.
     static func noticesTestIfRequested(engine: Engine) {

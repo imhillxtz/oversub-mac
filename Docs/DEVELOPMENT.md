@@ -63,6 +63,8 @@ Vision cũng có lúc treo hẳn: lần đo thực ngày 08/10/2026, đúng lúc
 
 Quyền Ghi màn hình kiểm ở một chỗ (`ScreenPermission.granted`). Thiếu quyền khi mở app (đã qua hướng dẫn lần đầu), khi bấm Bắt đầu, chọn vùng, Dịch nhanh, hoặc khi macOS từ chối chụp, thì `PermissionGuide` hiện hướng dẫn ba bước với nút Mở Cài đặt hệ thống (mở thẳng trang Ghi màn hình) và Mở lại OverSub (macOS chỉ áp quyền mới sau khi app mở lại).
 
+Gửi báo lỗi (`ErrorReport`, ở Cài đặt → Chung, menu Trợ giúp và hộp thoại "vẫn không phản hồi") chép nhật ký và tệp `thong-tin-may.txt` (phiên bản app, macOS, đời máy, chip, RAM, quyền Ghi màn hình, có bộ nhớ đệm nhận chữ chưa, ngôn ngữ, cách bắt thoại, giọng đọc, dịch màn hình, 60 dòng nhật ký đáng chú ý gần nhất; không có key, thuật ngữ hay chỉ dẫn văn phong) vào một thư mục tạm, nén bằng `ditto` thành `~/Library/Logs/OverSub/OverSub-bao-loi-<thời điểm>.zip`, rồi mở thư soạn sẵn qua `NSSharingService(.composeEmail)` tới `ErrorReport.supportEmail` (hillx.design@gmail.com, người dùng chọn ngày 08/10/2026). Máy chưa có tài khoản Mail thì mở `mailto:` và mở Finder ở tệp .zip để người dùng tự đính kèm. App không tự gửi gì.
+
 Nhãn tên người nói được tách khỏi câu thoại theo cỡ và màu chữ. Có lúc nhãn không tách được và dính vào đầu câu ("Experienced Farmer These vineyards..."); nếu dòng đầu trùng một tên vừa gặp (cho phép lệch một ký tự, như "Hill×") thì `Engine.splitKnownLabel` vẫn coi đó là nhãn. Không có bước này, app tưởng câu mới và đọc lại; đo thực có câu bị đọc 5 lần.
 
 ### Ba cách bắt thoại
@@ -257,6 +259,7 @@ Các móc thử chỉ có trong bản dựng `OVERSUB_DEV=1 ./build.sh` (`DebugS
 | `--args -visionAutoRestartAt "<date>...Z</date>"` | Giả như vừa tự khởi động lại; đi cùng `OVERSUB_VISION_HANG` để thử hộp thoại "vẫn không phản hồi". Tham số kiểu bool viết `"<false/>"`, viết `NO` thì không đọc được. |
 | `OVERSUB_FAKE_NO_SCREEN_PERMISSION=1` | Coi như thiếu quyền Ghi màn hình, không cần gỡ quyền thật. |
 | `OVERSUB_SNAPSHOT_NOTICES=1` | Chụp bảng đang chuẩn bị, đã sẵn sàng, hộp thoại "vẫn không phản hồi" và hướng dẫn cấp quyền. |
+| `OVERSUB_REPORT_TEST=1` | Chỉ tạo gói báo lỗi và ghi đường dẫn vào nhật ký, không mở Mail. |
 | `OVERSUB_REGION_STATE=<phụ đề>,<số vùng dịch>` | Đổi tên các nút vùng như khi có hoặc chưa có vùng (ví dụ `0,0`, `1,2`, `1,3`) để chụp, không đụng vùng thật. |
 | `OVERSUB_DUB_TEST=1`, `voiceover`, `gemini` | Thử ba đường phát giọng, một câu Voice-over, một câu Gemini (tốn một lượt). |
 | `OVERSUB_SCENE_TEST=1` | Chạy trọn quy trình dịch màn hình trên cảnh menu vẽ sẵn, lưu ảnh trước và sau. |

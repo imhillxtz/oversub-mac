@@ -80,7 +80,7 @@ final class RestartNotice {
     func showStuckAgain(on screen: NSScreen?, restart: @escaping () -> Void) {
         hide()
         let fire = once { [weak self] in self?.hide(); restart() }
-        panel = NoticePanel.show(StuckAgainView(restart: fire, openLog: { DebugLog.reveal() }, close: { [weak self] in self?.hide() }), on: screen)
+        panel = NoticePanel.show(StuckAgainView(restart: fire, sendReport: { ErrorReport.send(reason: L("Vision vẫn treo sau khi tự khởi động lại", "Vision still stuck after restarting")) }, close: { [weak self] in self?.hide() }), on: screen)
     }
 
     func hide() {
@@ -139,7 +139,7 @@ private struct RestartCountdownView: View {
 
 private struct StuckAgainView: View {
     let restart: () -> Void
-    let openLog: () -> Void
+    let sendReport: () -> Void
     let close: () -> Void
 
     var body: some View {
@@ -149,8 +149,8 @@ private struct StuckAgainView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(L("Bộ nhận chữ của macOS vẫn không phản hồi", "macOS text recognition is still not responding"))
                         .font(.headline)
-                    Text(L("OverSub đã tự khởi động lại một lần nhưng Vision vẫn bị treo, nên app không tự khởi động lại nữa để tránh lặp. Bạn có thể khởi động lại OverSub thêm một lần. Nếu lỗi còn lặp lại, hãy khởi động lại máy Mac, và mở một Issue trên GitHub kèm nhật ký để được hỗ trợ.",
-                           "OverSub already restarted once, but Vision is still stuck, so it won't restart on its own again to avoid a loop. You can restart OverSub once more. If it keeps happening, restart your Mac and open an Issue on GitHub with the log attached."))
+                    Text(L("OverSub đã tự khởi động lại một lần nhưng Vision vẫn bị treo, nên app không tự khởi động lại nữa để tránh lặp. Bạn có thể khởi động lại OverSub thêm một lần. Nếu lỗi còn lặp lại, hãy khởi động lại máy Mac, và bấm Gửi báo lỗi để gửi nhật ký cho nhà phát triển.",
+                           "OverSub already restarted once, but Vision is still stuck, so it won't restart on its own again to avoid a loop. You can restart OverSub once more. If it keeps happening, restart your Mac and click Send Bug Report to send the log to the developer."))
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -158,7 +158,7 @@ private struct StuckAgainView: View {
                         Button(L("Đóng", "Close"), action: close)
                             .buttonStyle(.link)
                         Spacer(minLength: 8)
-                        Button(L("Mở nhật ký", "Show log"), action: openLog)
+                        Button(L("Gửi báo lỗi", "Send Bug Report"), action: sendReport)
                             .buttonStyle(.bordered)
                             .controlSize(.large)
                             .fixedSize()

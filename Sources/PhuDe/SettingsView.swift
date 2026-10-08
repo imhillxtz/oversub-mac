@@ -453,6 +453,9 @@ struct SettingsView: View {
                         openWindow(id: "main")
                     }
                 }
+                LabeledContent(L("Báo lỗi", "Report a problem")) {
+                    Button(L("Gửi báo lỗi…", "Send Bug Report…")) { ErrorReport.send() }
+                }
                 LabeledContent(L("Nhật ký chẩn đoán", "Diagnostic log")) {
                     Button(L("Mở trong Finder", "Show in Finder")) { NSWorkspace.shared.activateFileViewerSelecting([DebugLog.url]) }
                 }
@@ -462,7 +465,7 @@ struct SettingsView: View {
                         NSWorkspace.shared.open(dir)
                     }
                 }
-                Note(L("Nhật ký ghi chữ đọc được trong các vùng bạn chọn và quyết định của app, không ghi key, tự xoá khi quá 2 MB. Khi báo lỗi, hãy gửi kèm nhật ký này để việc tìm nguyên nhân nhanh hơn.", "The log records text read in the regions you select and the app's decisions. It never records API keys and clears itself past 2 MB. Attach it to bug reports to help find the cause."))
+                Note(L("Gửi báo lỗi gói nhật ký và thông tin máy (không có key) thành một tệp .zip, rồi mở thư soạn sẵn trong Mail tới \(ErrorReport.supportEmail); bạn xem lại rồi mới bấm gửi. Nhật ký ghi chữ đọc được trong các vùng bạn chọn và quyết định của app, không ghi key, tự xoá khi quá 2 MB.", "Send Bug Report packs the log and system information (no API keys) into a .zip file, then opens a ready-to-send email in Mail to \(ErrorReport.supportEmail); you review it before sending. The log records text read in the regions you select and the app's decisions. It never records API keys and clears itself past 2 MB."))
             } header: { Text(L("Hỗ trợ", "Support")) }
             Section {
                 Note(L("Ảnh màn hình không rời khỏi máy: chữ được nhận ngay trên máy bằng Vision. Khi bạn thêm key Gemini hoặc Groq, chữ trong các vùng bạn chọn được gửi tới dịch vụ đó để dịch, kèm vài câu trước làm ngữ cảnh, tên nhân vật và thuật ngữ của bạn. Dịch máy Apple và Apple Intelligence chạy hoàn toàn trên máy.", "Screenshots never leave your Mac: text is recognized on device with Vision. When you add a Gemini or Groq API key, text in the regions you select is sent to that service for translation, along with a few previous lines as context, character names and your glossary. Apple Translation and Apple Intelligence run entirely on device."))
