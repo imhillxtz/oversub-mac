@@ -77,6 +77,7 @@ final class Engine: ObservableObject {
     private var classifying: Set<String> = []   // nhân vật đang được hỏi AI giới tính, tuổi
     private var lastDialogueAt: Date?       // lần dịch lời thoại gần nhất; im lặng quá lâu thì quên ngữ cảnh cũ
     private var lastLineTexts: [String] = []   // các dòng OCR của lời thoại, để nhận ra danh sách menu
+    private var lastSkipNote = ""         // chữ giao diện vừa ghi "Bỏ qua" ở chế độ Chữ chạy (mỗi chữ chỉ ghi một lần, không ghi mỗi khung)
     private var cache: [String: String] = [:]      // câu đã dịch, gặp lại thì dùng luôn
     private var shown = ""          // câu (đã chuẩn hoá) đang hiển thị
     private var pending = ""        // câu mới (đã chuẩn hoá), chờ khung hình đứng yên để xác nhận
@@ -1580,6 +1581,8 @@ final class Engine: ObservableObject {
         shown = norm
         if progNorm.isEmpty, let why = skipReason(text) {   // câu mới bắt đầu mà là chữ giao diện: không dịch
             progLatestRaw = ""
+            // Trước 1.1.61 chỗ này không ghi nhật ký, nên 4 giờ chơi 08/10 không biết bộ lọc có chạy hay không (hoá ra gần như không chặn gì).
+            if text != lastSkipNote { lastSkipNote = text; DebugLog.write("Bỏ qua (\(why)): \(text)") }
             status = L("Bỏ qua (\(why)).", "Skipped (\(why)).")
             return
         }
@@ -1913,6 +1916,7 @@ final class Engine: ObservableObject {
     }
 
     private func commitProgressive(chunk: String) {
+        lastSkipNote = ""
         progNorm += TextUtil.normalize(chunk)
         progRaw += (progRaw.isEmpty ? "" : " ") + chunk
         progLine.raw = progRaw

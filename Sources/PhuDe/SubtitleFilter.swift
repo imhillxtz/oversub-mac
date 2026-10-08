@@ -67,6 +67,9 @@ enum SubtitleFilter {
         case "tên mục menu": return L("tên mục menu", "menu item")
         case "nhãn chỉ số": return L("nhãn chỉ số", "stat label")
         case "chữ in hoa ngắn (tiêu đề, nút)": return L("chữ in hoa ngắn (tiêu đề, nút)", "short all-caps text (title, button)")
+        case "nhãn ngắn không dấu câu": return L("nhãn ngắn không dấu câu", "short label without punctuation")
+        case "mẩu chữ rời": return L("mẩu chữ rời", "stray text fragment")
+        case "nhãn viết tắt": return L("nhãn viết tắt", "abbreviated label")
         default: return reason
         }
     }
@@ -102,6 +105,32 @@ enum SubtitleFilter {
         }
 
         if !speech, text.count <= 24, words.count <= 3, text.filter(\.isLetter).allSatisfy(\.isUppercase) { return "chữ in hoa ngắn (tiêu đề, nút)" }
+
+        // Chữ giao diện của từng game không liệt kê hết bằng danh sách từ. Nhật ký 07–08/10/2026 (Monster Hunter Stories, chế độ Chữ
+        // chạy, AI không phân loại): 2.437 trên 2.458 dòng OCR lọt qua lớp luật, 69 câu ngắn được đọc ("Armor Info", "Set as Favorite",
+        // "* Power Attack", "Wyvernfell Ab. Stat.", tên quái, tên nhân vật đứng một mình, mẩu OCR "ng", "o of o . ."). Lời thoại gần
+        // như luôn có dấu câu, nên cụm ngắn không có dấu câu là nhãn. Không xét chữ Nhật, Trung, Hàn: không tách từ bằng dấu cách và
+        // hay bỏ dấu câu. Câu đang được game gõ dần chỉ bị chậm vài khung: khi có dấu phẩy hoặc dài quá 5 từ thì được dịch bình thường.
+        let cjk = text.unicodeScalars.contains { (0x3040...0x30FF).contains($0.value) || (0x3400...0x9FFF).contains($0.value) || (0xAC00...0xD7AF).contains($0.value) }
+        if !cjk, words.count <= 5 {
+            if !text.contains(where: { ".!?…,。！？、，".contains($0) }) { return "nhãn ngắn không dấu câu" }
+            // Mẩu câu rời do OCR đọc trượt đầu dòng ("ated state.", "o of o . ."): bắt đầu bằng chữ thường. Câu bắt đầu bằng "..." thì không tính.
+            if let first = text.first, first.isLetter, first.isLowercase { return "mẩu chữ rời" }
+            // Nhãn viết tắt kiểu "Wyvernfell Ab. Stat.", "Drowning Shaft Lv.": từ nào cũng viết hoa, dấu chấm chỉ đứng sau chữ viết tắt
+            // (tối đa 4 chữ cái), và có ít nhất một từ dài không kết thúc bằng dấu chấm (để "Oh. Okay." hay "Hmm. Yes." vẫn là lời thoại).
+            let tokens = text.split(separator: " ").map(String.init)
+            if !speech, tokens.count >= 2 {
+                var titleCase = true, dotsOK = true, hasLongWord = false
+                for t in tokens {
+                    let core = t.trimmingCharacters(in: .punctuationCharacters)
+                    guard let f = core.first, f.isLetter else { continue }
+                    if f.isLowercase, core.count > 3 { titleCase = false }
+                    if t.hasSuffix("."), !(f.isUppercase && core.count <= 4) { dotsOK = false }
+                    if f.isUppercase, core.count >= 4, !t.hasSuffix(".") { hasLongWord = true }
+                }
+                if titleCase, dotsOK, hasLongWord { return "nhãn viết tắt" }
+            }
+        }
         return nil
     }
 }

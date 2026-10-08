@@ -247,7 +247,7 @@ Các móc thử chỉ có trong bản dựng `OVERSUB_DEV=1 ./build.sh` (`DebugS
 | `OVERSUB_SNAPSHOT_DONATE=1`, `OVERSUB_SUPPORT_TEST=1`, `OVERSUB_DONATE_NICK=<tên>`, `OVERSUB_SCREEN_HEIGHT=560` | Chụp cửa sổ Ủng hộ, hiện lời cảm ơn theo mốc (không ghi cài đặt), điền sẵn tên, giả lập màn hình thấp. |
 | `OVERSUB_APPEARANCE=light` hoặc `dark` | Ép giao diện sáng hoặc tối; thắng lựa chọn của người dùng. |
 | `OVERSUB_ONBOARD=1` kèm `--args -onboardStep <0–4>` | Mở hướng dẫn lần đầu ở bước chỉ định để chụp. |
-| `OVERSUB_PROG_TEST=1`, `cutscene`, `label`, `return`, `retalk` | Thử chữ chạy và giọng đọc bằng đoạn hội thoại lấy từ nhật ký thật (dịch, đọc thật); xem kết quả trong nhật ký. |
+| `OVERSUB_PROG_TEST=1`, `cutscene`, `label`, `return`, `retalk`, `menu` | Thử chữ chạy và giọng đọc bằng đoạn hội thoại lấy từ nhật ký thật (dịch, đọc thật); xem kết quả trong nhật ký. `menu`: lướt menu → thoại → menu, mong đợi mọi nhãn ghi "Bỏ qua (lý do)". |
 | `OVERSUB_VISION_HANG=<n>` kèm `--args -resumeAfterRelaunch YES` | Lệnh Vision thứ n trở đi treo hẳn, như lần đo thực; app phải tự khởi động lại sau khoảng 12 giây và chạy tiếp. |
 | `OVERSUB_DUB_TEST=1`, `voiceover`, `gemini` | Thử ba đường phát giọng, một câu Voice-over, một câu Gemini (tốn một lượt). |
 | `OVERSUB_SCENE_TEST=1` | Chạy trọn quy trình dịch màn hình trên cảnh menu vẽ sẵn, lưu ảnh trước và sau. |

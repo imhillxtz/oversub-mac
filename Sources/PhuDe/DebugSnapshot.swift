@@ -509,6 +509,34 @@ enum DebugSnapshot {
                 DebugLog.write("=== Hết thử chữ chạy ===")
                 return
             }
+            if ProcessInfo.processInfo.environment["OVERSUB_PROG_TEST"] == "menu" {
+                // Nhật ký thật 07/10 22:49 – 08/10 03:00 (Monster Hunter Stories): lướt menu trang bị, chiến đấu, rồi thoại, rồi lại menu.
+                // Chữ giao diện, tên nhân vật đứng một mình, mẩu OCR rời đều bị đọc (69 câu ngắn trong 316 lần đọc). Mong đợi: chỉ đọc
+                // mô tả vật phẩm (câu trọn vẹn, lớp luật không phân biệt được) và bốn câu thoại; mọi nhãn ghi "Bỏ qua (lý do)".
+                let steps: [(lines: [String], speaker: String?, wait: Double)] = [
+                    (["Wyvernfell Ab. Stat. Defense Decorations"], nil, 1.5),
+                    (["Wyvernfell Ab. Stat."], nil, 1.5),
+                    (["Armor Info"], "Decorations", 2.0),   // OCR tưởng mục menu bên trên là nhãn tên
+                    (["Armor made from light materials using leather as a base. Responds flexibly to any situation."], nil, 6),
+                    (["Set as Favorite"], nil, 2.5),
+                    (["ng"], "Leather", 2.5),
+                    (["o of o . ."], nil, 2.0),
+                    ([": Off During Cutscenes"], nil, 2.0),
+                    (["* Slash (BLNT)"], nil, 2.5),
+                    (["They got us..."], nil, 2.0),
+                    (["You've got this! Keep fighting!"], nil, 3.0),
+                    (["That was a close"], nil, 0.5),
+                    (["That was a close one... But it's OK, I'm fine."], nil, 4.0),
+                    (["Decorations"], nil, 3.0),   // từng bị cắt thành "Decoratio" + "ns" rồi đọc "Decoratio ns"
+                    (["Eleanor"], nil, 1.5),
+                    (["ated state."], nil, 2.0),
+                    (["Drowning Shaft Lv."], "Iron Katana", 2.0),
+                    ([], nil, 2.0),
+                ]
+                for s in steps { await engine.debugRead(s.lines, speaker: s.speaker, wait: s.wait) }
+                DebugLog.write("=== Hết thử chữ chạy ===")
+                return
+            }
             if ProcessInfo.processInfo.environment["OVERSUB_PROG_TEST"] == "label" {
                 // Tên người nói lúc tách lúc dính vào đầu câu (nhật ký thật 06/10 21:05–21:06): câu chỉ được đọc một lần.
                 let name = "Experienced Farmer"
