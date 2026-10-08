@@ -126,9 +126,18 @@ final class Engine: ObservableObject {
         self.speaker = Speaker(settings: settings, tts: tts)
         if settings.region != nil { status = L("Sẵn sàng. Bấm Bắt đầu.", "Ready. Click Start.") }
         if let id = settings.activePresetID { history = ContextStore.lines(for: id, target: settings.targetLanguage) }
-        speaker.probeSiriGender(language: settings.target.speech)
-        speaker.warmUp(language: settings.target.speech)
         VisionGuard.onStuck = { [weak self] in self?.relaunchAfterVisionStuck() }
+        VisionGuard.onPreparing = { [weak self] on in self?.visionPreparing(on) }
+        // Chuẩn bị bộ nhận chữ trước, rồi mới khởi động sẵn giọng Siri: cả hai dùng Neural Engine, và chạy chồng nhau ở lần
+        // đầu trên máy mới (dựng mô hình cho cả hai cùng lúc) là lúc Vision dễ treo nhất.
+        let source = settings.sourceLanguage, speech = settings.target.speech
+        Task { @MainActor [weak self] in
+            await VisionGuard.prepare(.accurate, language: source)
+            await VisionGuard.prepare(.fast, language: source)
+            guard let self else { return }
+            self.speaker.probeSiriGender(language: speech)
+            self.speaker.warmUp(language: speech)
+        }
         speaker.$siriGender.removeDuplicates().sink { [weak self] _ in self?.reassignCast() }.store(in: &bag)
         settings.$outputMode.dropFirst().removeDuplicates().sink { [weak self] mode in
             guard let self else { return }
@@ -202,7 +211,7 @@ final class Engine: ObservableObject {
     /// Mở trình chọn vùng gộp (khung phụ đề và các vùng dịch màn hình, dừng hình, xem lại một lần).
     /// `screen`: mở từ "Thêm dịch màn hình", kéo chỗ trống là thêm vùng dịch màn hình; Lưu & bắt đầu thì bật dịch màn hình.
     func selectRegion(screen: Bool = false) {
-        guard !editor.isOpen else { return }
+        guard !editor.isOpen, ensurePermission() else { return }
         status = screen ? L("Đang chọn vùng dịch màn hình…", "Selecting screen region…") : L("Đang chọn vùng phụ đề…", "Selecting subtitle region…")
         prepareEditor()
         // Ẩn cửa sổ chính trong lúc chọn để không vướng, nhất là khi game đang toàn màn hình.
@@ -221,7 +230,7 @@ final class Engine: ObservableObject {
     /// Chỉnh vùng của một hồ sơ (từ trang hồ sơ). Hồ sơ đang dùng thì như Chọn vùng; hồ sơ khác thì chỉ sửa hồ sơ đó.
     func editRegions(forProfile id: UUID) {
         if id == settings.activePresetID { selectRegion(); return }
-        guard !editor.isOpen, let p = settings.presets.first(where: { $0.id == id }) else { return }
+        guard !editor.isOpen, ensurePermission(), let p = settings.presets.first(where: { $0.id == id }) else { return }
         prepareEditor()
         let hidden = NSApp.windows.filter { $0.isVisible && !($0 is NSPanel) }
         hidden.forEach { $0.orderOut(nil) }
@@ -268,7 +277,7 @@ final class Engine: ObservableObject {
 
     /// Chữ trong một vùng: cắt từ ảnh đã dừng hình nếu có (đúng cái người dùng đang thấy), không thì chụp trực tiếp.
     private func regionText(_ region: CaptureRegion, from frozen: CGImage?) async -> String? {
-        guard CGPreflightScreenCaptureAccess() else { return L("Chưa có quyền Ghi màn hình", "Screen Recording permission not granted") }
+        guard ScreenPermission.granted else { return L("Chưa có quyền Ghi màn hình", "Screen Recording permission not granted") }
         var image: CGImage?
         if let frozen, let sw = region.sw, sw > 0 {
             let scale = CGFloat(frozen.width) / sw
@@ -955,23 +964,42 @@ final class Engine: ObservableObject {
         var errorDescription: String? { L("Chụp màn hình không phản hồi.", "Screen capture is not responding.") }
     }
 
-    /// Vision treo thì chỉ khởi động lại tiến trình mới gỡ được (xem VisionGuard). Hiện hộp thoại đếm ngược 5 giây, ghi nhớ đang chạy hay không, mở lại app bằng một lệnh chờ tiến trình này thoát hẳn, rồi thoát. Bản mở lại tự bấm
-    /// Bắt đầu nếu trước đó đang chạy.
+    /// Vision treo thì chỉ khởi động lại tiến trình mới gỡ được (xem VisionGuard). Hiện hộp thoại đếm ngược 5 giây, ghi nhớ đang
+    /// chạy hay không, rồi mở lại app; bản mở lại tự bấm Bắt đầu nếu trước đó đang chạy.
+    /// Chỉ tự khởi động lại một lần trong 10 phút: Vision lại treo ngay sau đó thì việc khởi động lại không giúp được (bản
+    /// 1.1.58–1.1.63 lặp mãi trên máy mới), nên hiện hộp thoại để người dùng tự chọn.
     private var relaunching = false
     func relaunchAfterVisionStuck() {
         guard !relaunching else { return }
+        let d = UserDefaults.standard
+        let screen = settings.region.flatMap { resolveScreen(for: $0) }
+        // Dừng nhận phụ đề và dịch màn hình ngay: Vision đã treo thì mỗi lệnh gọi thêm giữ một luồng mãi mãi.
+        let wasRunning = anyRunning
+        if wasRunning { stopAll() }
+        if let last = d.object(forKey: "visionAutoRestartAt") as? Date, Date().timeIntervalSince(last) < 600 {
+            DebugLog.write("Vision lại treo chưa tới 10 phút sau lần tự khởi động lại: không tự khởi động lại nữa, để người dùng chọn")
+            status = L("Bộ nhận chữ của macOS vẫn không phản hồi.", "macOS text recognition is still not responding.")
+            RestartNotice.shared.showStuckAgain(on: screen) { [weak self] in
+                self?.relaunch(reason: "người dùng bấm khởi động lại sau khi Vision treo lần nữa", resume: wasRunning)
+            }
+            return
+        }
         relaunching = true
-        let resume = anyRunning
-        UserDefaults.standard.set(resume, forKey: "resumeAfterRelaunch")
+        d.set(Date(), forKey: "visionAutoRestartAt")
+        let resume = wasRunning
         status = L("Bộ nhận chữ của macOS bị treo. OverSub sẽ tự khởi động lại.", "macOS text recognition stopped responding. OverSub will restart itself.")
         DebugLog.write("Vision treo: báo người dùng, 5 giây nữa tự khởi động lại" + (resume ? ", mở lại xong sẽ chạy tiếp" : ""))
-        hideOverlay()
-        let screen = settings.region.flatMap { resolveScreen(for: $0) }
-        RestartNotice.shared.show(on: screen, seconds: 5) { [weak self] in self?.performRelaunch() }
+        RestartNotice.shared.show(on: screen, seconds: 5) { [weak self] in
+            self?.relaunch(reason: "tự khởi động lại để gỡ Vision bị treo", resume: resume)
+        }
     }
 
-    private func performRelaunch() {
-        DebugLog.write("Tự khởi động lại để gỡ Vision bị treo")
+    /// Mở lại app: một lệnh shell chờ tiến trình này thoát hẳn rồi `open -g` (mở ở nền, không giành tiêu điểm của game), rồi
+    /// thoát. `resume`: bản mở lại có tự bấm Bắt đầu không.
+    func relaunch(reason: String, resume: Bool) {
+        relaunching = true
+        UserDefaults.standard.set(resume, forKey: "resumeAfterRelaunch")
+        DebugLog.write("Mở lại app: \(reason)" + (resume ? ", mở lại xong sẽ chạy tiếp" : ""))
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/bin/sh")
         // open -g: mở ở nền, không giành tiêu điểm của game.
@@ -980,13 +1008,28 @@ final class Engine: ObservableObject {
         do { try p.run() } catch {
             DebugLog.write("Không mở lại được app: \(error.localizedDescription)")
             RestartNotice.shared.hide()
-            status = L("Bộ nhận chữ của macOS bị treo. Vui lòng thoát hẳn OverSub (⌘Q) rồi mở lại.", "macOS text recognition stopped responding. Please quit OverSub (⌘Q) and open it again.")
+            status = L("Không tự mở lại được. Vui lòng thoát hẳn OverSub (⌘Q) rồi mở lại.", "Couldn't reopen automatically. Please quit OverSub (⌘Q) and open it again.")
             relaunching = false
             return
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { NSApp.terminate(nil) }
         // Có gì chặn việc thoát (hộp thoại đang mở...) thì vẫn thoát, để lệnh mở lại chạy được.
         DispatchQueue.main.asyncAfter(deadline: .now() + 5) { exit(0) }
+    }
+
+    /// Đang chuẩn bị bộ nhận chữ (lần đầu trên máy mới khoảng một phút): báo ở dòng trạng thái và bảng ở mép trên màn hình.
+    private var statusBeforePreparing: String?
+    private func visionPreparing(_ on: Bool) {
+        let message = L("Đang chuẩn bị bộ nhận chữ của macOS…", "Preparing macOS text recognition…")
+        if on {
+            statusBeforePreparing = status
+            status = message
+            PreparingNotice.shared.show(on: settings.region.flatMap { resolveScreen(for: $0) })
+        } else {
+            if status == message, let s = statusBeforePreparing { status = s }
+            statusBeforePreparing = nil
+            PreparingNotice.shared.finish()
+        }
     }
 
     /// Gọi lúc mở app: lần trước app tự khởi động lại vì Vision treo trong lúc đang chạy thì chạy tiếp.
@@ -1216,17 +1259,27 @@ final class Engine: ObservableObject {
     // MARK: Quét thử
 
     private func ensurePermission() -> Bool {
-        if CGPreflightScreenCaptureAccess() { problem = nil; return true }
+        if ScreenPermission.granted { problem = nil; return true }
+        // Lần đầu: macOS hỏi quyền và thêm OverSub vào danh sách trong Cài đặt hệ thống (máy mới chưa có tên app trong đó).
         CGRequestScreenCaptureAccess()
+        showPermissionGuide()
         problem = L("OverSub chưa có quyền Ghi màn hình. Vui lòng bật quyền trong System Settings → Privacy & Security → Screen & System Audio Recording, rồi thoát hẳn và mở lại app.", "OverSub doesn't have Screen Recording permission. Turn it on in System Settings → Privacy & Security → Screen & System Audio Recording, then quit and reopen the app.")
         status = L("Thiếu quyền Ghi màn hình.", "Screen Recording permission missing.")
         return false
+    }
+
+    /// Hướng dẫn cấp quyền Ghi màn hình; nút "Mở lại OverSub" mở lại app để quyền có hiệu lực.
+    func showPermissionGuide() {
+        PermissionGuide.shared.show { [weak self] in
+            self?.relaunch(reason: "người dùng bấm mở lại sau khi cấp quyền Ghi màn hình", resume: false)
+        }
     }
 
     private func report(_ error: Error) {
         DebugLog.write("Lỗi: \((error as? AppError)?.message ?? error.localizedDescription)")
         let ns = error as NSError
         if ns.domain == "com.apple.ScreenCaptureKit.SCStreamErrorDomain" || ns.code == -3801 {
+            if !ScreenPermission.granted { showPermissionGuide() }
             problem = L("macOS từ chối chụp màn hình: \(error.localizedDescription). Vui lòng kiểm tra quyền Ghi màn hình của OverSub, sau đó thoát hẳn và mở lại app.", "macOS refused the screen capture: \(error.localizedDescription). Check OverSub's Screen Recording permission, then quit and reopen the app.")
         } else {
             problem = error.localizedDescription

@@ -265,7 +265,7 @@ Vì app chưa được Apple công chứng nên macOS chặn ở lần mở đ�
 <details>
 <summary><b>Đã cấp quyền Ghi màn hình mà app vẫn báo thiếu quyền</b></summary>
 
-macOS chỉ áp dụng quyền mới sau khi app khởi động lại. Thoát hẳn OverSub (⌘Q, hoặc biểu tượng tay cầm trên thanh menu → Thoát) rồi mở lại.
+macOS chỉ áp dụng quyền mới sau khi app khởi động lại. Khi thiếu quyền, OverSub hiện hướng dẫn từng bước: bấm Mở Cài đặt hệ thống, bật OverSub ở mục Ghi màn hình & âm thanh hệ thống, rồi bấm Mở lại OverSub. Cũng có thể thoát hẳn OverSub (⌘Q, hoặc biểu tượng tay cầm trên thanh menu → Thoát) rồi mở lại.
 </details>
 
 <details>
@@ -291,9 +291,15 @@ Thường là do key đã hết hạn mức. Mở Cài đặt → Dịch vụ d�
 </details>
 
 <details>
+<summary><b>Lần đầu mở app, OverSub báo đang chuẩn bị bộ nhận chữ</b></summary>
+
+Lần đầu OverSub đọc chữ trên một máy Mac, macOS cần khoảng một phút để chuẩn bị bộ nhận chữ (Vision) cho app. Trong lúc đó, mép trên màn hình hiện bảng "Đang chuẩn bị bộ nhận chữ của macOS" kèm số giây đã chờ; xong thì app đọc chữ bình thường. macOS lưu lại kết quả, nên các lần mở sau và sau khi cập nhật app không phải chờ nữa.
+</details>
+
+<details>
 <summary><b>OverSub báo bộ nhận chữ của macOS không phản hồi rồi tự khởi động lại</b></summary>
 
-Vision, phần nhận chữ có sẵn trong macOS, thỉnh thoảng bị treo (đã gặp khi giọng Siri nạp giọng đọc đúng lúc app đang nhận chữ). Khi đó phụ đề và giọng đọc dừng hẳn, bấm Dừng rồi Bắt đầu cũng không gỡ được. Từ bản 1.1.58, OverSub tự phát hiện, hiện hộp thoại đếm ngược 5 giây rồi khởi động lại và chạy tiếp. Bạn không cần thao tác gì; nếu không muốn chờ, hãy bấm Khởi động lại ngay. Nếu chuyện này xảy ra thường xuyên, vui lòng mở một Issue kèm nhật ký.
+Vision thỉnh thoảng bị treo (đã gặp khi giọng Siri nạp giọng đọc đúng lúc app đang nhận chữ). Khi đó phụ đề và giọng đọc dừng hẳn, bấm Dừng rồi Bắt đầu cũng không gỡ được. OverSub tự phát hiện, hiện hộp thoại đếm ngược 5 giây rồi khởi động lại và chạy tiếp; nếu không muốn chờ, hãy bấm Khởi động lại ngay. App chỉ tự khởi động lại một lần trong 10 phút. Nếu Vision lại treo ngay sau đó, app hiện hộp thoại để bạn tự chọn khởi động lại hay mở nhật ký; khi đó hãy khởi động lại máy Mac, và nếu vẫn bị, vui lòng mở một Issue kèm nhật ký.
 </details>
 
 <details>

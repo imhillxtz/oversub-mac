@@ -675,6 +675,32 @@ enum DebugSnapshot {
         }
     }
 
+    /// Chụp các thông báo mới (OVERSUB_SNAPSHOT_NOTICES=1): đang chuẩn bị bộ nhận chữ, đã sẵn sàng, Vision treo lần nữa và hướng
+    /// dẫn cấp quyền Ghi màn hình. Không khởi động lại, không mở Cài đặt hệ thống.
+    static func noticesTestIfRequested(engine: Engine) {
+        let env = ProcessInfo.processInfo.environment
+        guard env["OVERSUB_SNAPSHOT_NOTICES"] != nil, let dir = env["OVERSUB_SNAPSHOT_DIR"] else { return }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(3))
+            PreparingNotice.shared.show(on: NSScreen.main)
+            try? await Task.sleep(for: .seconds(2.2))
+            await shoot("notice-preparing", dir: dir, window: PreparingNotice.shared.debugPanel)
+            PreparingNotice.shared.finish()
+            try? await Task.sleep(for: .seconds(0.5))
+            await shoot("notice-ready", dir: dir, window: PreparingNotice.shared.debugPanel)
+            try? await Task.sleep(for: .seconds(2))
+            RestartNotice.shared.showStuckAgain(on: NSScreen.main) { DebugLog.write("Thử thông báo: bấm khởi động lại") }
+            try? await Task.sleep(for: .seconds(0.6))
+            await shoot("notice-stuck-again", dir: dir, window: RestartNotice.shared.debugPanel)
+            RestartNotice.shared.hide()
+            PermissionGuide.shared.show { DebugLog.write("Thử thông báo: bấm mở lại") }
+            try? await Task.sleep(for: .seconds(0.6))
+            await shoot("notice-permission", dir: dir, window: PermissionGuide.shared.debugPanel)
+            PermissionGuide.shared.hide()
+            DebugLog.write("snapshot thông báo xong: \(dir)")
+        }
+    }
+
     /// Chụp hộp thoại báo tự khởi động lại (OVERSUB_RESTART_NOTICE=1): hiện hộp thoại, chụp lúc đang đếm ngược, hết giờ chỉ ghi nhật ký.
     static func restartNoticeTestIfRequested() {
         guard ProcessInfo.processInfo.environment["OVERSUB_RESTART_NOTICE"] != nil else { return }

@@ -82,11 +82,23 @@ final class ScreenGrabber {
 /// không gỡ được, chỉ khởi động lại app mới gỡ được.
 /// Vì vậy mọi lệnh Vision chạy trên luồng GCD riêng (luồng bị treo không chiếm nhóm luồng của Swift concurrency) và không ai
 /// chờ quá `softLimit` giây. Lệnh vẫn chưa xong sau `hardLimit` giây thì coi như Vision đã treo và gọi `onStuck` một lần.
+///
+/// Lần nhận chữ đầu tiên trên một máy thì khác: macOS phải dựng mô hình cho Neural Engine rồi mới lưu vào
+/// `~/Library/Caches/<bundle id>/com.apple.e5rt.e5bundlecache`. Đo thực 08/10/2026: lệnh đầu tiên của một chương trình chưa
+/// từng nhận chữ mất khoảng 57 giây, các lệnh sau 0,2 giây. Bản 1.1.58–1.1.63 coi khoảng chờ đó là treo, khởi động lại ở giây
+/// thứ 12, việc dựng mô hình bị cắt ngang, chưa lưu được, và máy mới kẹt trong vòng lặp. Nên mỗi mức nhận chữ và ngôn ngữ được
+/// `prepare` trước bằng một lần nhận chữ trên ảnh dựng sẵn, chờ tới `prepareLimit`; lệnh thật chỉ chạy sau khi đã chuẩn bị xong.
 enum VisionGuard {
     static let softLimit: Double = 4
     static let hardLimit: Double = 12
+    /// Máy chậm có thể dựng mô hình lâu hơn lần đo 57 giây, nên chờ tới 4 phút mới coi là treo.
+    static let prepareLimit: Double = 240
     /// Việc cần làm khi Vision treo (Engine đặt: tự khởi động lại app). Chạy trên luồng chính.
     @MainActor static var onStuck: (() -> Void)?
+    /// Báo bắt đầu (true) hay xong (false) một lần chuẩn bị kéo dài quá 1 giây, để Engine hiện thông báo. Chạy trên luồng chính.
+    @MainActor static var onPreparing: ((Bool) -> Void)?
+    @MainActor static private(set) var preparing = false
+    @MainActor private static var warmups: [String: Task<Void, Never>] = [:]
     private static let reported = Once()
 
     struct Timeout: LocalizedError {
@@ -97,9 +109,84 @@ enum VisionGuard {
     /// Thử tình huống Vision treo (OVERSUB_VISION_HANG=n): lệnh thứ n trở đi treo hẳn như lần đo thực.
     private static let hangAfter = Int(ProcessInfo.processInfo.environment["OVERSUB_VISION_HANG"] ?? "")
     private static let calls = Counter()
+    /// Thử lần chuẩn bị lâu (OVERSUB_VISION_SLOW_PREPARE=giây): mỗi lần chuẩn bị chờ thêm từng ấy giây.
+    private static let slowPrepare = Double(ProcessInfo.processInfo.environment["OVERSUB_VISION_SLOW_PREPARE"] ?? "")
     #endif
 
-    static func run<T>(_ label: String, _ work: @escaping () throws -> T) async throws -> T {
+    /// Chuẩn bị Vision cho một mức nhận chữ và ngôn ngữ. Gọi nhiều lần hay từ nhiều chỗ cùng lúc thì chỉ chạy một lần, các nơi
+    /// gọi cùng chờ. Nhờ vậy không lệnh thật nào phải gánh lần dựng mô hình, cũng không dồn hàng chục luồng chờ sau nó.
+    static func prepare(_ level: VNRequestTextRecognitionLevel, language: String) async {
+        let task = await MainActor.run { () -> Task<Void, Never> in
+            let key = "\(level == .fast ? "nhanh" : "kỹ")-\(language)"
+            if let t = warmups[key] { return t }
+            let t = Task { @MainActor in await warm(level, language: language, key: key) }
+            warmups[key] = t
+            return t
+        }
+        await task.value
+    }
+
+    /// Số lần chuẩn bị đang chạy; thông báo "đang chuẩn bị" tắt khi về 0.
+    @MainActor private static var active = 0
+
+    @MainActor private static func warm(_ level: VNRequestTextRecognitionLevel, language: String, key: String) async {
+        let started = Date()
+        active += 1
+        let notice = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1))
+            guard !Task.isCancelled else { return }
+            DebugLog.write("Vision: đang chuẩn bị bộ nhận chữ (\(key)); lần đầu trên một máy có thể mất khoảng một phút")
+            if !preparing { preparing = true; onPreparing?(true) }
+        }
+        let finished: Bool = await withCheckedContinuation { cont in
+            let gate = Once()
+            DispatchQueue.global(qos: .userInitiated).async {
+                #if DEVTOOLS
+                if let extra = slowPrepare { Thread.sleep(forTimeInterval: extra) }
+                #endif
+                let r = VNRecognizeTextRequest()
+                r.recognitionLevel = level
+                r.usesLanguageCorrection = level == .accurate
+                r.recognitionLanguages = [language]
+                if let image = sampleImage() { try? VNImageRequestHandler(cgImage: image).perform([r]) }
+                if gate.set() { cont.resume(returning: true) }
+            }
+            DispatchQueue.global().asyncAfter(deadline: .now() + prepareLimit) {
+                if gate.set() { cont.resume(returning: false) }
+            }
+        }
+        notice.cancel()
+        let ms = Int(Date().timeIntervalSince(started) * 1000)
+        if finished {
+            DebugLog.write("Vision: chuẩn bị \(key) xong sau \(ms) ms")
+        } else {
+            DebugLog.write("Vision: chuẩn bị \(key) quá \(Int(prepareLimit)) giây vẫn chưa xong, bộ nhận chữ của macOS đã treo")
+        }
+        active -= 1
+        if active == 0, preparing { preparing = false; onPreparing?(false) }
+        if !finished, reported.set() { onStuck?() }
+    }
+
+    /// Ảnh có một dòng chữ in, dựng bằng CoreText (chạy được trên mọi luồng), chỉ để Vision dựng mô hình.
+    private static func sampleImage() -> CGImage? {
+        let w = 640, h = 120
+        guard let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0,
+                                  space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        ctx.setFillColor(CGColor(gray: 1, alpha: 1))
+        ctx.fill(CGRect(x: 0, y: 0, width: w, height: h))
+        let font = CTFontCreateWithName("Helvetica" as CFString, 40, nil)
+        let text = NSAttributedString(string: "OverSub reads game text", attributes: [
+            NSAttributedString.Key(kCTFontAttributeName as String): font,
+            NSAttributedString.Key(kCTForegroundColorAttributeName as String): CGColor(gray: 0, alpha: 1),
+        ])
+        ctx.textPosition = CGPoint(x: 20, y: 42)
+        CTLineDraw(CTLineCreateWithAttributedString(text), ctx)
+        return ctx.makeImage()
+    }
+
+    static func run<T>(_ label: String, level: VNRequestTextRecognitionLevel, language: String,
+                       _ work: @escaping () throws -> T) async throws -> T {
+        await prepare(level, language: language)
         let gate = Once(), done = Once()
         return try await withCheckedThrowingContinuation { (cont: CheckedContinuation<T, Error>) in
             DispatchQueue.global(qos: .userInitiated).async {
@@ -313,7 +400,7 @@ enum OCR {
 
     /// Đọc nhanh: chuỗi dấu hiệu (để biết chữ có đổi không) và vị trí từng mẩu chữ (để biết chữ có di chuyển không).
     static func quickScan(_ image: CGImage, language: String) async -> (sig: String, obs: [QuickObs]) {
-        let r = try? await VisionGuard.run("đọc nhanh") { () -> (sig: String, obs: [QuickObs]) in
+        let r = try? await VisionGuard.run("đọc nhanh", level: .fast, language: language) { () -> (sig: String, obs: [QuickObs]) in
             let request = VNRecognizeTextRequest()
             request.recognitionLevel = .fast
             request.usesLanguageCorrection = false
@@ -390,7 +477,7 @@ enum OCR {
     /// Tự tìm khung phụ đề trên ảnh cả màn hình: khối chữ lớn nhất ở nửa dưới, ưu tiên nằm giữa và nhiều chữ,
     /// rồi nới rộng thêm phía trên (chỗ nhãn tên người nói) và hai bên. Trả về toạ độ chuẩn hoá, gốc ở góc trên trái.
     static func detectSubtitleArea(_ image: CGImage, language: String) async -> CGRect? {
-        let r = try? await VisionGuard.run("tự tìm phụ đề") { () -> CGRect? in
+        let r = try? await VisionGuard.run("tự tìm phụ đề", level: .fast, language: language) { () -> CGRect? in
             let request = VNRecognizeTextRequest()
             request.recognitionLevel = .fast
             request.usesLanguageCorrection = false
@@ -424,7 +511,7 @@ enum OCR {
 
     /// `keepAll`: giữ mọi dòng theo thứ tự đọc (vùng phụ như bảng nhiệm vụ), không tách nhãn tên hay chọn khối lời thoại.
     static func recognize(_ image: CGImage, language: String, keepAll: Bool = false) async throws -> OCRResult {
-        try await VisionGuard.run(keepAll ? "đọc vùng dịch màn hình" : "đọc kỹ") { () -> OCRResult in
+        try await VisionGuard.run(keepAll ? "đọc vùng dịch màn hình" : "đọc kỹ", level: .accurate, language: language) { () -> OCRResult in
             let request = VNRecognizeTextRequest()
             request.recognitionLevel = .accurate
             request.usesLanguageCorrection = true

@@ -215,7 +215,8 @@ private final class QuickView: NSView {
         phase = .working
         window?.invalidateCursorRects(for: self)
         owner.otherViews(than: self).forEach { $0.isHidden = true }   // màn hình khác: bỏ lớp mờ
-        setHint(L("Đang dịch…", "Translating…"))
+        setHint(VisionGuard.preparing ? L("Đang chuẩn bị bộ nhận chữ của macOS, lần đầu có thể mất khoảng một phút…", "Preparing macOS text recognition; the first time can take about a minute…")
+                                      : L("Đang dịch…", "Translating…"))
         needsDisplay = true
         let region = CaptureRegion(displayID: displayID, x: rect.minX, y: rect.minY, w: rect.width, h: rect.height, sw: bounds.width, sh: bounds.height)
         Task { @MainActor in

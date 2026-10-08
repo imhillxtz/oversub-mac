@@ -36,6 +36,7 @@ final class AppModel {
         DebugSnapshot.updateTestIfRequested()
         DebugSnapshot.hideTestIfRequested()
         DebugSnapshot.restartNoticeTestIfRequested()
+        DebugSnapshot.noticesTestIfRequested(engine: engine)
         DebugSnapshot.screenRectIfRequested()
         if let s = ProcessInfo.processInfo.environment["OVERSUB_FRONT_TEST"], let n = Int(s) {
             let engine = engine
@@ -46,6 +47,12 @@ final class AppModel {
         #endif
         // Lần trước app tự khởi động lại vì Vision treo giữa lúc đang chạy: chạy tiếp.
         DispatchQueue.main.async { self.engine.resumeAfterRelaunchIfNeeded() }
+        // Mở app mà chưa có quyền Ghi màn hình (đã qua hướng dẫn lần đầu, ví dụ vừa gỡ quyền trong Cài đặt hệ thống): hướng dẫn ngay,
+        // không đợi tới lúc bấm Bắt đầu mới báo.
+        if settings.onboardingDone {
+            let engine = engine
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { if !ScreenPermission.granted { engine.showPermissionGuide() } }
+        }
         // Đợi AppModel dựng xong rồi mới mở lại Cửa sổ phụ đề (nó cần AppModel.shared).
         DispatchQueue.main.async { SubtitleWindowState.shared.restore() }
         // Biểu tượng thanh menu dựng bằng AppKit (xem StatusMenu).

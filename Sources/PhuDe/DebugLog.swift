@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 
 /// Nhật ký chẩn đoán: ghi từng bước xử lý phụ đề vào ~/Library/Logs/OverSub/debug.log để tìm lỗi chỉ xảy ra khi chơi thật.
 /// Tự cắt bớt khi quá 2 MB. Không ghi key hay dữ liệu nhạy cảm, chỉ chữ phụ đề và quyết định của app.
@@ -10,6 +10,9 @@ enum DebugLog {
     }()
     private static let queue = DispatchQueue(label: "phude.debuglog")
     private static let formatter: DateFormatter = { let f = DateFormatter(); f.dateFormat = "HH:mm:ss.SSS"; return f }()
+
+    /// Mở Finder tại tệp nhật ký (để người dùng gửi kèm khi báo lỗi).
+    @MainActor static func reveal() { NSWorkspace.shared.activateFileViewerSelecting([url]) }
 
     static func write(_ message: String) {
         let line = "\(formatter.string(from: Date()))  \(message)\n"

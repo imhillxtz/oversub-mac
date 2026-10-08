@@ -265,7 +265,7 @@ The app isn't notarized by Apple, so it's blocked the first time. Go to System S
 <details>
 <summary><b>I granted Screen Recording but the app still says it's missing</b></summary>
 
-macOS applies a new permission only after the app restarts. Quit OverSub completely (⌘Q, or the controller icon in the menu bar → Quit) and open it again.
+macOS applies a new permission only after the app restarts. When the permission is missing, OverSub shows step-by-step instructions: click Open System Settings, turn on OverSub under Screen & System Audio Recording, then click Reopen OverSub. You can also quit OverSub completely (⌘Q, or the controller icon in the menu bar → Quit) and open it again.
 </details>
 
 <details>
@@ -291,9 +291,15 @@ Usually a key has run out of quota. Settings → Translation services shows each
 </details>
 
 <details>
+<summary><b>The first time I open the app, OverSub says it's preparing text recognition</b></summary>
+
+The first time OverSub reads text on a Mac, macOS needs about a minute to prepare its text recognition (Vision) for the app. Meanwhile a panel at the top of the screen says "Preparing macOS text recognition" and counts the seconds; once it's done, the app reads text normally. macOS keeps the result, so later launches and app updates don't wait again.
+</details>
+
+<details>
 <summary><b>OverSub says macOS text recognition stopped responding, then restarts</b></summary>
 
-Vision, the text recognition built into macOS, occasionally gets stuck (seen when the Siri voice loads at the same moment the app is reading text). Subtitles and voice then stop completely, and clicking Stop and Start doesn't help. Since version 1.1.58, OverSub detects this, shows a dialog that counts down 5 seconds, then restarts and picks up where it left off. You don't need to do anything; to skip the wait, click Restart now. If this happens often, please open an Issue and include the log.
+Vision occasionally gets stuck (seen when the Siri voice loads at the same moment the app is reading text). Subtitles and voice then stop completely, and clicking Stop and Start doesn't help. OverSub detects this, shows a dialog that counts down 5 seconds, then restarts and picks up where it left off; to skip the wait, click Restart now. It restarts on its own at most once every 10 minutes. If Vision gets stuck again right after, the app shows a dialog so you can choose to restart or open the log; in that case restart your Mac, and if it still happens, please open an Issue with the log attached.
 </details>
 
 <details>
