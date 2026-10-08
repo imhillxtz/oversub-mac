@@ -87,7 +87,7 @@ Versions 1.1.41 and earlier can't update themselves. If you're on one of those, 
 
 1. Follow the first-run guide (5 steps): permission, game language and target language, features, Siri voice, region.
 2. Add a free key (recommended): get one from [Google AI Studio](https://aistudio.google.com/apikey) or [Groq](https://console.groq.com/keys), go to Settings → Translation services, paste it and click Check & add. The app tests the key first and only adds it if it works.
-3. Select the subtitle region: open your game at a point with dialogue, click Select subtitle region (⌘K, or ⌃⌥K in game) and drag a box around where subtitles appear. Include the character name label if the game has one. Click Done, check the text that was read, then click Save.
+3. Add the subtitle region: open your game at a point with dialogue, click Add subtitle region (⌘K, or ⌃⌥K in game) and drag a box around where subtitles appear. Include the character name label if the game has one. Click Done, check the text that was read, then click Save.
 4. Click Start (⌘R, or ⌃⌥S in game).
 5. Turn Subtitles, Voice-over (click the mascot in the middle) and Screen translation on or off as you like.
 
@@ -99,7 +99,7 @@ The sections below follow the order you'll meet things in: selecting regions, ch
 
 The region picker opens on a live view of the screen. If subtitles go by too fast, click Freeze frame (or press Space) and select on a still image.
 
-The subtitle region (only one) is where dialogue appears; the Find subtitles button can guess it for you. Screen regions (up to 3) go around menus, quest logs or item description boxes; add one with Add screen region in the toolbar.
+The subtitle region (only one) is where dialogue appears; the Find subtitles button can guess it for you. Screen regions (up to 3) go around menus, quest logs or item description boxes; add one with Add screen region in the toolbar. Once regions exist, the two buttons change to Edit subtitle region and Edit screen regions (with a count such as 2/3) for moving, resizing, removing or adding regions.
 
 Drag to move, drag a corner to resize, press Delete to remove a region. Click Done (Enter) to review the text read in every region, then Save or Save & start. When regions overlap, subtitles take priority, so two translation layers never sit on top of each other.
 

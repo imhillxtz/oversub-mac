@@ -316,11 +316,11 @@ struct OnboardingView: View {
                 regionTile(icon: "captions.bubble.fill", name: L("Vùng phụ đề", "Subtitle region"),
                            serves: L("Cho Phụ đề và Giọng đọc", "For Subtitles and Voice"),
                            detail: L("Kéo quanh hộp thoại của nhân vật, gồm cả nhãn tên nếu có.", "Drag around the character dialogue box, including the name label if there is one."),
-                           button: L("Chọn vùng phụ đề", "Pick subtitle region"), primary: true) { pick(screen: false) }
+                           button: RegionLabels.subtitle(settings), primary: true) { pick(screen: false) }
                 regionTile(icon: "text.viewfinder", name: L("Vùng dịch màn hình", "Screen region"),
                            serves: L("Cho Dịch màn hình", "For Screen translation"),
                            detail: L("Kéo quanh menu, bảng nhiệm vụ hay mô tả vật phẩm. Tối đa 3 vùng.", "Drag around a menu, quest log or item description. Up to 3 regions."),
-                           button: L("Thêm vùng dịch", "Add screen region"), primary: false) { pick(screen: true) }
+                           button: RegionLabels.screen(settings), primary: false) { pick(screen: true) }
             }
             Text(L("Trong game: \(HotkeyCenter.Action.toggleRunning.display) bắt đầu/dừng · \(HotkeyCenter.Action.toggleOverlay.display) phụ đề · \(HotkeyCenter.Action.toggleDub.display) giọng đọc · \(HotkeyCenter.Action.screenTranslate.display) dịch màn hình · \(HotkeyCenter.Action.selectRegion.display) chọn vùng",
                    "In game: \(HotkeyCenter.Action.toggleRunning.display) start/stop · \(HotkeyCenter.Action.toggleOverlay.display) subtitles · \(HotkeyCenter.Action.toggleDub.display) voice · \(HotkeyCenter.Action.screenTranslate.display) screen translation · \(HotkeyCenter.Action.selectRegion.display) pick region"))

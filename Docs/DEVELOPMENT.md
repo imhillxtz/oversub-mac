@@ -191,7 +191,7 @@ Kéo thấp xuống hoặc bấm Một dòng thì cửa sổ còn một dải ch
 
 ### Chọn vùng
 
-`RegionEditor` là trình chọn dùng chung cho hai nút trên thanh công cụ. Chọn vùng phụ đề (⌘K, ⌃⌥K) vẽ lại vùng phụ đề, có nút Tự tìm phụ đề. Thêm vùng dịch thêm vùng dịch màn hình, tối đa 3. Trình chọn mở ra là hình trực tiếp; bấm Dừng hình (hoặc Space) để chọn trên ảnh đứng yên, lúc đó nút tô cam, viền màn hình cam và dòng hướng dẫn ghi "Hình đang dừng". Bấm Xong (Enter) để xem lại chữ đọc được ở từng vùng, rồi Lưu hoặc Lưu & bắt đầu. Lúc bấm Xong, app chụp một ảnh để đọc thử chữ và làm ảnh xem lại ở trang hồ sơ.
+`RegionEditor` là trình chọn dùng chung cho hai nút trên thanh công cụ. Nút vùng phụ đề (⌘K, ⌃⌥K) vẽ lại hoặc chỉnh vùng phụ đề, có nút Tự tìm phụ đề. Nút vùng dịch thêm, chỉnh hay xoá vùng dịch màn hình, tối đa 3. Tên hai nút đổi theo trạng thái (`RegionLabels`, dùng chung cho thanh công cụ, menu thanh trên, trang Vùng và hướng dẫn lần đầu): chưa có vùng thì "Thêm vùng phụ đề", "Thêm vùng dịch"; có rồi thì "Chỉnh vùng phụ đề", "Chỉnh vùng dịch · n/3". Trình chọn mở ra là hình trực tiếp; bấm Dừng hình (hoặc Space) để chọn trên ảnh đứng yên, lúc đó nút tô cam, viền màn hình cam và dòng hướng dẫn ghi "Hình đang dừng". Bấm Xong (Enter) để xem lại chữ đọc được ở từng vùng, rồi Lưu hoặc Lưu & bắt đầu. Lúc bấm Xong, app chụp một ảnh để đọc thử chữ và làm ảnh xem lại ở trang hồ sơ.
 
 Trình chọn giành phím khi mở: Esc, Enter, Space không lọt sang app khác, và phím được trả về game khi đóng. Thanh hướng dẫn nằm dưới tai thỏ.
 
@@ -249,6 +249,7 @@ Các móc thử chỉ có trong bản dựng `OVERSUB_DEV=1 ./build.sh` (`DebugS
 | `OVERSUB_ONBOARD=1` kèm `--args -onboardStep <0–4>` | Mở hướng dẫn lần đầu ở bước chỉ định để chụp. |
 | `OVERSUB_PROG_TEST=1`, `cutscene`, `label`, `return`, `retalk`, `menu`, `emotion` | Thử chữ chạy và giọng đọc bằng đoạn hội thoại lấy từ nhật ký thật (dịch, đọc thật); xem kết quả trong nhật ký. `menu`: lướt menu → thoại → menu, mong đợi mọi nhãn ghi "Bỏ qua (lý do)". `emotion`: câu do dự, buồn, hét; hệ số × trong dòng "Lồng tiếng: đọc" không được dưới 1. |
 | `OVERSUB_VISION_HANG=<n>` kèm `--args -resumeAfterRelaunch YES` | Lệnh Vision thứ n trở đi treo hẳn, như lần đo thực; app phải tự khởi động lại sau khoảng 12 giây và chạy tiếp. |
+| `OVERSUB_REGION_STATE=<phụ đề>,<số vùng dịch>` | Đổi tên các nút vùng như khi có hoặc chưa có vùng (ví dụ `0,0`, `1,2`, `1,3`) để chụp, không đụng vùng thật. |
 | `OVERSUB_DUB_TEST=1`, `voiceover`, `gemini` | Thử ba đường phát giọng, một câu Voice-over, một câu Gemini (tốn một lượt). |
 | `OVERSUB_SCENE_TEST=1` | Chạy trọn quy trình dịch màn hình trên cảnh menu vẽ sẵn, lưu ảnh trước và sau. |
 | `OVERSUB_QUICK_TEST=x,y,w,h` (kèm `OVERSUB_QUICK_TEXT=1`) | Mở Dịch nhanh trên vùng chỉ định và chụp kết quả. |

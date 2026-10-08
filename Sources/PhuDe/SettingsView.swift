@@ -1026,8 +1026,8 @@ struct SettingsView: View {
             } header: { Text(L("Tốc độ và chất lượng", "Speed and quality")) }
             Section {
                 regionSummary(settings.secondaryRegions.isEmpty ? L("Chưa có vùng", "No regions") : L("\(settings.secondaryRegions.count)/\(RegionEditor.maxSecondaries) vùng", "\(settings.secondaryRegions.count)/\(RegionEditor.maxSecondaries) regions"))
-                LabeledContent(L("Thêm vùng", "Add region")) {
-                    Button(L("Thêm vùng dịch màn hình…", "Add screen region…")) { engine.selectRegion(screen: true) }
+                LabeledContent(RegionLabels.state(settings).screens == 0 ? L("Thêm vùng", "Add region") : L("Chỉnh vùng", "Edit regions")) {
+                    Button(RegionLabels.screen(settings, count: false) + "…") { engine.selectRegion(screen: true) }
                 }
                 Note(L("Mỗi vùng quét khoảng 0,45 giây một lần. Khi chữ đổi, bản dịch cũ được gỡ ngay và chữ mới được dịch khi đứng yên. Vùng lưu theo hồ sơ game.", "Each region is scanned about every 0.45 seconds. When the text changes, the old translation is removed right away; once the new text settles, it's translated. Regions are saved per game profile."))
             } header: { Text(L("Vùng dịch màn hình", "Screen regions")) }
@@ -1072,7 +1072,7 @@ struct SettingsView: View {
                         } else {
                             Text(L("Chưa chọn", "Not selected")).foregroundStyle(.secondary)
                         }
-                        Button(L("Chọn vùng phụ đề…", "Select subtitle region…")) { engine.selectRegion() }
+                        Button(RegionLabels.subtitle(settings) + "…") { engine.selectRegion() }
                     }
                 }
                 Note(L("Phụ đề lời thoại được nhận trong vùng này. Cách bắt thoại và kiểu hiển thị ở trang Phụ đề.", "Dialogue subtitles are read in this region. Capture mode and display style are on the Subtitles page."))
@@ -1091,7 +1091,7 @@ struct SettingsView: View {
                 }
                 LabeledContent(L("Tối đa \(RegionEditor.maxSecondaries) vùng", "Up to \(RegionEditor.maxSecondaries) regions")) {
                     HStack {
-                        Button(L("Thêm vùng dịch màn hình…", "Add screen region…")) { engine.selectRegion(screen: true) }
+                        Button(RegionLabels.screen(settings, count: false) + "…") { engine.selectRegion(screen: true) }
                         Button(L("Tốc độ và bật/tắt", "Speed and on/off")) { nav.page = .screen }.buttonStyle(.link)
                     }
                 }

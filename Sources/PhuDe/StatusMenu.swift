@@ -120,7 +120,7 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         menu.addItem(.separator())
         add(menu, L("Dịch nhanh một vùng", "Quick-translate an area"), key: A.quickTranslate) { e.quickTranslate() }
         add(menu, L("Dịch màn hình", "Screen translation"), key: A.screenTranslate, on: s.screenTranslateEnabled) { e.toggleScreenTranslate() }
-        add(menu, L("Chọn vùng", "Select region"), key: A.selectRegion) { e.selectRegion() }
+        add(menu, RegionLabels.subtitle(s), key: A.selectRegion) { e.selectRegion() }
         let subs = SubtitleWindowState.shared
         add(menu, L("Cửa sổ phụ đề", "Subtitle window"), on: subs.isOpen) { subs.isOpen ? subs.close() : subs.show() }
 

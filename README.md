@@ -87,7 +87,7 @@ Bản 1.1.41 trở về trước chưa có tính năng này. Nếu đang dùng c
 
 1. Làm theo hướng dẫn lần đầu (5 bước): cấp quyền, chọn ngôn ngữ trong game và ngôn ngữ dịch sang, chọn tính năng, cài giọng Siri, chọn vùng.
 2. Thêm key miễn phí (khuyên dùng): lấy key ở [Google AI Studio](https://aistudio.google.com/apikey) hoặc [Groq](https://console.groq.com/keys), vào Cài đặt → Dịch vụ dịch, dán key và bấm Kiểm tra & thêm. App sẽ thử key trước và chỉ thêm khi key dùng được.
-3. Chọn vùng phụ đề: mở game tới đoạn có lời thoại, bấm Chọn vùng phụ đề (⌘K, hoặc ⌃⌥K ngay trong game), kéo khung bao quanh chỗ phụ đề hiện ra. Nếu game có nhãn tên nhân vật, bạn nên bao cả nhãn đó. Bấm Xong, xem lại chữ đọc được rồi bấm Lưu.
+3. Thêm vùng phụ đề: mở game tới đoạn có lời thoại, bấm Thêm vùng phụ đề (⌘K, hoặc ⌃⌥K ngay trong game), kéo khung bao quanh chỗ phụ đề hiện ra. Nếu game có nhãn tên nhân vật, bạn nên bao cả nhãn đó. Bấm Xong, xem lại chữ đọc được rồi bấm Lưu.
 4. Bấm Bắt đầu (⌘R, hoặc ⌃⌥S trong game).
 5. Bật hoặc tắt Phụ đề, Voice-over (bấm vào linh vật ở giữa) và Dịch màn hình tuỳ nhu cầu.
 
@@ -99,7 +99,7 @@ Các mục dưới đây đi theo thứ tự bạn sẽ gặp: chọn vùng, ch�
 
 Trình chọn vùng mở ra là hình trực tiếp của màn hình. Nếu phụ đề hiện quá nhanh, hãy bấm Dừng hình (hoặc phím Space) để chọn trên ảnh đứng yên.
 
-Vùng phụ đề (chỉ một vùng) là nơi lời thoại hiện ra; nút Tự tìm phụ đề sẽ đoán chỗ đó giúp bạn. Vùng dịch màn hình (tối đa 3) đặt quanh menu, bảng nhiệm vụ hay ô mô tả vật phẩm, thêm bằng nút Thêm vùng dịch trên thanh công cụ.
+Vùng phụ đề (chỉ một vùng) là nơi lời thoại hiện ra; nút Tự tìm phụ đề sẽ đoán chỗ đó giúp bạn. Vùng dịch màn hình (tối đa 3) đặt quanh menu, bảng nhiệm vụ hay ô mô tả vật phẩm, thêm bằng nút Thêm vùng dịch trên thanh công cụ. Khi đã có vùng, hai nút đổi thành Chỉnh vùng phụ đề và Chỉnh vùng dịch (kèm số vùng, ví dụ 2/3) để di chuyển, đổi cỡ, xoá hay thêm vùng.
 
 Kéo để di chuyển, kéo góc để đổi cỡ, phím Delete để xoá vùng. Bấm Xong (Enter) để xem lại chữ đọc được ở mọi vùng, rồi Lưu hoặc Lưu & bắt đầu. Nếu hai vùng chồng lên nhau, vùng phụ đề được ưu tiên, nên sẽ không có hai lớp bản dịch đè nhau.
 

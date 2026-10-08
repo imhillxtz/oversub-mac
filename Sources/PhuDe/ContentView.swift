@@ -92,17 +92,26 @@ struct ContentView: View {
         }
         ToolbarSpacer(.fixed, placement: .navigation)
         ToolbarItem(placement: .navigation) {
-            Button { engine.selectRegion() } label: { Label(L("Chọn vùng phụ đề", "Select subtitle region"), systemImage: "viewfinder") }
+            Button { engine.selectRegion() } label: { Label(RegionLabels.subtitle(settings), systemImage: "viewfinder") }
                 .labelStyle(.titleAndIcon)
                 .fixedSize()
-                .help(L("Chọn vùng phụ đề lời thoại (xem lại rồi lưu) · ⌘K · trong game \(HotkeyCenter.Action.selectRegion.display)", "Select the region where dialogue subtitles appear (review, then save) · ⌘K · in game \(HotkeyCenter.Action.selectRegion.display)"))
+                .help(RegionLabels.subtitleHelp(settings))
         }
         // Hai nút ngang hàng, dùng chung một trình chọn vùng; trạng thái đang dịch màn hình hiện ở chân cửa sổ.
         ToolbarItem(placement: .navigation) {
-            Button { engine.selectRegion(screen: true) } label: { Label(L("Thêm vùng dịch", "Add screen region"), systemImage: "text.viewfinder") }
+            // Số vùng dịch nằm trên biểu tượng như huy hiệu, không kèm vào chữ: thêm " · 2/3" vào chữ làm thanh công cụ dài ra và
+            // đẩy nút Lịch sử, Cài đặt vào menu "»" ở cỡ cửa sổ mặc định.
+            Button { engine.selectRegion(screen: true) } label: {
+                Label {
+                    Text(RegionLabels.screen(settings, count: false))
+                } icon: {
+                    Image(systemName: "text.viewfinder")
+                        .overlay(alignment: .topTrailing) { RegionCountBadge(count: RegionLabels.state(settings).screens) }
+                }
+            }
                 .labelStyle(.titleAndIcon)
                 .fixedSize()
-                .help(L("Kéo khung quanh chữ ngoài lời thoại (bảng nhiệm vụ, menu, mô tả vật phẩm) để dịch ngay tại chỗ, tối đa \(RegionEditor.maxSecondaries) vùng · bật/tắt \(HotkeyCenter.Action.screenTranslate.display)", "Drag a box around non-dialogue text (quest logs, menus, item descriptions) to translate it in place, up to \(RegionEditor.maxSecondaries) regions · toggle with \(HotkeyCenter.Action.screenTranslate.display)"))
+                .help(RegionLabels.screenHelp(settings))
         }
         ToolbarSpacer(.flexible)
         ToolbarItem(placement: .primaryAction) {
@@ -399,11 +408,11 @@ struct VoiceOverStage: View {
                     .font(.callout).foregroundStyle(.secondary)
                     .symbolEffect(.pulse)
                 if settings.region == nil {
-                    Text(L("Để có phụ đề lời thoại, bạn bấm Chọn vùng phụ đề · \(HotkeyCenter.Action.selectRegion.display)", "For dialogue subtitles, click Select subtitle region · \(HotkeyCenter.Action.selectRegion.display)")).font(.caption).foregroundStyle(.tertiary)
+                    Text(L("Để có phụ đề lời thoại, hãy bấm Thêm vùng phụ đề · \(HotkeyCenter.Action.selectRegion.display)", "For dialogue subtitles, click Add subtitle region · \(HotkeyCenter.Action.selectRegion.display)")).font(.caption).foregroundStyle(.tertiary)
                 }
             } else if settings.region == nil && settings.secondaryRegions.isEmpty {
                 Button { engine.selectRegion() } label: {
-                    Label(L("Chọn vùng phụ đề", "Select subtitle region"), systemImage: "viewfinder")
+                    Label(L("Thêm vùng phụ đề", "Add subtitle region"), systemImage: "viewfinder")
                 }
                 .buttonStyle(SecondaryCTAStyle())
                 Text(L("Kéo quanh chỗ phụ đề hiện ra trong game · \(HotkeyCenter.Action.selectRegion.display)", "Drag around where subtitles appear in the game · \(HotkeyCenter.Action.selectRegion.display)")).font(.caption).foregroundStyle(.secondary)

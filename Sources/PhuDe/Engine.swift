@@ -7,7 +7,7 @@ final class Engine: ObservableObject {
     let settings: AppSettings
     let hub: TranslationHub
     @Published var running = false
-    @Published var status = L("Bấm Chọn vùng phụ đề để bắt đầu.", "Click Select subtitle region to get started.")
+    @Published var status = L("Bấm Thêm vùng phụ đề để bắt đầu.", "Click Add subtitle region to get started.")
     @Published var lastSource = ""
     @Published var lastTranslation = ""
     // Dùng @Published thay cho @State: SDK mới biến @State thành macro, mà Command Line Tools không có plugin SwiftUIMacros.
@@ -1063,8 +1063,8 @@ final class Engine: ObservableObject {
         let hasMain = settings.region != nil
         let hasScreen = settings.screenTranslateEnabled && !settings.secondaryRegions.isEmpty
         guard hasMain || hasScreen else {
-            status = settings.secondaryRegions.isEmpty ? L("Chưa có vùng nào. Bấm Chọn vùng phụ đề hoặc Thêm vùng dịch để bắt đầu.", "No regions yet. Click Select subtitle region or Add screen region to get started.")
-                                                       : L("Dịch màn hình đang tắt và chưa có vùng phụ đề. Hãy bật Dịch màn hình hoặc chọn vùng phụ đề để bắt đầu.", "Screen translation is off and there's no subtitle region. Turn on Screen translation or select a subtitle region.")
+            status = settings.secondaryRegions.isEmpty ? L("Chưa có vùng nào. Bấm Thêm vùng phụ đề hoặc Thêm vùng dịch để bắt đầu.", "No regions yet. Click Add subtitle region or Add screen region to get started.")
+                                                       : L("Dịch màn hình đang tắt và chưa có vùng phụ đề. Hãy bật Dịch màn hình hoặc thêm vùng phụ đề để bắt đầu.", "Screen translation is off and there's no subtitle region. Turn on Screen translation or select a subtitle region.")
             return
         }
         if hasMain { start() }
