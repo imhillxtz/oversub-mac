@@ -1,8 +1,8 @@
 import AVFoundation
 import AppKit
 
-/// Phiên nhận hình và tiếng từ capture card. Hình đi thẳng từ luồng nhận vào bộ vẽ Metal (không qua luồng chính, để trễ thấp);
-/// tiếng đi thẳng ra loa bằng AVCaptureAudioPreviewOutput. Mọi thay đổi phiên chạy trên `sessionQueue` (startRunning chặn luồng).
+/// Phiên nhận hình và tiếng từ capture card. Hình đọc thẳng từ CoreMediaIO (`CMIOVideoStream`, không được thì AVCaptureSession)
+/// rồi đi thẳng vào bộ vẽ Metal (không qua luồng chính, để trễ thấp); tiếng đi thẳng ra loa bằng AVCaptureAudioPreviewOutput. Mọi thay đổi phiên chạy trên `sessionQueue` (startRunning chặn luồng).
 final class PlayCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, @unchecked Sendable {
     let renderer: PlayRenderer
     private let session = AVCaptureSession()
@@ -10,6 +10,7 @@ final class PlayCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate,
     private let videoQueue = DispatchQueue(label: "oversub.play.video", qos: .userInteractive)
     private let output = AVCaptureVideoDataOutput()
     private var audioOut: AVCaptureAudioPreviewOutput?
+    private var direct: CMIOVideoStream?
     private var runtimeObserver: NSObjectProtocol?
 
     // Số liệu, chỉ dùng trên videoQueue.
@@ -52,13 +53,8 @@ final class PlayCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate,
         session.inputs.forEach { session.removeInput($0) }
         session.outputs.forEach { session.removeOutput($0) }
         audioOut = nil
-        let input = try AVCaptureDeviceInput(device: s.video)
-        guard session.canAddInput(input) else {
-            session.commitConfiguration()
-            throw AppError(L("Không mở được \(s.video.localizedName). Có thể app khác đang dùng thiết bị này.",
-                             "Couldn't open \(s.video.localizedName). Another app may be using it."))
-        }
-        session.addInput(input)
+        direct?.stop()
+        direct = nil
 
         // Xin đúng định dạng gốc (4:2:0 hay 4:2:2) để macOS không phải đổi định dạng cho từng khung (đo trên card Hagibis:
         // bước đổi 4:2:2 sang 4:2:0 tốn đáng kể), và không giãn hay nén độ sáng trước khi tới bộ vẽ (giãn sai là mất vùng
@@ -71,11 +67,30 @@ final class PlayCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate,
         case kCMVideoCodecType_JPEG_OpenDML, kCMVideoCodecType_JPEG: want = kCVPixelFormatType_420YpCbCr8BiPlanarFullRange
         default: want = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
         }
-        if !output.availableVideoPixelFormatTypes.contains(want) { want = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange }
-        output.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: want, kCVPixelBufferMetalCompatibilityKey as String: true]
-        output.alwaysDiscardsLateVideoFrames = true
-        output.setSampleBufferDelegate(self, queue: videoQueue)
-        if session.canAddOutput(output) { session.addOutput(output) }
+
+        // Hình đọc thẳng từ CoreMediaIO khi được: qua AVCaptureSession thì macOS chạy thêm đường hiệu ứng video, tốn gấp ba
+        // (xem CMIOVideoStream). Định dạng nén hay thiết bị CoreMediaIO không nhận thì quay về AVCaptureSession.
+        let stream = Self.allowDirect ? CMIOVideoStream(video: s.video, format: s.format, deliver: videoQueue) { [weak self] pb, skipped in
+            guard let self else { return }
+            dropped += skipped; windowDropped += skipped
+            handle(pb)
+        } : nil
+        if let stream {
+            want = stream.subtype
+        } else {
+            let input = try AVCaptureDeviceInput(device: s.video)
+            guard session.canAddInput(input) else {
+                session.commitConfiguration()
+                throw AppError(L("Không mở được \(s.video.localizedName). Có thể app khác đang dùng thiết bị này.",
+                                 "Couldn't open \(s.video.localizedName). Another app may be using it."))
+            }
+            session.addInput(input)
+            if !output.availableVideoPixelFormatTypes.contains(want) { want = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange }
+            output.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: want, kCVPixelBufferMetalCompatibilityKey as String: true]
+            output.alwaysDiscardsLateVideoFrames = true
+            output.setSampleBufferDelegate(self, queue: videoQueue)
+            if session.canAddOutput(output) { session.addOutput(output) }
+        }
         let baselineFull = want == kCVPixelFormatType_420YpCbCr8BiPlanarFullRange || want == kCVPixelFormatType_420YpCbCr10BiPlanarFullRange
         videoQueue.sync {
             renderer.resetDetection(baselineFull: baselineFull)
@@ -99,13 +114,15 @@ final class PlayCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate,
             }
         }
 
-        var fps = 0.0
-        try s.video.lockForConfiguration()
-        if let f = s.format {
-            s.video.activeFormat = f
-            if let r = f.videoSupportedFrameRateRanges.max(by: { $0.maxFrameRate < $1.maxFrameRate }) {
-                s.video.activeVideoMinFrameDuration = r.minFrameDuration
-                fps = r.maxFrameRate
+        var fps = stream?.fps ?? 0
+        if stream == nil {
+            try s.video.lockForConfiguration()
+            if let f = s.format {
+                s.video.activeFormat = f
+                if let r = f.videoSupportedFrameRateRanges.max(by: { $0.maxFrameRate < $1.maxFrameRate }) {
+                    s.video.activeVideoMinFrameDuration = r.minFrameDuration
+                    fps = r.maxFrameRate
+                }
             }
         }
         session.commitConfiguration()
@@ -115,26 +132,49 @@ final class PlayCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate,
                 DebugLog.write("Màn hình chơi: phiên nhận hình báo lỗi: \(err?.localizedDescription ?? "?") (mã \(err?.code ?? 0))")
             }
         }
-        session.startRunning()
-        s.video.unlockForConfiguration()
+        // Đọc thẳng CoreMediaIO mà không có tiếng thì phiên không có gì để chạy.
+        if !session.inputs.isEmpty { session.startRunning() }
+        if let stream {
+            guard stream.start() else {
+                if session.isRunning { session.stopRunning() }
+                throw AppError(L("Không mở được \(s.video.localizedName). Có thể app khác đang dùng thiết bị này.",
+                                 "Couldn't open \(s.video.localizedName). Another app may be using it."))
+            }
+            direct = stream
+        } else {
+            s.video.unlockForConfiguration()
+        }
         if fps > 0 { renderer.frameInterval = 1 / fps }
         let desc = s.format.map { CaptureCards.describe($0, fps: fps, codec: true) } ?? "?"
-        let gestures = AVCaptureDevice.reactionEffectGesturesEnabled
         DebugLog.write("Màn hình chơi: mở \(s.video.localizedName) \(desc), gốc \(CaptureCards.fourCC(native)), nhận \(CaptureCards.fourCC(want)); tiếng: \(audioNote)"
                        + (s.audio != nil ? ", loa: \(s.outputUID ?? "theo macOS"), âm lượng \(String(format: "%.2f", s.volume))" : "")
-                       + "; cử chỉ Reactions \(gestures ? "BẬT" : "tắt"), định dạng hỗ trợ Reactions \(s.format?.reactionEffectsSupported ?? false)")
-        // Hiệu ứng video của macOS (Trung tâm điều khiển › Hiệu ứng video) chạy nhận diện mặt, người, tay trên từng khung, rất tốn CPU.
-        let f = s.format
-        DebugLog.write("Màn hình chơi: hiệu ứng video đang bật: chân dung \(AVCaptureDevice.isPortraitEffectEnabled)/\(f?.isPortraitEffectSupported ?? false),"
-                       + " ánh sáng studio \(AVCaptureDevice.isStudioLightEnabled)/\(f?.isStudioLightSupported ?? false),"
-                       + " Center Stage \(AVCaptureDevice.isCenterStageEnabled)/\(f?.isCenterStageSupported ?? false),"
-                       + " Reactions \(AVCaptureDevice.reactionEffectsEnabled)/\(f?.reactionEffectsSupported ?? false),"
-                       + " thay nền \(AVCaptureDevice.isBackgroundReplacementEnabled)/\(f?.isBackgroundReplacementSupported ?? false) (bật/định dạng hỗ trợ)")
+                       + "; hình qua \(stream != nil ? String(format: "CoreMediaIO (%.2f khung/giây)", fps) : "AVCaptureSession")")
+        if stream == nil {
+            // Hiệu ứng video của macOS (Trung tâm điều khiển › Hiệu ứng video) chạy nhận diện mặt, người, tay trên từng khung, rất tốn CPU.
+            let f = s.format
+            DebugLog.write("Màn hình chơi: cử chỉ Reactions \(AVCaptureDevice.reactionEffectGesturesEnabled ? "BẬT" : "tắt"); hiệu ứng video đang bật:"
+                           + " chân dung \(AVCaptureDevice.isPortraitEffectEnabled)/\(f?.isPortraitEffectSupported ?? false),"
+                           + " ánh sáng studio \(AVCaptureDevice.isStudioLightEnabled)/\(f?.isStudioLightSupported ?? false),"
+                           + " Center Stage \(AVCaptureDevice.isCenterStageEnabled)/\(f?.isCenterStageSupported ?? false),"
+                           + " Reactions \(AVCaptureDevice.reactionEffectsEnabled)/\(f?.reactionEffectsSupported ?? false),"
+                           + " thay nền \(AVCaptureDevice.isBackgroundReplacementEnabled)/\(f?.isBackgroundReplacementSupported ?? false) (bật/định dạng hỗ trợ)")
+        }
         return desc
+    }
+
+    /// Bản dev: OVERSUB_PLAY_PATH=avf ép hình đi qua AVCaptureSession như trước, để so CPU hai đường.
+    private static var allowDirect: Bool {
+        #if DEVTOOLS
+        return ProcessInfo.processInfo.environment["OVERSUB_PLAY_PATH"] != "avf"
+        #else
+        return true
+        #endif
     }
 
     func stop() {
         sessionQueue.sync {
+            direct?.stop()
+            direct = nil
             if session.isRunning { session.stopRunning() }
             session.inputs.forEach { session.removeInput($0) }
             session.outputs.forEach { session.removeOutput($0) }
@@ -146,7 +186,7 @@ final class PlayCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate,
         DebugLog.write("Màn hình chơi: dừng nhận hình và tiếng (tổng \(total.0) khung nhận, \(total.1) khung vẽ, \(total.2) khung bỏ)")
     }
 
-    var isRunning: Bool { sessionQueue.sync { session.isRunning } }
+    var isRunning: Bool { sessionQueue.sync { session.isRunning || direct != nil } }
 
     /// Đặt âm lượng; `ramp`: chuyển dần trong khoảng 0,12 giây (giảm tiếng khi giọng đọc bắt đầu) để không nghe tiếng bụp.
     func setVolume(_ v: Float, ramp: Bool) {
@@ -190,8 +230,10 @@ final class PlayCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate,
         if elapsed >= 10 {
             let y = renderer.takeStats().map { "độ sáng \($0.0)–\($0.1)" } ?? "chưa lấy mẫu"
             let i = renderer.current
-            DebugLog.write(String(format: "Màn hình chơi: %.1f khung/giây nhận, %.1f vẽ, %d bỏ; %@; hiểu là dải %@%@, BT.%@, %d bit",
-                                  Double(windowReceived) / elapsed, Double(windowDrawn) / elapsed, windowDropped, y,
+            let skips = renderer.takeSkips()
+            DebugLog.write(String(format: "Màn hình chơi: %.1f khung/giây nhận, %.1f vẽ, %d bỏ%@; %@; hiểu là dải %@%@, BT.%@, %d bit",
+                                  Double(windowReceived) / elapsed, Double(windowDrawn) / elapsed, windowDropped,
+                                  skips.isEmpty ? "" : " (không vẽ: \(skips))", y,
                                   i.full ? "đầy đủ" : "giới hạn", i.auto ? " (tự động)" : "", i.matrix, i.bits))
             windowReceived = 0; windowDrawn = 0; windowDropped = 0
             lastLog = Date()

@@ -11,6 +11,8 @@ extension DebugSnapshot {
     ///   đổi cỡ cửa sổ và đo viền đen, bật các tuỳ chọn xử lý hình, rồi đóng. OVERSUB_PLAY_FULLSCREEN=1 thử thêm toàn màn hình.
     /// - `facetime` (kèm OVERSUB_PLAY_DEVICE=facetime): mở camera FaceTime như một capture card, chờ hình, đổi cỡ, giả lập rút
     ///   rồi cắm lại card, giữ mở 12 giây để đo CPU, đóng, chờ 12 giây nữa.
+    /// - `hold`: chỉ mở card thật, chờ hình, giữ mở OVERSUB_PLAY_HOLD giây (mặc định 30) để đo CPU, rồi đóng. Kèm
+    ///   OVERSUB_PLAY_PATH=avf để hình đi qua AVCaptureSession như trước khi có đường CoreMediaIO.
     /// - `ui` (kèm OVERSUB_PLAY_DEVICE=facetime): chụp dòng báo ở chân cửa sổ chính, lời báo trong cửa sổ, thanh điều khiển,
     ///   menu tuỳ chọn và hai hướng dẫn cấp quyền. Không mở camera.
     static func playTestIfRequested(engine: Engine) {
@@ -26,6 +28,7 @@ extension DebugSnapshot {
             switch mode {
             case "pattern", "pattern-full": await patternTest(engine: engine, full: mode == "pattern-full", dir: dir)
             case "facetime", "device": await cameraTest(engine: engine, dir: dir)
+            case "hold": await holdTest()
             case "ui": await playUITest(engine: engine, dir: dir)
             default: DebugLog.write("Thử màn hình chơi: không biết kiểu thử \(mode)")
             }
@@ -159,6 +162,27 @@ extension DebugSnapshot {
 
         DebugLog.write("Thử màn hình chơi: bắt đầu giữ mở 12 giây (đo CPU khi mở)")
         try? await Task.sleep(for: .seconds(12))
+        DebugLog.write("Thử màn hình chơi: hết giữ mở")
+        await closeTest()
+    }
+
+    /// Chỉ mở màn hình chơi với card thật và giữ mở để đo CPU (không đổi cỡ, không chụp, không đọc phụ đề).
+    private static func holdTest() async {
+        let play = PlayScreen.shared
+        play.open()
+        var waited = 0.0
+        while play.phase != .live, waited < 90 {
+            try? await Task.sleep(for: .seconds(0.5))
+            waited += 0.5
+        }
+        guard play.phase == .live else {
+            DebugLog.write("Thử màn hình chơi: không có hình sau \(Int(waited)) giây, trạng thái \(play.phase)")
+            await closeTest()
+            return
+        }
+        let hold = Double(ProcessInfo.processInfo.environment["OVERSUB_PLAY_HOLD"] ?? "") ?? 30
+        DebugLog.write("Thử màn hình chơi: có hình sau \(waited) giây, bắt đầu giữ mở \(Int(hold)) giây (đo CPU khi mở)")
+        try? await Task.sleep(for: .seconds(hold))
         DebugLog.write("Thử màn hình chơi: hết giữ mở")
         await closeTest()
     }

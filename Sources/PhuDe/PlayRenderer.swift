@@ -96,6 +96,17 @@ final class PlayRenderer: @unchecked Sendable {
     /// Độ sáng thấp nhất và cao nhất từ lần hỏi trước (cho nhật ký). Gọi trên luồng nhận hình.
     func takeStats() -> (Int, Int)? { detector.takeStats() }
 
+    /// Số khung bỏ vẽ theo lý do từ lần hỏi trước (cho nhật ký). Chỉ dùng trên luồng nhận hình.
+    private var skips: [String: Int] = [:]
+    func takeSkips() -> String {
+        defer { skips = [:] }
+        return skips.sorted { $0.key < $1.key }.map { "\($0.key) \($0.value)" }.joined(separator: ", ")
+    }
+    private func skip(_ why: String) -> Bool {
+        skips[why, default: 0] += 1
+        return false
+    }
+
     // MARK: Vẽ
 
     /// Vẽ một khung. Trả về false nếu bỏ qua (cửa sổ không hiện, chưa có cỡ, định dạng lạ).
@@ -107,7 +118,7 @@ final class PlayRenderer: @unchecked Sendable {
         let biplanar = tenBit || type == kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange || type == kCVPixelFormatType_420YpCbCr8BiPlanarFullRange
         // 4:2:2 đóng gói (định dạng gốc của nhiều capture card): đọc thẳng, khỏi để macOS đổi sang 4:2:0 cho từng khung.
         let packed: MTLPixelFormat? = type == kCVPixelFormatType_422YpCbCr8 ? .bgrg422 : type == kCVPixelFormatType_422YpCbCr8_yuvs ? .gbgr422 : nil
-        guard (biplanar && CVPixelBufferGetPlaneCount(pb) == 2) || packed != nil else { return false }
+        guard (biplanar && CVPixelBufferGetPlaneCount(pb) == 2) || packed != nil else { return skip("định dạng lạ") }
 
         // Dò dải sáng cả khi cửa sổ đang ẩn, khoảng 4 lần mỗi giây.
         sampleTick += 1
@@ -122,20 +133,20 @@ final class PlayRenderer: @unchecked Sendable {
         let matrix = matrixName(pb, o)
         current = Interpretation(full: full, matrix: matrix, bits: tenBit ? 10 : 8, auto: o.range == .auto)
 
-        guard o.visible, o.drawableSize.width >= 16, o.drawableSize.height >= 16, let cache else { return false }
+        guard o.visible, o.drawableSize.width >= 16, o.drawableSize.height >= 16, let cache else { return skip("cửa sổ ẩn") }
         configureLayer(o)
         let w = CVPixelBufferGetWidth(pb), h = CVPixelBufferGetHeight(pb)
         let frameTextures: [CVMetalTexture]
         if let packed {
-            guard let t = texture(pb, plane: 0, format: packed, cache: cache, width: w, height: h) else { return false }
+            guard let t = texture(pb, plane: 0, format: packed, cache: cache, width: w, height: h) else { return skip("texture") }
             frameTextures = [t]
         } else {
             guard let yTex = texture(pb, plane: 0, format: tenBit ? .r16Unorm : .r8Unorm, cache: cache),
-                  let cTex = texture(pb, plane: 1, format: tenBit ? .rg16Unorm : .rg8Unorm, cache: cache) else { return false }
+                  let cTex = texture(pb, plane: 1, format: tenBit ? .rg16Unorm : .rg8Unorm, cache: cache) else { return skip("texture") }
             frameTextures = [yTex, cTex]
         }
         let source = frameTextures.compactMap(CVMetalTextureGetTexture)
-        guard source.count == frameTextures.count else { return false }
+        guard source.count == frameTextures.count else { return skip("texture") }
         let convert = packed == nil ? "fyuv" : "fy422"
 
         // Vừa khung: giữ trọn hình, dư thì viền đen. Lấp đầy: phủ kín vùng vẽ, cắt đều phần thừa ở hai bên hoặc trên dưới
@@ -165,7 +176,7 @@ final class PlayRenderer: @unchecked Sendable {
         p.sharp = SIMD4(amount, 1 / Float(w), 1 / Float(h), 0.12)
         p.mode = SIMD4(Float(o.hdr == .off ? 0 : o.hdr == .tone ? 1 : 2), Float(o.headroom), o.gamut == .p3 ? 1 : 0, 0)
 
-        guard let drawable = layer.nextDrawable(), let cb = queue.makeCommandBuffer() else { return false }
+        guard let drawable = layer.nextDrawable(), let cb = queue.makeCommandBuffer() else { return skip("drawable") }
         let outFormat = layer.pixelFormat
         let useFX = o.superResolution && !o.resizing && !fxFailed && fitW > cw * 1.05 && supportsSuperResolution
         if useFX, let fx = prepareScaler(input: (Int(cw.rounded()), Int(ch.rounded())), output: (Int(min(fitW, cw * 2)), Int(min(fitH, ch * 2))),
