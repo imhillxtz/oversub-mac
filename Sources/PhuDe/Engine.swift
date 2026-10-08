@@ -180,6 +180,8 @@ final class Engine: ObservableObject {
             .removeDuplicates()
             .sink { [weak self] want in self?.setKeepAwake(want) }
             .store(in: &bag)
+        // Màn hình chơi game được chọn: tự chuyển sang hồ sơ gắn với nó, như khi một game khác được đưa ra phía trước.
+        PlayScreen.shared.onBecameKey = { [weak self] in self?.autoSwitchProfile(for: PlayScreen.gameID) }
         gamepad.onReplay = { [weak self] in self?.replayLast() }
         gamepad.onToggleVoice = { [weak self] in self?.toggleDub() }
         gamepad.onToggleSubtitles = { [weak self] in self?.toggleOverlay() }
@@ -214,8 +216,8 @@ final class Engine: ObservableObject {
         guard !editor.isOpen, ensurePermission() else { return }
         status = screen ? L("Đang chọn vùng dịch màn hình…", "Selecting screen region…") : L("Đang chọn vùng phụ đề…", "Selecting subtitle region…")
         prepareEditor()
-        // Ẩn cửa sổ chính trong lúc chọn để không vướng, nhất là khi game đang toàn màn hình.
-        let hidden = NSApp.windows.filter { $0.isVisible && !($0 is NSPanel) }
+        // Ẩn cửa sổ chính trong lúc chọn để không vướng, nhất là khi game đang toàn màn hình. Màn hình chơi game là game, giữ nguyên.
+        let hidden = Self.windowsToHide()
         hidden.forEach { $0.orderOut(nil) }
         editor.begin(main: settings.region, secondaries: settings.secondaryRegions, running: running,
                      screenTranslating: screenTranslateOn, screenMode: screen) { [weak self] result in
@@ -232,7 +234,7 @@ final class Engine: ObservableObject {
         if id == settings.activePresetID { selectRegion(); return }
         guard !editor.isOpen, ensurePermission(), let p = settings.presets.first(where: { $0.id == id }) else { return }
         prepareEditor()
-        let hidden = NSApp.windows.filter { $0.isVisible && !($0 is NSPanel) }
+        let hidden = Self.windowsToHide()
         hidden.forEach { $0.orderOut(nil) }
         let secs = p.snapshot.secondaryRegions ?? p.snapshot.secondaryRegion.map { [$0] } ?? []
         editor.begin(main: p.snapshot.region, secondaries: secs, running: true) { [weak self] result in
@@ -243,6 +245,12 @@ final class Engine: ObservableObject {
             if let t = result.thumbnail { RegionThumbs.save(t, for: id) }
             self.status = L("Đã lưu vùng cho hồ sơ \(p.name).", "Saved regions for profile \(p.name).")
         }
+    }
+
+    /// Cửa sổ thường của OverSub cần ẩn khi chọn vùng (trừ màn hình chơi game).
+    private static func windowsToHide() -> [NSWindow] {
+        let play = PlayScreen.shared.window
+        return NSApp.windows.filter { $0.isVisible && !($0 is NSPanel) && $0 !== play }
     }
 
     private func prepareEditor() {
@@ -830,27 +838,41 @@ final class Engine: ObservableObject {
 
     /// Ghi nhận app có cửa sổ nằm trên cùng tại giữa vùng chọn: đó là game. Sau này chỉ đọc khi app đó ở phía trước.
     private func detectGame(under region: CaptureRegion) {
-        guard let screen = resolveScreen(for: region) else { return }
+        if let g = gameUnder(region) {
+            settings.gameAppName = g.name
+            settings.gameBundleID = g.bundle
+            DebugLog.write("Nhận diện game dưới vùng chọn: \(g.name ?? "?") (\(g.bundle ?? "?"))")
+        } else {
+            settings.gameAppName = nil
+            settings.gameBundleID = nil
+        }
+    }
+
+    /// App có cửa sổ nằm trên cùng tại giữa vùng (bỏ qua app hệ thống và cửa sổ của OverSub). Màn hình chơi game của OverSub
+    /// cũng là game, mang mã riêng `PlayScreen.gameID` để hồ sơ gắn và tự chuyển theo nó.
+    func gameUnder(_ region: CaptureRegion) -> (name: String?, bundle: String?)? {
+        guard let screen = resolveScreen(for: region) else { return nil }
         let f = screen.frame
         let mainH = NSScreen.screens.first?.frame.height ?? f.height
         // Toạ độ toàn cục gốc trên trái, như CGWindowList dùng.
         let center = CGPoint(x: f.minX + region.x + region.w / 2, y: mainH - (f.maxY - region.y - region.h / 2))
         let pid = ProcessInfo.processInfo.processIdentifier
+        let play = PlayScreen.shared.windowID.map(Int.init)
         let windows = (CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]) ?? []
         for info in windows {   // xếp từ trên xuống dưới
             guard (info[kCGWindowLayer as String] as? Int) == 0,
-                  let ownerPID = info[kCGWindowOwnerPID as String] as? Int32, ownerPID != pid,
+                  let ownerPID = info[kCGWindowOwnerPID as String] as? Int32,
                   let dict = info[kCGWindowBounds as String] as? NSDictionary,
                   let b = CGRect(dictionaryRepresentation: dict as CFDictionary), b.contains(center) else { continue }
+            if ownerPID == pid {
+                if let play, info[kCGWindowNumber as String] as? Int == play { return (PlayScreen.gameName, PlayScreen.gameID) }
+                continue
+            }
             let app = NSRunningApplication(processIdentifier: ownerPID)
             guard Self.isPlausibleGame(app?.bundleIdentifier) else { continue }   // bỏ qua cửa sổ app hệ thống nằm đè lên game
-            settings.gameAppName = app?.localizedName ?? (info[kCGWindowOwnerName as String] as? String)
-            settings.gameBundleID = app?.bundleIdentifier
-            DebugLog.write("Nhận diện game dưới vùng chọn: \(settings.gameAppName ?? "?") (\(settings.gameBundleID ?? "?"))")
-            return
+            return (app?.localizedName ?? (info[kCGWindowOwnerName as String] as? String), app?.bundleIdentifier)
         }
-        settings.gameAppName = nil
-        settings.gameBundleID = nil
+        return nil
     }
 
     /// Game có đang hiện ở vùng phụ đề không. Chưa nhận diện được game hoặc đã tắt tuỳ chọn thì luôn coi là có.
@@ -913,23 +935,28 @@ final class Engine: ObservableObject {
     /// Cửa sổ trên cùng chiếm vùng phụ đề có phải của game không. Xét các cửa sổ thường (từ trên xuống), bỏ qua cửa sổ của
     /// chính OverSub (ảnh chụp đã loại trừ chúng): gặp cửa sổ game trước thì game đang hiện; gặp cửa sổ app khác che từ một
     /// phần tư vùng trở lên thì coi là bị che. Trả kèm tên app che (để ghi nhật ký).
-    private func gameVisibleInRegion(bundle: String) -> (Bool, String?) {
-        guard let region = settings.region, let screen = resolveScreen(for: region) else { return (false, nil) }
+    /// Màn hình chơi game của OverSub nằm trên cùng ở vùng thì luôn tính là game đang hiện, dù hồ sơ gắn với app nào.
+    func gameVisibleInRegion(bundle: String, region: CaptureRegion? = nil) -> (Bool, String?) {
+        guard let region = region ?? settings.region, let screen = resolveScreen(for: region) else { return (false, nil) }
         let f = screen.frame
         let mainH = NSScreen.screens.first?.frame.height ?? f.height
         // Toạ độ toàn cục gốc trên trái, như CGWindowList dùng.
         let rect = CGRect(x: f.minX + region.x, y: mainH - (f.maxY - region.y), width: region.w, height: region.h)
         let area = max(1, rect.width * rect.height)
         let me = ProcessInfo.processInfo.processIdentifier
+        let play = PlayScreen.shared.windowID.map(Int.init)
         let windows = (CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]) ?? []
         for info in windows {   // xếp từ trên xuống dưới
             guard (info[kCGWindowLayer as String] as? Int) == 0,
-                  let ownerPID = info[kCGWindowOwnerPID as String] as? Int32, ownerPID != me,
+                  let ownerPID = info[kCGWindowOwnerPID as String] as? Int32,
                   (info[kCGWindowAlpha as String] as? Double ?? 1) > 0.05,
                   let dict = info[kCGWindowBounds as String] as? NSDictionary,
                   let b = CGRect(dictionaryRepresentation: dict as CFDictionary) else { continue }
+            let isPlay = ownerPID == me && play != nil && info[kCGWindowNumber as String] as? Int == play
+            if ownerPID == me && !isPlay { continue }
             let overlap = b.intersection(rect)
             guard !overlap.isNull, overlap.width * overlap.height > 0 else { continue }
+            if isPlay { return (true, nil) }
             let app = NSRunningApplication(processIdentifier: ownerPID)
             if app?.bundleIdentifier == bundle { return (true, nil) }
             if overlap.width * overlap.height >= area * 0.25 {
@@ -1579,6 +1606,14 @@ final class Engine: ObservableObject {
     /// giây; trong lúc nghỉ thì giả lập khung hình đứng yên như vòng quét thật (mỗi nhịp 0,25 giây).
     /// Như vòng quét thật sau bước OCR: tách nhãn tên đã biết, giữ tên người nói, rồi xử lý chữ theo chế độ chữ chạy.
     /// Thử nhận biết game có đang hiện ở vùng phụ đề (OVERSUB_FRONT_TEST=giây): ghi kết quả mỗi giây vào nhật ký.
+    /// Chụp một vùng bằng đúng đường chụp của vòng quét (loại cửa sổ OverSub, giữ màn hình chơi game).
+    func debugGrab(_ region: CaptureRegion) async -> CGImage? {
+        do { return try await grabber.grab(region) } catch {
+            DebugLog.write("Thử chụp vùng lỗi: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
     func debugFrontCheck(seconds: Int) async {
         for _ in 0..<seconds {
             let front = NSWorkspace.shared.frontmostApplication?.localizedName ?? "?"

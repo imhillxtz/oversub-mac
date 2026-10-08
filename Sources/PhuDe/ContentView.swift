@@ -21,6 +21,9 @@ struct ContentView: View {
     @ObservedObject private var updater = Updater.shared
     @StateObject private var presence = WindowPresence()
     @ObservedObject private var support = SupportPrompt.shared
+    @ObservedObject private var cards = CaptureCards.shared
+    @ObservedObject private var play = PlayScreen.shared
+    @ObservedObject private var playSettings = PlaySettings.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -200,6 +203,25 @@ struct ContentView: View {
         .font(.caption)
     }
 
+    /// Có capture card cắm vào: báo tên card và định dạng, kèm nút mở màn hình chơi game. Rút card ra thì dòng này mất.
+    private func cardNotice(_ c: CaptureCards.Card) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "gamecontroller.fill").foregroundStyle(.secondary)
+            (Text(L("Đã nhận tín hiệu từ \(c.name)", "Signal detected from \(c.name)")).fontWeight(.semibold)
+             + Text(c.summary.map { " · \($0)" } ?? "").foregroundStyle(.secondary))
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Button { play.open() } label: {
+                Text(L("Mở màn hình chơi", "Open game screen")).fontWeight(.semibold).foregroundStyle(.white)
+                    .padding(.horizontal, 10).padding(.vertical, 2)
+                    .background(Capsule().fill(Theme.gradient))
+                    .fixedSize()
+            }
+            .buttonStyle(.plain)
+        }
+        .font(.caption)
+    }
+
     private func problemBanner(_ problem: String) -> some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
@@ -224,6 +246,9 @@ struct ContentView: View {
             HStack(spacing: 8) {
                 if let r = updater.pending, updater.dismissedVersion != r.version {
                     updateNotice(r).transition(.opacity)
+                } else if let card = cards.card, !play.isOpen, playSettings.notifyCard {
+                    // Có capture card: mời mở màn hình chơi game (không tự mở).
+                    cardNotice(card).transition(.opacity)
                 } else if let m = support.pending, !engine.anyRunning, settings.onboardingDone {
                     // Chỉ hiện lúc không chơi; bản mới (ở trên) được ưu tiên.
                     supportNotice(m).transition(.opacity)
@@ -234,6 +259,22 @@ struct ContentView: View {
                         .animation(.smooth, value: engine.status)
                 }
                 Spacer(minLength: 8)
+                // Lối vào màn hình chơi game: luôn có ở chân cửa sổ (thanh công cụ đã kín chỗ ở cỡ mặc định). Ẩn khi dòng báo card
+                // bên trái đã có nút mở, để không hai nút cùng việc.
+                if !(cards.card != nil && !play.isOpen && playSettings.notifyCard) {
+                    Button { play.open() } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "gamecontroller.fill").foregroundStyle(.secondary)
+                            Text(L("Màn hình chơi game", "Game screen")).foregroundStyle(.secondary)
+                        }
+                        .font(.caption)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help(L("Mở màn hình chơi game: hình và tiếng từ capture card trong một cửa sổ của OverSub",
+                            "Open the game screen: picture and sound from a capture card in an OverSub window"))
+                    .padding(.trailing, 10)
+                }
                 // Lối vào cửa sổ Ủng hộ: luôn có nhưng nhỏ, không tranh chú ý với các nút chính (ẩn khi lời cảm ơn đang hiện).
                 if support.pending == nil || engine.anyRunning {
                 Button { openWindow(id: "donate") } label: {

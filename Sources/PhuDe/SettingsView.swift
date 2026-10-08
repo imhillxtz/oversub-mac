@@ -52,7 +52,7 @@ final class GlossaryForm: ObservableObject {
 }
 
 enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
-    case general, capture, display, window, dub, cast, screen, translate, smart, presets, shortcuts, about
+    case general, capture, display, window, dub, cast, screen, play, translate, smart, presets, shortcuts, about
     var id: String { rawValue }
 
     var title: String {
@@ -64,6 +64,7 @@ enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
         case .dub: return L("Giọng đọc", "Voice")
         case .cast: return L("Nhân vật", "Characters")
         case .screen: return L("Dịch màn hình", "Screen translation")
+        case .play: return L("Màn hình chơi game", "Game screen")
         case .translate: return L("Dịch vụ dịch", "Translation services")
         case .smart: return L("Văn phong & thuật ngữ", "Style & glossary")
         case .presets: return L("Hồ sơ game", "Game profiles")
@@ -81,6 +82,7 @@ enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
         case .dub: return "waveform"
         case .cast: return "person.2.fill"
         case .screen: return "text.viewfinder"
+        case .play: return "gamecontroller.fill"
         case .translate: return "character.bubble"
         case .smart: return "sparkles"
         case .presets: return "square.stack.3d.up"
@@ -98,6 +100,7 @@ enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
         case .dub: return .pink
         case .cast: return .red
         case .screen: return .mint
+        case .play: return .brown
         case .translate: return .orange
         case .smart: return .purple
         case .presets: return .indigo
@@ -114,7 +117,7 @@ enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
     // Tính lại mỗi lần gọi (không phải static let) để tiêu đề nhóm đổi theo ngôn ngữ giao diện.
     static var groups: [(title: String, pages: [SettingsPage])] { [
         (L("Bắt đầu nhanh", "Quick start"), [.general, .capture]),
-        (L("Tính năng", "Features"), [.display, .window, .dub, .cast, .screen]),
+        (L("Tính năng", "Features"), [.display, .window, .dub, .cast, .screen, .play]),
         (L("Bản dịch", "Translation"), [.translate, .smart]),
         (L("Ứng dụng", "App"), [.presets, .shortcuts, .about]),
     ] }
@@ -280,6 +283,7 @@ struct SettingsView: View {
         case .screen: screenPage
         case .dub: DubSettingsPage()
         case .cast: CastSettingsPage()
+        case .play: PlaySettingsPage()
         }
     }
 

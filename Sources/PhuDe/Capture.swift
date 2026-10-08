@@ -47,7 +47,13 @@ final class ScreenGrabber {
     /// Chụp đúng vùng phụ đề, loại trừ mọi cửa sổ của chính app để không đọc lại bản dịch đang phủ lên.
     /// `fullResolution`: giữ độ nét Retina (dùng cho ảnh dừng hình khi chọn vùng), mặc định giới hạn bề ngang cho OCR nhẹ.
     func grab(_ region: CaptureRegion, fullResolution: Bool = false) async throws -> CGImage {
-        let content = try await content()
+        var content = try await content()
+        // Màn hình chơi game vừa mở sau lần lấy danh sách: lấy lại để có cửa sổ của nó.
+        let playID = PlayScreen.shared.windowID
+        if let playID, !content.windows.contains(where: { $0.windowID == playID }) {
+            cached = nil
+            content = try await self.content()
+        }
         guard let screen = resolveScreen(for: region), let id = displayIDOf( screen),
               let display = content.displays.first(where: { $0.displayID == id }) else {
             cached = nil
@@ -55,12 +61,15 @@ final class ScreenGrabber {
         }
         // Loại trừ cả ứng dụng OverSub, không liệt kê từng cửa sổ: lớp bản dịch ẩn hiện liên tục, cửa sổ nào vừa hiện lại hay
         // vừa tạo sau lúc lấy danh sách cũng không lọt vào ảnh. Lọt vào thì app đọc lại chính bản dịch của mình và chớp liên tục.
+        // Riêng màn hình chơi game (hình từ capture card) là game, phải nằm trong ảnh: thanh điều khiển của nó là cửa sổ con
+        // riêng nên vẫn bị loại.
         let pid = ProcessInfo.processInfo.processIdentifier
+        let play = content.windows.filter { $0.windowID == playID }
         let filter: SCContentFilter
         if let me = content.applications.first(where: { $0.processID == pid }) {
-            filter = SCContentFilter(display: display, excludingApplications: [me], exceptingWindows: [])
+            filter = SCContentFilter(display: display, excludingApplications: [me], exceptingWindows: play)
         } else {
-            filter = SCContentFilter(display: display, excludingWindows: content.windows.filter { $0.owningApplication?.processID == pid })
+            filter = SCContentFilter(display: display, excludingWindows: content.windows.filter { $0.owningApplication?.processID == pid && $0.windowID != playID })
         }
 
         // Phụ đề không cần độ phân giải Retina đầy đủ; giới hạn bề ngang để OCR nhẹ hơn.

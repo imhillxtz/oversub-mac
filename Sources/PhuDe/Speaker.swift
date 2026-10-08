@@ -558,6 +558,9 @@ final class Speaker: NSObject, ObservableObject, NSSpeechSynthesizerDelegate {
         releaseTask?.cancel()
         guard settings.duckEnabled else { if ducker.isActive { ducker.detach() }; return }
         if on {
+            // Tiếng của màn hình chơi game do chính OverSub phát: giảm thẳng âm lượng của nó, không chặn tiếng bằng tap.
+            PlayScreen.shared.duck(settings.duckLevel)
+            guard settings.gameBundleID != PlayScreen.gameID else { return }
             if ducker.attach(bundleID: settings.gameBundleID) { ducker.setLevel(settings.duckLevel) }
         }
     }
@@ -569,11 +572,15 @@ final class Speaker: NSObject, ObservableObject, NSSpeechSynthesizerDelegate {
             try? await Task.sleep(nanoseconds: 600_000_000)
             guard let self, !Task.isCancelled, self.current == nil else { return }
             self.ducker.setLevel(1)
+            PlayScreen.shared.duck(1)
         }
     }
 
     /// Tắt hẳn việc chặn tiếng game (tắt tính năng, dừng dịch, thoát app).
-    func releaseGameAudio() { ducker.detach() }
+    func releaseGameAudio() {
+        ducker.detach()
+        PlayScreen.shared.duck(1)
+    }
 
     /// Khởi động sẵn bộ đọc Siri (dựng một chữ ra tệp, không phát ra loa): câu thuyết minh đầu tiên đọc ngay thay vì chậm gần 1 giây.
     func warmUp(language: String) {

@@ -17,17 +17,25 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.1.67</string>
+	<string>1.1.68</string>
 	<key>CFBundleVersion</key>
-	<string>71</string>
+	<string>72</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.utilities</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>26.0</string>
 	<key>NSAudioCaptureUsageDescription</key>
 	<string>OverSub giảm tiếng của riêng game khi đang lồng tiếng (chỉ khi bạn bật tuỳ chọn này).</string>
+	<key>NSCameraReactionEffectGesturesEnabledDefault</key>
+	<false/>
+	<key>NSCameraUsageDescription</key>
+	<string>OverSub nhận hình từ capture card để hiện màn hình chơi game (macOS xếp capture card vào nhóm camera). Hình chỉ hiện trên máy, không ghi lại.</string>
+	<key>NSCameraUseExternalDeviceType</key>
+	<true/>
 	<key>NSHighResolutionCapable</key>
 	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>OverSub nhận tiếng game từ capture card để phát ra loa trong màn hình chơi game. Tiếng không được ghi lại.</string>
 	<key>NSScreenCaptureUsageDescription</key>
 	<string>OverSub chụp vùng phụ đề trên màn hình để nhận diện chữ và dịch.</string>
 </dict>

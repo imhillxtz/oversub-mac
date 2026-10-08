@@ -123,6 +123,10 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         add(menu, RegionLabels.subtitle(s), key: A.selectRegion) { e.selectRegion() }
         let subs = SubtitleWindowState.shared
         add(menu, L("Cửa sổ phụ đề", "Subtitle window"), on: subs.isOpen) { subs.isOpen ? subs.close() : subs.show() }
+        let play = PlayScreen.shared
+        if play.isOpen || CaptureCards.shared.card != nil {
+            add(menu, L("Màn hình chơi game", "Game screen"), on: play.isOpen) { play.isOpen ? play.close() : play.open() }
+        }
 
         let profiles = NSMenu()
         for p in s.presets { add(profiles, p.name, on: p.id == s.activePresetID) { e.applyPreset(p) } }

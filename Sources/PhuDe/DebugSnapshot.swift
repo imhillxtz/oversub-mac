@@ -944,7 +944,7 @@ enum DebugSnapshot {
             ?? NSApp.windows.first { $0.isVisible && $0.frame.width > 700 && $0.identifier?.rawValue.hasPrefix("main") != true && $0.identifier?.rawValue.hasPrefix("subtitles") != true }
     }
 
-    private static func shoot(_ name: String, dir: String, window target: NSWindow? = nil) async {
+    static func shoot(_ name: String, dir: String, window target: NSWindow? = nil) async {
         guard let window = target ?? NSApp.keyWindow ?? NSApp.windows.first(where: { $0.isVisible && $0.frame.width > 300 }) else {
             DebugLog.write("snapshot: không thấy cửa sổ cho \(name)"); return
         }

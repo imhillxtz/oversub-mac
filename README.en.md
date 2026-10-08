@@ -38,7 +38,7 @@ OverSub reads the text in your game from the screen, translates it with AI and d
 
 ## What OverSub does
 
-OverSub works with any game shown on your Mac's screen: Mac games, Windows games through CrossOver or Whisky, cloud gaming, and consoles (Switch, PlayStation) played through a capture card with a viewer app such as OBS or VisionRelay. It doesn't touch the game. It only looks at the screen, the same way you do.
+OverSub works with any game shown on your Mac's screen: Mac games, Windows games through CrossOver or Whisky, cloud gaming, and consoles (Switch, PlayStation) played through a capture card, shown right in OverSub's game screen or in a viewer app such as OBS. It doesn't touch the game. It only looks at the screen, the same way you do.
 
 The main window has three switches: Subtitles on the left, the OverSub mascot in the middle (the voice; it moves its mouth while speaking) and Screen translation on the right.
 
@@ -51,6 +51,7 @@ The main window has three switches: Subtitles on the left, the OverSub mascot in
 Other features:
 
 - Quick translate (⌃⌥Q): press the shortcut anywhere, drag a box around some text and let go to see the translation in place. Buttons copy the translation or show the original text so you can look it up.
+- Game screen: connect a capture card and the bottom of the main window shows the card's name with a button to open it. Your console's picture and sound play in an OverSub window, no separate viewer app needed, and subtitles, voice and screen translation work on it like on any other game.
 - Subtitle window: a floating window with just the dialogue. It stays above every Space, including full-screen games, and shrinks to a thin strip so it doesn't cover the game. The text lights up as it's read aloud.
 - Translation services: Gemini, Groq, Cerebras, Mistral and OpenRouter (all with free plans), paid OpenAI-style services (OpenAI, DeepSeek, xAI), and Apple's two on-device engines, which work offline. The app measures each service's speed and moves to another one when a service is slow or out of quota.
 - Game genres: pick Medieval Europe, Wuxia, Anime/JRPG, Street and so on, and the AI uses forms of address and tone to match, or describe the setting yourself with the Custom genre. Each pair of characters keeps the same forms of address, proper names stay as they are, and there's a glossary.
@@ -67,6 +68,7 @@ Other features:
 
 - macOS 26 or later on a Mac with Apple silicon (M1 or later).
 - Screen Recording permission. macOS asks the first time.
+- For the game screen: Camera permission (macOS treats capture cards as cameras) and Microphone permission (game sound from the card reaches the Mac as a microphone input). macOS asks the first time you open the game screen.
 - A free API key from Gemini or Groq is recommended for the best translations. Without one, OverSub translates with Apple Translation and Apple Intelligence (if Apple Intelligence is turned on on your Mac).
 - For natural Vietnamese speech, download a Vietnamese Siri voice in System Settings. The app walks you through it.
 
@@ -151,6 +153,20 @@ There are three speed modes: Instant (Apple Translation), Instant then refined b
 ### Quick translate
 
 Press ⌃⌥Q anywhere (you don't need to click Start), drag a box around some text and let go; the translation appears in place. Below the box are buttons to show the original text (with a button to copy it), copy the translation, and close. ⌘C copies the translation, ⇧⌘C the original, Esc closes. The screen freezes while you select; you can turn that off in Settings → Screen translation.
+
+### Game screen
+
+Connect a capture card to your Mac (before or after opening OverSub). The bottom of the main window then shows "Signal detected from" with the card's name, resolution and frame rate, and an Open game screen button. The window never opens by itself. Without the notice, click Game screen at the bottom of the main window or choose it from the Window menu. The notice ignores webcams and the FaceTime camera; to use a camera, pick it under Video device.
+
+The game screen is a regular window that remembers its position and size; click the green button, double-click the picture or press ⌃⌘F for full screen. The picture keeps its aspect ratio with black bars where needed, and the sound goes straight to your speakers. Move the pointer over the picture to show a small bar at the bottom: mute, volume, full screen and the options menu (right-clicking the picture opens the same menu). Closing the window stops the picture and sound from the card.
+
+The options menu and Settings → Game screen offer the same choices: card, format, audio source, audio output, color range, color matrix, color space, HDR, sharpening, super resolution (MetalFX), picture size (fit or fill), latency, mute when another app is active, and always on top.
+
+If the colors on your Mac don't match the TV, check Color range. On Automatic the app reads the actual brightness of the signal, because many cards label the range wrong. Washed out with grey blacks: choose Limited. Harsh with crushed shadows: choose Full. Still washed out on Limited: on Switch 2, open System Settings › Display › RGB Range and choose Full Range. If Switch 2 sends HDR through the card and the picture looks grey and dull, choose HDR › Tone-map HDR to SDR, or turn off HDR Output on Switch 2.
+
+Select the subtitle region on this window as with any other game; the game profile is tied to the game screen. In full screen on a MacBook (16:10 display) a 16:9 picture has black bars at the top and bottom; choose Picture size › Fill to cover the screen, at the cost of a thin strip, about 5%, on each side.
+
+macOS can apply camera effects (Portrait, Studio Light, Reactions…) to the picture from a capture card. If the game picture gets a blurred background, extra lighting or odd effects, click the green camera icon in the menu bar while the game screen is open (or macOS Video Effects in the options menu) and turn the effects off.
 
 ### Style, forms of address and proper names
 
@@ -246,7 +262,7 @@ Technical details (in Vietnamese): [Docs/DEVELOPMENT.md](Docs/DEVELOPMENT.md).
 
 ## Privacy and data
 
-Screenshots never leave your Mac; text recognition runs entirely on it.
+Screenshots never leave your Mac; text recognition runs entirely on it. The game screen's picture and sound only play on your Mac and are never recorded or sent anywhere.
 
 With an online translation service, only text is sent, and only to the service you chose: the line to translate, a few previous lines for context, and character names. With Apple Translation or Apple Intelligence nothing leaves your Mac.
 

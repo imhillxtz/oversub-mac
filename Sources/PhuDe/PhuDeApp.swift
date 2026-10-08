@@ -41,6 +41,7 @@ final class AppModel {
         DebugSnapshot.permissionDockTestIfRequested(engine: engine)
         DebugSnapshot.updatePromptTestIfRequested()
         DebugSnapshot.screenRectIfRequested()
+        DebugSnapshot.playTestIfRequested(engine: engine)
         if let s = ProcessInfo.processInfo.environment["OVERSUB_FRONT_TEST"], let n = Int(s) {
             let engine = engine
             Task { @MainActor in try? await Task.sleep(for: .seconds(2)); await engine.debugFrontCheck(seconds: n) }
@@ -61,6 +62,8 @@ final class AppModel {
         // Biểu tượng thanh menu dựng bằng AppKit (xem StatusMenu).
         DispatchQueue.main.async { StatusMenu.shared.start(engine: self.engine, settings: self.settings) }
         DispatchQueue.main.async { Updater.shared.start() }
+        // Theo dõi capture card cắm vào hay rút ra (báo ở chân cửa sổ chính).
+        DispatchQueue.main.async { CaptureCards.shared.start() }
     }
 }
 
@@ -109,6 +112,9 @@ struct OverSubCommands: Commands {
         CommandGroup(after: .appInfo) {
             Button(L("Kiểm tra cập nhật…", "Check for Updates…")) { UpdatePrompt.shared.checkNow() }
             Button(L("Ủng hộ OverSub…", "Support OverSub…")) { openWindow(id: "donate") }
+        }
+        CommandGroup(after: .windowArrangement) {
+            Button(L("Màn hình chơi game", "Game Screen")) { PlayScreen.shared.open() }
         }
         CommandGroup(replacing: .help) {
             Button(L("Gửi báo lỗi…", "Send Bug Report…")) { ErrorReport.send() }

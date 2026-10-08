@@ -38,7 +38,7 @@ Tiếng Việt · [English](README.en.md)
 
 ## OverSub làm được gì
 
-OverSub dùng được với mọi game hiện trên màn hình Mac: game Mac, game Windows chạy qua CrossOver hay Whisky, game đám mây, và máy console (Switch, PlayStation) chơi qua capture card với app xem hình như OBS hay VisionRelay. App không can thiệp vào game, nó chỉ nhìn màn hình như bạn.
+OverSub dùng được với mọi game hiện trên màn hình Mac: game Mac, game Windows chạy qua CrossOver hay Whisky, game đám mây, và máy console (Switch, PlayStation) chơi qua capture card, xem ngay trong Màn hình chơi game của OverSub hoặc bằng app xem hình như OBS. App không can thiệp vào game, nó chỉ nhìn màn hình như bạn.
 
 Cửa sổ chính có ba nút bật tắt riêng: Phụ đề bên trái, linh vật OverSub ở giữa (giọng đọc; đang đọc thì linh vật mấp máy miệng), Dịch màn hình bên phải.
 
@@ -51,6 +51,7 @@ Cửa sổ chính có ba nút bật tắt riêng: Phụ đề bên trái, linh v
 Các tính năng khác:
 
 - Dịch nhanh (⌃⌥Q): bấm phím tắt ở đâu cũng được, kéo khung quanh chữ, thả chuột là có bản dịch tại chỗ. Có nút chép bản dịch và nút xem chữ gốc để tra cứu.
+- Màn hình chơi game: cắm capture card là chân cửa sổ chính báo tên card kèm nút mở. Hình và tiếng của máy console hiện trong một cửa sổ của OverSub, không cần app xem hình riêng; phụ đề, giọng đọc và dịch màn hình chạy trên cửa sổ này như với mọi game.
 - Cửa sổ phụ đề: cửa sổ nổi chỉ có câu thoại, ghim trên mọi Space kể cả khi game toàn màn hình. Thu được còn một dải mỏng để không che game, chữ sáng dần theo giọng đọc.
 - Dịch vụ dịch: Gemini, Groq, Cerebras, Mistral, OpenRouter (đều có gói miễn phí), dịch vụ trả phí kiểu OpenAI (OpenAI, DeepSeek, xAI), và hai engine của Apple chạy trên máy không cần mạng. App đo tốc độ từng dịch vụ và đổi sang dịch vụ khác khi một dịch vụ chậm hay hết hạn mức.
 - Thể loại game: chọn Trung cổ châu Âu, Cổ trang kiếm hiệp, Anime/JRPG, Đường phố... để AI chọn xưng hô và văn phong, hoặc tự mô tả bối cảnh ở thể loại Tuỳ chỉnh. Xưng hô giữ nhất quán theo từng cặp nhân vật, tên riêng giữ nguyên, có từ điển thuật ngữ.
@@ -67,6 +68,7 @@ Các tính năng khác:
 
 - macOS 26 trở lên, máy Mac chip Apple (M1 trở lên).
 - Quyền Ghi màn hình. macOS hỏi ở lần mở đầu tiên.
+- Nếu dùng Màn hình chơi game: quyền Camera (macOS xếp capture card vào nhóm camera) và quyền Micrô (tiếng game từ card vào Mac theo đường micrô). macOS hỏi ở lần mở màn hình chơi đầu tiên.
 - Bạn nên lấy thêm key API miễn phí của Gemini hoặc Groq để có bản dịch hay nhất. Chưa có key thì app vẫn dịch được bằng Dịch máy Apple và Apple Intelligence (nếu máy bạn đã bật Apple Intelligence).
 - Để giọng đọc tiếng Việt nghe tự nhiên, bạn nên tải giọng Siri tiếng Việt trong Cài đặt hệ thống. App có bảng hướng dẫn từng bước.
 
@@ -151,6 +153,20 @@ Có ba chế độ tốc độ: Tức thì (Dịch máy Apple), Tức thì rồi
 ### Dịch nhanh
 
 Bấm ⌃⌥Q ở đâu cũng được (không cần bấm Bắt đầu), kéo khung quanh chữ, thả chuột là bản dịch hiện tại chỗ. Dưới khung có nút xem chữ gốc (kèm nút chép chữ gốc), nút chép bản dịch và nút đóng. Phím ⌘C chép bản dịch, ⇧⌘C chép chữ gốc, Esc để thoát. Mặc định màn hình dừng hình lúc bạn chọn; bạn có thể tắt ở Cài đặt → Dịch màn hình.
+
+### Màn hình chơi game
+
+Cắm capture card vào Mac (lúc OverSub đang mở hay trước đó đều được), chân cửa sổ chính hiện dòng "Đã nhận tín hiệu từ" kèm tên card, độ phân giải, số khung hình và nút Mở màn hình chơi. App không tự mở cửa sổ. Không có dòng báo thì bấm Màn hình chơi game ở chân cửa sổ chính, hoặc mục cùng tên trong menu Window. Dòng báo không tính webcam và camera FaceTime; muốn dùng camera thì chọn trong mục Thiết bị hình.
+
+Cửa sổ mở ra là cửa sổ thường, nhớ vị trí và cỡ; bấm nút xanh, bấm đúp vào hình hoặc ⌃⌘F để toàn màn hình. Hình giữ đúng tỉ lệ, dư thì có viền đen. Tiếng phát thẳng ra loa. Rê chuột vào hình thì hiện thanh nhỏ ở chân cửa sổ: tắt tiếng, âm lượng, toàn màn hình và menu tuỳ chọn (bấm phải vào hình cũng mở menu này). Đóng cửa sổ là app thôi nhận hình và tiếng từ card.
+
+Menu tuỳ chọn và trang Cài đặt → Màn hình chơi game có cùng các mục: chọn card, định dạng, nguồn tiếng, loa phát ra, dải màu, chuẩn màu, không gian màu, HDR, làm nét, siêu phân giải (MetalFX), khung hình (vừa khung hoặc lấp đầy), độ trễ, tắt tiếng khi chuyển sang app khác, luôn nằm trên cùng.
+
+Nếu màu trên Mac lệch so với TV, hãy xem mục Dải màu. Để Tự động thì app đọc độ sáng thật của tín hiệu, vì nhiều card ghi sai dải màu. Hình nhạt, màu đen ngả xám: chọn Giới hạn. Hình gắt, vùng tối mất chi tiết: chọn Đầy đủ. Vẫn nhạt dù đã chọn Giới hạn thì trên Switch 2 vào System Settings › Display › RGB Range và chọn Full Range. Nếu Switch 2 xuất HDR qua card mà hình xám, nhạt màu, chọn HDR › Chuyển HDR về SDR hoặc tắt HDR Output trên Switch 2.
+
+Chọn vùng phụ đề ngay trên cửa sổ này như với game khác; hồ sơ game sẽ gắn với Màn hình chơi game. Toàn màn hình trên MacBook (màn 16:10) thì hình 16:9 có viền đen trên dưới; chọn Khung hình › Lấp đầy để phủ kín, đổi lại hai bên hình mất một dải mỏng khoảng 5%.
+
+macOS có thể áp hiệu ứng camera (Portrait, Studio Light, Reactions…) lên hình từ capture card. Nếu hình game bị làm mờ nền, chiếu sáng hay có hiệu ứng lạ, lúc màn hình chơi đang mở hãy bấm biểu tượng camera xanh trên thanh menu (hoặc mục Hiệu ứng video của macOS trong menu tuỳ chọn) và tắt các hiệu ứng.
 
 ### Văn phong, xưng hô và tên riêng
 
@@ -246,7 +262,7 @@ Chi tiết kỹ thuật: [Docs/DEVELOPMENT.md](Docs/DEVELOPMENT.md).
 
 ## Quyền riêng tư và dữ liệu
 
-Ảnh màn hình không rời khỏi máy; việc đọc chữ chạy hoàn toàn trên Mac của bạn.
+Ảnh màn hình không rời khỏi máy; việc đọc chữ chạy hoàn toàn trên Mac của bạn. Hình và tiếng của Màn hình chơi game chỉ phát trên máy, không được ghi lại hay gửi đi đâu.
 
 Khi dùng dịch vụ dịch qua mạng, chỉ chữ được gửi tới đúng dịch vụ bạn chọn: câu cần dịch, vài câu trước làm ngữ cảnh và tên nhân vật. Dùng Dịch máy Apple hay Apple Intelligence thì không có gì được gửi ra ngoài.
 
