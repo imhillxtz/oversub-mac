@@ -300,31 +300,51 @@ Ove là đầu kính mờ có lõi cam, dựng bằng three.js ở `Tools/Ove/ov
 Design). App không chạy 3D: mọi trạng thái và biểu cảm được dựng sẵn thành tấm khung hình HEIC trong `Resources/Ove`,
 `Ove.swift` lật khung bằng `contentsRect` của Core Animation.
 
-- Bộ góc đầu `idle` và `live`: 9 hướng ngang × 5 hướng dọc, mỗi góc một khung mở mắt và một khung nhắm mắt. Từ 1.1.76
-  Ove luôn nhìn thẳng (người dùng thấy quay đầu theo trạng thái là rối khi đã bỏ chuột): lúc nạp, app chỉ cắt hai khung
-  nhìn thẳng (mở, nhắm) để chớp mắt rồi bỏ tấm lớn. Các góc khác giữ trong tấm để dùng sau.
-- Vòng đọc `speak` (3 giây, khớp đầu đuôi), các đoạn `happy` (có khoảng giữ khi được vuốt ve), `sad`, `angry`, `dizzy`,
-  `cry`, và `yawn`, `wake` riêng cho nền sáng, nền tối (mặt lúc ngủ xám khác nhau). Gợn sóng là một vòng ảnh
-  `ripple-light`, `ripple-dark` được phóng và làm mờ bằng Core Animation.
+- Bộ quay đầu `look-idle` và `look-live`: khung nhìn thẳng (mở, nhắm mắt), rồi với mỗi hướng nhìn quanh (`look.targets`
+  trong ove.json) 7 khung đi từ nhìn thẳng tới hướng đó theo nhịp sin và một khung nhắm mắt ở hướng đó để chớp; quay về
+  thì chạy ngược. Bản thử đầu nhảy từng nấc 9° của bộ góc 9 × 5 hướng cũ nên Ove quay đầu khựng; bộ góc đó đã bỏ.
+- Vòng đọc `speak` (3 giây, khớp đầu đuôi; `rest` trong ove.json là các khung miệng gần khép), các đoạn `happy`, `sad`,
+  `angry`, `dizzy`, `cry` (mỗi đoạn có `hold`: khoảng giữ nét mặt), và `yawn`, `wake` riêng cho nền sáng, nền tối (mặt lúc
+  ngủ xám khác nhau). Ngáp và tỉnh dậy tính tư thế từng khung (không ghi lại prototype) để khung đầu, khung cuối trùng
+  khít mặt đứng yên: màu đổi chậm, mắt không mở lại giữa chừng, tỉnh dậy không cười. Gợn sóng là một vòng ảnh `ripple-light`, `ripple-dark` được phóng và làm mờ bằng Core Animation.
+  Từ 1.1.77 kính của vòng đọc dày mỏng chậm một nhịp mỗi vòng; bản trước đổi theo từng lần mở miệng nên Ove nhấp nháy
+  màu lúc đọc.
 - Mỗi khung dựng hai lần trên nền đen và nền trắng (nền chỉ dùng cho lượt khúc xạ của kính) rồi tách độ trong thật của kính,
   nên một khung dùng được trên cả nền sáng lẫn nền tối.
-- Tương tác: bấm là bật tắt giọng đọc (ngáp rồi ngủ, tỉnh dậy; bấm thêm trong 1,6 giây bị bỏ qua). Tương tác chuột (nhìn
-  theo, vuốt ve, rung, rê vòng) có ở bản thử 1.1.75 rồi bỏ theo yêu cầu người dùng; bộ hình biểu cảm vẫn giữ, móc thử gọi
-  được.
+- Lúc rảnh (chưa bấm Bắt đầu): chớp mắt, cứ 15 đến 30 giây nhìn quanh một kiểu (trái, phải, ngước lên, liếc qua lại...)
+  rồi nhìn thẳng lại, khoảng 2 phút vui khẽ một lần. Đang nhận phụ đề thì nhịp thưa gấp đôi. Trước khi đổi trạng thái hay
+  làm nét mặt, Ove luôn quay về nhìn thẳng (hai hình khác hướng mờ chồng lên nhau thì lộ bốn mắt).
+- Đọc xong: vòng đọc chạy tới khung miệng khép kế tiếp, sóng loang tiếp và lặn dần trong 1,6 giây, quầng cam nhạt dần, Ove
+  gật nhẹ. Câu mới tới lúc đó thì đọc tiếp từ đúng khung đang hiện.
+- Biểu cảm theo sự kiện (`OveEvents.send`): chóng mặt khi Vision treo phải khởi động lại, khóc khi Vision vẫn treo, khi
+  không dịch vụ nào dịch được hay thiếu quyền Ghi màn hình, buồn khi một dịch vụ dịch tạm ngưng, giận khi key hết hạn mức,
+  vui khi câu đầu tiên của phiên dịch xong, khi tự chuyển hồ sơ, khi dịch được lại. Ove đang bận (đọc, ngáp) thì xếp chờ
+  tối đa 8 giây, chuyện nặng hơn được làm trước; cùng một biểu cảm 20 giây chỉ làm một lần.
+- Phản ứng theo câu thoại: đọc xong một câu mà 1,2 giây không có câu nối tiếp, câu cười thì vui, câu buồn thì buồn, câu hét
+  thì giận (bộ đoán cảm xúc `Emotion` của giọng lồng tiếng), nhiều nhất một lần mỗi phút.
+- Chuột: bấm là bật tắt giọng đọc (ngáp rồi ngủ, tỉnh dậy); bấm dồn trong 1,6 giây bị bỏ qua, dồn tới cú thứ hai thì Ove
+  chóng mặt. Không phản ứng khi rê chuột (đã thử, người dùng thấy tệ hơn).
+- Hộp thoại có Ove (`OveFigure`): báo khởi động lại (chóng mặt), Vision vẫn treo (buồn), hộp thoại cập nhật và gửi báo lỗi
+  (Ove thay biểu tượng app: có bản mới thì vui, lỗi thì buồn và giữ nét mặt), cửa sổ Ủng hộ (vui khi mở; mức cà phê cười
+  thoáng, bữa sáng vui, bữa trưa rất vui, tuỳ bạn thì nhìn xuống mã QR; không mức nào làm Ove buồn; nhìn về mã QR khi
+  đổi kênh, nhìn xuống khi gõ tên).
 - Lớp hình Ove tắt hoạt ảnh ngầm (`actions` của `contentsRect`, `contents`): thiếu nó thì mỗi lần đặt khung ngoài hoạt ảnh
   lật khung, Core Animation trượt ô cắt 0,25 giây qua tấm và Ove hiện thành mảnh ghép bốn khung.
 - Đang phát tiếng thì Ove đọc và nền rực theo, kể cả khi nghe thử giọng lúc giọng đọc đang tắt; đi giữa ngủ và đọc thì mờ
   chuyển nhanh, ngáp và tỉnh dậy chỉ chạy khi bấm tắt, bật giọng đọc.
-- Đo trên M1 Pro (Ove 128 điểm, cửa sổ hiện): đang đọc 0,3% một nhân, chờ khoảng 0,4%, bị che 0%; bộ nhớ cao nhất khoảng
-  124 MB lúc chuyển trạng thái, lúc thường khoảng 46 MB (app chỉ giữ tấm đang chiếu và bộ góc đầu của mặt hiện tại).
+- Đo trên M1 Pro (Ove 128 điểm, cửa sổ hiện): đang đọc 0,3% một nhân, chờ khoảng 0,4%, bị che 0%. App chỉ giữ tấm đang
+  chiếu và bộ góc đầu của mặt hiện tại; tấm biểu cảm giải nén ở luồng phụ ngay trước khi dùng rồi thả ra.
 
 Dựng lại bộ hình sau khi sửa `oversub-head.js` hay `export.html`:
 
 ```sh
 python3 Tools/Ove/serve.py 8731          # phục vụ thư mục cha của Tools/Ove và nhận ảnh gửi về thư mục out/
 open http://127.0.0.1:8731/Ove/export.html   # chạy trong trình duyệt có WebGL, xong thì trang ghi "Xong."
-swift Tools/Ove/ove_pack.swift Tools/out  # nén sang HEIC, chép vào Resources/Ove kèm ove.json
+swift Tools/Ove/ove_pack.swift Tools/out  # nén sang HEIC, chép vào Resources/Ove, gộp ove.json
 ```
+
+Chỉ dựng lại vài tấm: thêm `?only=speak,happy` vào địa chỉ trang xuất; `ove_pack` gộp mục của các tấm đó vào ove.json đang
+có, các tấm khác giữ nguyên.
 
 ## Công cụ tự kiểm tra
 
@@ -349,7 +369,8 @@ Các móc thử chỉ có trong bản dựng `OVERSUB_DEV=1 ./build.sh` (`DebugS
 | `OVERSUB_LOG_ROTATE_TEST=<số dòng>` kèm `OVERSUB_LOG_ROTATE_BYTES=<byte>`, `OVERSUB_LOG_DIR=<thư mục>` | Ghi liền từng ấy dòng đánh số với ngưỡng xoay nhỏ, vào thư mục tạm để không đụng nhật ký thật (xoay ngay trên nhật ký thật sẽ đè mất `debug.1.log` của các buổi chơi trước). Đạt khi `debug.1.log` không vượt ngưỡng quá một dòng và số dòng ở cuối `debug.1.log` nối liền đầu `debug.log`. Thêm `OVERSUB_REPORT_TEST=1` để xem gói báo lỗi có kèm `debug.1.log`. `OVERSUB_LOG_ROTATE_BYTES` và `OVERSUB_LOG_DIR` dùng được với mọi bài thử khác. |
 | `OVERSUB_UPDATE_PROMPT_TEST=1` | Như bấm Kiểm tra cập nhật… ở menu, dùng `OVERSUB_UPDATE_FEED` (và `OVERSUB_UPDATE_LIST` dạng danh sách bản phát hành); chụp hộp thoại vào `OVERSUB_SHOT_DIR`. |
 | `OVERSUB_SHOT_DIR=<thư mục>` | Nơi các móc thử mới lưu ảnh chụp, không kéo theo lượt chụp toàn bộ giao diện như `OVERSUB_SNAPSHOT_DIR`. |
-| `OVERSUB_OVE_TEST=1` (kèm `OVERSUB_SHOT_DIR`) | Thử Ove: chờ, tắt giọng đọc (ngáp rồi ngủ), bật lại (tỉnh dậy), nghe, đang đọc kèm bong bóng thoại, rồi vui, buồn, giận, chóng mặt và khóc; mỗi bước chụp cửa sổ chính, xong trả công tắc giọng đọc như cũ. `OVERSUB_OVE_HOLD=<giây>` giữ trạng thái chờ và đang đọc lâu hơn để đo CPU. Cửa sổ phải lộ ra: bị che thì Ove dừng hoạt ảnh (đúng thiết kế) và ảnh biểu cảm sẽ đứng yên. |
+| `OVERSUB_OVE_TEST=1` (kèm `OVERSUB_SHOT_DIR`) | Thử Ove: chờ, nhìn quanh (nhịp rút ngắn), tắt giọng đọc (ngáp rồi ngủ), nghe thử giọng lúc ngủ, bật lại (tỉnh dậy), nghe, đọc một câu có tiếng cười rồi đọc xong (sóng lặn, Ove vui), buồn, giận, khóc theo sự kiện, và chóng mặt xếp chờ lúc đang đọc; mỗi bước chụp cửa sổ chính, xong trả công tắc giọng đọc như cũ. `OVERSUB_OVE_HOLD=<giây>` giữ trạng thái chờ và đang đọc lâu hơn để đo CPU. Cửa sổ phải lộ ra: bị che thì Ove dừng hoạt ảnh (đúng thiết kế) và ảnh biểu cảm sẽ đứng yên. |
+| `OVERSUB_DONATE_OVE_TEST=1` (kèm `OVERSUB_SHOT_DIR`, có thể kèm `OVERSUB_DONATE_OVE_DELAY=<giây>`) | Mở cửa sổ Ủng hộ, chọn lần lượt mức cà phê, bữa trưa, tuỳ bạn, bữa sáng để xem Ove đổi thái độ; mỗi bước chụp cửa sổ. |
 | `OVERSUB_REGION_STATE=<phụ đề>,<số vùng dịch>` | Đổi tên các nút vùng như khi có hoặc chưa có vùng (ví dụ `0,0`, `1,2`, `1,3`) để chụp, không đụng vùng thật. |
 | `OVERSUB_DUB_TEST=1`, `voiceover`, `gemini` | Thử ba đường phát giọng, một câu Voice-over, một câu Gemini (tốn một lượt). |
 | `OVERSUB_SCENE_TEST=1` | Chạy trọn quy trình dịch màn hình trên cảnh menu vẽ sẵn, lưu ảnh trước và sau. |

@@ -184,6 +184,12 @@ final class Supporters: ObservableObject {
 
 // MARK: Cửa sổ Ủng hộ
 
+#if DEVTOOLS
+extension Notification.Name {
+    static let donateDebugTier = Notification.Name("vn.imhillxtz.oversub.donateDebugTier")
+}
+#endif
+
 @MainActor
 final class DonateState: ObservableObject {
     /// Giao diện tiếng Anh thì mặc định PayPal (người ở nước ngoài), tiếng Việt thì VietQR.
@@ -203,6 +209,13 @@ final class DonateState: ObservableObject {
         measureScreen()
         #if DEVTOOLS
         if let n = ProcessInfo.processInfo.environment["OVERSUB_DONATE_NICK"] { nick = n }   // chụp thử ô nhập tên
+        // Móc thử OVERSUB_DONATE_OVE_TEST: chọn mức theo thứ tự để xem Ove đổi thái độ.
+        NotificationCenter.default.addObserver(forName: .donateDebugTier, object: nil, queue: .main) { [weak self] n in
+            MainActor.assumeIsolated {
+                guard let self, let i = n.object as? Int else { return }
+                self.tier = Donation.tiers(self.channel)[i]
+            }
+        }
         #endif
     }
 
@@ -223,6 +236,9 @@ struct DonateView: View {
     @ObservedObject private var prompt = SupportPrompt.shared
     @ObservedObject private var supporters = Supporters.shared
     @Environment(\.colorScheme) private var scheme
+    /// Ove chào bằng nụ cười khi mở cửa sổ, vui theo mức được chọn, nhìn về mã QR khi đổi kênh, nhìn xuống khi gõ tên.
+    @State private var ove: OvePoke? = OvePoke(.cheer(2))
+    @State private var oveChannel: Donation.Channel?
 
     var body: some View {
         ScrollView {
@@ -242,6 +258,25 @@ struct DonateView: View {
         .task { await supporters.refresh() }
         .animation(.smooth(duration: 0.25), value: state.tier)
         .animation(.smooth(duration: 0.25), value: state.channel)
+        // Đổi kênh thì mức cũng đổi theo, nên chỉ theo dõi mức: kênh khác lần trước là vừa đổi kênh.
+        .onChange(of: state.tier) {
+            if oveChannel != state.channel {
+                oveChannel = state.channel
+                ove = OvePoke(.look(yaw: 2, pitch: 1, seconds: 1.6))
+            } else {
+                ove = OvePoke(tierMood)
+            }
+        }
+        .onChange(of: state.nick) { ove = OvePoke(.look(yaw: 0, pitch: 1, seconds: 1.5)) }
+        .onAppear { oveChannel = state.channel }
+    }
+
+    /// Mức càng cao Ove càng vui: cà phê cười khẽ, bữa sáng vui, bữa trưa rất vui. Tuỳ bạn thì Ove tò mò nhìn xuống mã QR.
+    /// Không mức nào làm Ove buồn, để khỏi giống nài người ủng hộ.
+    private var tierMood: OvePoke.Action {
+        let tiers = Donation.tiers(state.channel)
+        guard let i = tiers.firstIndex(of: state.tier), i < tiers.count - 1 else { return .look(yaw: 2, pitch: 1, seconds: 1.8) }
+        return .cheer(i + 1)
     }
 
     private var content: some View {
@@ -274,7 +309,7 @@ struct DonateView: View {
     private var header: some View {
         let lines = Donation.linesTranslated
         return HStack(spacing: 16) {
-            OveStill(mood: .idle, size: 64)
+            OveFigure(size: 64, poke: ove)
             VStack(alignment: .leading, spacing: 6) {
                 Text(L("Ủng hộ OverSub", "Support OverSub")).font(.title2.weight(.bold))
                 Text(L("OverSub miễn phí cho mọi người. Nếu thấy app hữu ích, bạn có thể mời mình một ly cà phê. Mỗi khoản ủng hộ giúp OverSub tiếp tục được sửa lỗi và có thêm tính năng mới.",
@@ -402,7 +437,10 @@ struct DonateView: View {
 
     /// Hành động chính của kênh PayPal: mở trang PayPal với số tiền đã chọn.
     private var paypalButton: some View {
-        Button { NSWorkspace.shared.open(Donation.paypalURL(state.tier.amount)) } label: {
+        Button {
+            ove = OvePoke(.cheer(3))
+            NSWorkspace.shared.open(Donation.paypalURL(state.tier.amount))
+        } label: {
             Label(state.tier.price.map { L("Ủng hộ \($0) qua PayPal", "Donate \($0) with PayPal") } ?? L("Ủng hộ qua PayPal", "Donate with PayPal"),
                   systemImage: "arrow.up.right")
         }

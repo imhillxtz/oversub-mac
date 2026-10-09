@@ -721,7 +721,7 @@ enum DebugSnapshot {
             await shoot("notice-ready", dir: dir, window: PreparingNotice.shared.debugPanel)
             try? await Task.sleep(for: .seconds(2))
             RestartNotice.shared.showStuckAgain(on: NSScreen.main) { DebugLog.write("Thử thông báo: bấm khởi động lại") }
-            try? await Task.sleep(for: .seconds(0.6))
+            try? await Task.sleep(for: .seconds(1.8))   // chờ Ove làm xong nét mặt buồn
             await shoot("notice-stuck-again", dir: dir, window: RestartNotice.shared.debugPanel)
             RestartNotice.shared.hide()
             PermissionGuide.shared.show { DebugLog.write("Thử thông báo: bấm mở lại") }
@@ -798,7 +798,7 @@ enum DebugSnapshot {
                 DebugLog.write("Thử bảng báo: hết đếm ngược, bản thật sẽ khởi động lại lúc này")
                 RestartNotice.shared.hide()
             }
-            try? await Task.sleep(for: .seconds(0.6))
+            try? await Task.sleep(for: .seconds(1.8))   // chờ Ove làm xong nét mặt chóng mặt
             if let w = RestartNotice.shared.debugPanel {
                 DebugLog.write("Thử bảng báo: level=\(w.level.rawValue) allSpaces=\(w.collectionBehavior.contains(.canJoinAllSpaces)) fullScreenAux=\(w.collectionBehavior.contains(.fullScreenAuxiliary)) nonactivating=\(w.styleMask.contains(.nonactivatingPanel)) onActiveSpace=\(w.isOnActiveSpace)")
             }
@@ -943,9 +943,10 @@ enum DebugSnapshot {
     }
 
     /// Thử Ove (OVERSUB_OVE_TEST=1, ảnh vào OVERSUB_SHOT_DIR, không kéo theo lượt chụp toàn bộ; OVERSUB_OVE_HOLD=<giây> giữ
-    /// trạng thái chờ và đang đọc lâu hơn để đo CPU): tắt giọng đọc (ngáp rồi ngủ), bật lại (tỉnh dậy), phiên
-    /// chạy (nghe), đang đọc kèm bong bóng thoại, rồi các biểu cảm vui, buồn, giận, chóng mặt rồi khóc. Mỗi bước chụp cửa sổ
-    /// chính và ghi nhật ký; xong thì trả công tắc giọng đọc và các câu về như cũ.
+    /// trạng thái chờ và đang đọc lâu hơn để đo CPU): nhìn quanh (nhịp rút ngắn), tắt giọng đọc (ngáp rồi
+    /// ngủ), nghe thử giọng lúc ngủ, bật lại (tỉnh dậy), phiên chạy, đọc một câu có tiếng cười rồi đọc xong (Ove phản ứng
+    /// vui), các biểu cảm theo sự kiện của app, và một sự kiện tới lúc đang đọc (xếp chờ, đọc xong mới làm). Mỗi bước chụp
+    /// cửa sổ chính và ghi nhật ký; xong thì trả công tắc giọng đọc và các câu về như cũ.
     static func oveTestIfRequested(engine: Engine) {
         let env = ProcessInfo.processInfo.environment
         guard env["OVERSUB_OVE_TEST"] != nil, let dir = env["OVERSUB_SHOT_DIR"] else { return }
@@ -960,12 +961,20 @@ enum DebugSnapshot {
                 DebugLog.write("Thử Ove: \(name)")
                 await shoot("ove-\(name)", dir: dir, window: mainWindow())
             }
+            func pause(_ seconds: Double) async { try? await Task.sleep(for: .seconds(seconds)) }
             engine.settings.speakEnabled = true
             await shot("idle", after: 1.2)
             if let hold = Double(env["OVERSUB_OVE_HOLD"] ?? "") {
                 DebugLog.write("Thử Ove: giữ trạng thái chờ \(Int(hold)) giây")
-                try? await Task.sleep(for: .seconds(hold))
+                await pause(hold)
             }
+            // Nhìn quanh: rút nhịp còn khoảng 2 đến 4 giây một lần để thấy vài kiểu trong 12 giây.
+            OveLayerView.debugLifeScale = 0.13
+            NotificationCenter.default.post(name: .oveDebugLife, object: nil)
+            for i in 0..<6 { await shot("look-\(i)", after: 2.0) }
+            OveLayerView.debugLifeScale = 1
+            NotificationCenter.default.post(name: .oveDebugLife, object: nil)
+            await pause(2.0)
             // Chụp dồn ngay sau mỗi lần đổi trạng thái để bắt khoảnh khắc chuyển cảnh (lỗi mảnh ghép bốn khung lộ ra ở đây).
             func burst(_ name: String) async { for i in 0..<4 { await shot("\(name)-\(i)", after: 0.06) } }
             engine.settings.speakEnabled = false
@@ -984,30 +993,73 @@ enum DebugSnapshot {
             engine.running = true
             await burst("to-listen")
             await shot("listening", after: 1.2)
-            engine.lastSpeaker = "Expert Farmer"
-            engine.lastSource = "Back in the day, there used to be 100 Poogies around the vines."
-            engine.lastTranslation = "Ngày trước, có tới cả trăm chú Poogie quanh mấy giàn nho ấy chứ."
+            // Một câu có tiếng cười: đọc xong (sóng lặn, miệng khép, gật nhẹ) thì Ove vui.
+            let line = TranscriptItem(speaker: "Expert Farmer", source: "Haha! Back in the day, there used to be 100 Poogies around the vines.",
+                                      translation: "Haha! Ngày trước, có tới cả trăm chú Poogie quanh mấy giàn nho ấy chứ.")
+            engine.transcript.append(line)
+            engine.lastSpeaker = line.speaker
+            engine.lastSource = line.source
+            engine.lastTranslation = line.translation
             engine.speaker.debugSetSpeaking("")
             await shot("speaking", after: 1.2)
             await shot("speaking-later", after: 0.7)
             // OVERSUB_OVE_HOLD=<giây>: giữ trạng thái đang đọc thêm từng ấy giây để đo CPU (do-cpu.sh).
             if let hold = Double(env["OVERSUB_OVE_HOLD"] ?? "") {
                 DebugLog.write("Thử Ove: giữ đang đọc \(Int(hold)) giây")
-                try? await Task.sleep(for: .seconds(hold))
+                await pause(hold)
             }
             engine.speaker.debugSetSpeaking(nil)
-            await shot("after-speaking", after: 1.2)
-            // Mỗi đoạn biểu cảm phải chạy hết mới nhận đoạn sau (đang trong đoạn thì Ove bỏ qua), nên chờ đủ độ dài từng đoạn.
-            for (name, wait, rest) in [("happy", 1.0, 1.6), ("sad", 1.0, 1.7), ("angry", 0.9, 2.4), ("dizzy", 1.2, 1.6)] {
-                NotificationCenter.default.post(name: .oveDebugExpress, object: name)
-                await shot(name, after: wait)
-                try? await Task.sleep(for: .seconds(rest))
-                if name == "dizzy" { await shot("cry", after: 1.0); try? await Task.sleep(for: .seconds(3.4)) }
+            await burst("finish")
+            await shot("after-speaking", after: 0.6)
+            await shot("story", after: 1.3)
+            await pause(2.4)
+            // Biểu cảm theo sự kiện: mỗi đoạn chạy hết mới nhận đoạn sau, nên chờ đủ độ dài từng đoạn.
+            for (r, wait, rest) in [(OveReaction.sad, 1.0, 1.9), (.angry, 0.9, 2.6), (.cry, 1.6, 3.0)] {
+                OveEvents.send(r, "móc thử")
+                await shot(r.rawValue, after: wait)
+                await pause(rest)
             }
+            // Sự kiện tới lúc đang đọc: xếp chờ, đọc xong 1,2 giây mới làm.
+            engine.speaker.debugSetSpeaking("")
+            await pause(1.0)
+            OveEvents.send(.dizzy, "móc thử lúc đang đọc")
+            await shot("queued-speaking", after: 0.6)
+            engine.speaker.debugSetSpeaking(nil)
+            await shot("queued-dizzy", after: 2.0)
+            await pause(2.5)
+            engine.transcript.removeAll { $0.id == line.id }
             (engine.lastSource, engine.lastTranslation, engine.lastSpeaker) = saved
             engine.running = wasRunning
             engine.settings.speakEnabled = savedSpeak
             DebugLog.write("Thử Ove xong: \(dir)")
+        }
+    }
+
+    /// Thử thái độ của Ove ở cửa sổ Ủng hộ (OVERSUB_DONATE_OVE_TEST=1 kèm OVERSUB_SHOT_DIR): mở cửa sổ (Ove vui), chọn lần
+    /// lượt mức cà phê (cười khẽ), bữa trưa (rất vui), tuỳ bạn (nhìn xuống mã QR), bữa sáng (vui); mỗi bước chụp cửa sổ.
+    static func donateOveTestIfRequested() {
+        let env = ProcessInfo.processInfo.environment
+        guard env["OVERSUB_DONATE_OVE_TEST"] != nil, let dir = env["OVERSUB_SHOT_DIR"] else { return }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(Double(env["OVERSUB_DONATE_OVE_DELAY"] ?? "") ?? 2.5))
+            StatusMenu.openDonate?()
+            try? await Task.sleep(for: .seconds(0.8))
+            let w = NSApp.windows.first { $0.identifier?.rawValue.hasPrefix("donate") == true && $0.isVisible }
+            w?.makeKeyAndOrderFront(nil)
+            func shot(_ name: String, after wait: Double) async {
+                try? await Task.sleep(for: .seconds(wait))
+                DebugLog.write("Thử Ove ở Ủng hộ: \(name)")
+                await shoot("donate-\(name)", dir: dir, window: w)
+            }
+            await shot("open", after: 1.0)
+            try? await Task.sleep(for: .seconds(2.0))
+            for (i, name, waits) in [(0, "coffee", [0.6, 0.5]), (2, "lunch", [1.0, 1.2, 1.2]), (3, "custom", [0.6, 1.0]), (1, "breakfast", [1.0])] {
+                NotificationCenter.default.post(name: .donateDebugTier, object: i)
+                for (k, wait) in waits.enumerated() { await shot("\(name)-\(k)", after: wait) }
+                try? await Task.sleep(for: .seconds(2.6))
+            }
+            w?.close()
+            DebugLog.write("Thử Ove ở Ủng hộ xong: \(dir)")
         }
     }
 

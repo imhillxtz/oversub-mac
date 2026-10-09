@@ -61,9 +61,20 @@ final class UpdatePrompt: NSObject, NSWindowDelegate {
 private struct UpdatePromptView: View {
     @ObservedObject private var u = Updater.shared
     let close: () -> Void
+    @State private var ove: OvePoke?
 
     var body: some View {
-        DialogLayout(width: 600) { content }
+        DialogLayout(width: 600, mascot: true, ove: ove) { content }
+            .onChange(of: oveAction, initial: true) { ove = OvePoke(oveAction) }
+    }
+
+    /// Nét mặt của Ove theo trạng thái: có bản mới hay đã là bản mới nhất thì vui, cập nhật lỗi thì buồn và giữ nét mặt.
+    private var oveAction: OvePoke.Action {
+        switch u.state {
+        case .failed: return .hold(.sad)
+        case .upToDate, .available, .downloading, .ready, .installing: return .express(.happy)
+        case .idle, .checking: return .calm
+        }
     }
 
     @ViewBuilder private var content: some View {

@@ -78,6 +78,7 @@ final class Engine: ObservableObject {
     private var lastDialogueAt: Date?       // lần dịch lời thoại gần nhất; im lặng quá lâu thì quên ngữ cảnh cũ
     private var lastLineTexts: [String] = []   // các dòng OCR của lời thoại, để nhận ra danh sách menu
     private var lastSkipNote = ""         // chữ giao diện vừa ghi "Bỏ qua" ở chế độ Chữ chạy (mỗi chữ chỉ ghi một lần, không ghi mỗi khung)
+    private var greetPending = false      // vừa bấm Bắt đầu, chưa có câu nào: câu đầu tiên dịch xong thì Ove vui
     private var cache: [String: String] = [:]      // câu đã dịch, gặp lại thì dùng luôn
     private var shown = ""          // câu (đã chuẩn hoá) đang hiển thị
     private var pending = ""        // câu mới (đã chuẩn hoá), chờ khung hình đứng yên để xác nhận
@@ -772,6 +773,7 @@ final class Engine: ObservableObject {
         }
         guard let best = matches.max(by: { ($0.lastUsedAt ?? .distantPast) < ($1.lastUsedAt ?? .distantPast) }) else { return }
         applyPreset(best)
+        OveEvents.send(.happy, "tự chuyển sang hồ sơ \(best.name)")
         status = L("Đã tự chuyển sang hồ sơ \(best.name) (\(best.snapshot.gameAppName ?? "game")).", "Automatically switched to profile \(best.name) (\(best.snapshot.gameAppName ?? "game")).")
     }
 
@@ -1006,6 +1008,7 @@ final class Engine: ObservableObject {
         if let last = d.object(forKey: "visionAutoRestartAt") as? Date, Date().timeIntervalSince(last) < 600 {
             DebugLog.write("Vision lại treo chưa tới 10 phút sau lần tự khởi động lại: không tự khởi động lại nữa, để người dùng chọn")
             status = L("Bộ nhận chữ của macOS vẫn không phản hồi.", "macOS text recognition is still not responding.")
+            OveEvents.send(.cry, "bộ nhận chữ vẫn treo")
             RestartNotice.shared.showStuckAgain(on: screen) { [weak self] in
                 self?.relaunch(reason: "người dùng bấm khởi động lại sau khi Vision treo lần nữa", resume: wasRunning)
             }
@@ -1015,6 +1018,7 @@ final class Engine: ObservableObject {
         d.set(Date(), forKey: "visionAutoRestartAt")
         let resume = wasRunning
         status = L("Bộ nhận chữ của macOS bị treo. OverSub sẽ tự khởi động lại.", "macOS text recognition stopped responding. OverSub will restart itself.")
+        OveEvents.send(.dizzy, "bộ nhận chữ treo")
         DebugLog.write("Vision treo: báo người dùng, 5 giây nữa tự khởi động lại" + (resume ? ", mở lại xong sẽ chạy tiếp" : ""))
         RestartNotice.shared.show(on: screen, seconds: 5) { [weak self] in
             self?.relaunch(reason: "tự khởi động lại để gỡ Vision bị treo", resume: resume)
@@ -1071,6 +1075,7 @@ final class Engine: ObservableObject {
             DebugLog.write("Đã mở lại sau khi Vision bị treo, chạy tiếp")
             self.startAll()
             if self.running {
+                OveEvents.send(.happy, "chạy tiếp sau khi tự khởi động lại")
                 self.status = L("OverSub vừa tự khởi động lại vì bộ nhận chữ của macOS bị treo. Đang nhận phụ đề…",
                                 "OverSub restarted itself because macOS text recognition stopped responding. Watching for subtitles…")
             }
@@ -1091,6 +1096,7 @@ final class Engine: ObservableObject {
         overlay.region = settings.region
         running = true
         resetState()
+        greetPending = true
         status = L("Đang nhận phụ đề…", "Watching for subtitles…")
         loop = Task { [weak self] in
             while !Task.isCancelled {
@@ -1206,6 +1212,10 @@ final class Engine: ObservableObject {
         if recentNames.count > 12 { recentNames.removeFirst(recentNames.count - 12) }
         let item = TranscriptItem(speaker: lastSpeaker, source: source, translation: translation)
         transcript.append(item)
+        if greetPending {
+            greetPending = false
+            OveEvents.send(.happy, "câu đầu tiên của phiên")
+        }
         Donation.countLine()
         if transcript.count > 300 { transcript.removeFirst(transcript.count - 300) }
         return item.id
@@ -1292,6 +1302,7 @@ final class Engine: ObservableObject {
         showPermissionGuide()
         problem = L("OverSub chưa có quyền Ghi màn hình. Vui lòng bật quyền trong System Settings → Privacy & Security → Screen & System Audio Recording, rồi thoát hẳn và mở lại app.", "OverSub doesn't have Screen Recording permission. Turn it on in System Settings → Privacy & Security → Screen & System Audio Recording, then quit and reopen the app.")
         status = L("Thiếu quyền Ghi màn hình.", "Screen Recording permission missing.")
+        OveEvents.send(.cry, "thiếu quyền Ghi màn hình")
         return false
     }
 

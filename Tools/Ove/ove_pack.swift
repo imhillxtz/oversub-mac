@@ -39,8 +39,18 @@ for name in names {
     total += size
     print(String(format: "%-12@ %4d×%-5d %6.0f KB", base, image.width, image.height, Double(size) / 1024))
 }
+// Xuất một phần (export.html?only=speak) thì ove.json mới chỉ có các tấm vừa dựng: gộp vào ove.json đang có, tấm mới đè
+// tấm cùng tên, các tấm khác giữ nguyên.
 let meta = src.appendingPathComponent("ove.json")
 let metaOut = dst.appendingPathComponent("ove.json")
-try? FileManager.default.removeItem(at: metaOut)
-try FileManager.default.copyItem(at: meta, to: metaOut)
+guard var merged = try JSONSerialization.jsonObject(with: Data(contentsOf: meta)) as? [String: Any] else {
+    print("ove.json không đúng dạng")
+    exit(5)
+}
+if let old = (try? JSONSerialization.jsonObject(with: Data(contentsOf: metaOut))) as? [String: Any],
+   var sheets = old["sheets"] as? [String: Any] {
+    for (k, v) in merged["sheets"] as? [String: Any] ?? [:] { sheets[k] = v }
+    merged["sheets"] = sheets
+}
+try JSONSerialization.data(withJSONObject: merged, options: [.prettyPrinted, .sortedKeys]).write(to: metaOut)
 print(String(format: "Tổng: %.1f MB vào %@", Double(total) / 1_048_576, dst.path))

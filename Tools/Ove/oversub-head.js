@@ -714,7 +714,7 @@
     else {
       var mo = mouthOpen(t);
       tg.yaw = 0.05 * Math.sin(t * 0.9); tg.pitch = 0.035 * Math.sin(t * 4.3); tg.roll = 0.03 * Math.sin(t * 1.7);
-      tg.glass = 0.62 + 0.38 * mo; tg.oval = 1; tg.ovalW = 0.085 - 0.015 * mo; tg.ovalH = 0.04 + 0.04 * mo;
+      tg.glass = 0.7 + 0.05 * Math.sin(t * 2.1); tg.oval = 1; tg.ovalW = 0.085 - 0.015 * mo; tg.ovalH = 0.04 + 0.04 * mo;
     }
 
     // Tương tác bằng chuột: nhìn theo, được vuốt ve thì vui, bị bỏ đi thì buồn, xoay mạnh thì chóng mặt rồi khóc nhè.

@@ -6,11 +6,14 @@ import SwiftUI
 struct DialogLayout<Content: View>: View {
     var badge: String?
     var width: CGFloat = 560
+    /// Hộp thoại có Ove: Ove sống thay cho biểu tượng app (biểu tượng app cũng là mặt Ove) và làm nét mặt theo `ove`.
+    var mascot = false
+    var ove: OvePoke? = nil
     @ViewBuilder let content: Content
 
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
-            DialogAppIcon(badge: badge)
+            DialogAppIcon(badge: badge, mascot: mascot, ove: ove)
             VStack(alignment: .leading, spacing: 12) { content }
                 .frame(maxWidth: .infinity, alignment: .leading)
         }

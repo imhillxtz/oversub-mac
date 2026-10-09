@@ -1,92 +1,142 @@
 {
- "frame": 280,
  "cols": 10,
  "fps": 24,
- "sheets": {
-  "idle": {
-   "count": 90,
-   "rows": 9,
-   "kind": "atlas"
-  },
-  "live": {
-   "count": 90,
-   "rows": 9,
-   "kind": "atlas"
-  },
-  "speak": {
-   "count": 72,
-   "rows": 8,
-   "kind": "loop"
-  },
-  "happy": {
-   "count": 55,
-   "rows": 6,
-   "kind": "clip",
-   "hold": [
-    26,
-    37
+ "frame": 280,
+ "look": {
+  "steps": 7,
+  "targets": [
+   [
+    -2,
+    0
+   ],
+   [
+    2,
+    0
+   ],
+   [
+    0,
+    -1
+   ],
+   [
+    0,
+    1
+   ],
+   [
+    2,
+    1
+   ],
+   [
+    2,
+    -1
+   ],
+   [
+    -3,
+    0
+   ],
+   [
+    3,
+    0
    ]
-  },
-  "sad": {
-   "count": 58,
-   "rows": 6,
-   "kind": "clip"
-  },
+  ]
+ },
+ "sheets": {
   "angry": {
    "count": 72,
-   "rows": 8,
-   "kind": "clip"
-  },
-  "dizzy": {
-   "count": 60,
-   "rows": 6,
-   "kind": "clip"
+   "hold": [
+    12,
+    54
+   ],
+   "kind": "clip",
+   "rows": 8
   },
   "cry": {
    "count": 96,
-   "rows": 10,
-   "kind": "clip"
+   "hold": [
+    16,
+    76
+   ],
+   "kind": "clip",
+   "rows": 10
   },
-  "yawn-light": {
-   "count": 62,
-   "rows": 7,
-   "kind": "clip"
+  "dizzy": {
+   "count": 60,
+   "hold": [
+    16,
+    40
+   ],
+   "kind": "clip",
+   "rows": 6
   },
-  "wake-light": {
-   "count": 48,
-   "rows": 5,
-   "kind": "clip"
+  "happy": {
+   "count": 55,
+   "hold": [
+    26,
+    37
+   ],
+   "kind": "clip",
+   "rows": 6
   },
-  "yawn-dark": {
-   "count": 62,
-   "rows": 7,
-   "kind": "clip"
+  "look-idle": {
+   "count": 66,
+   "kind": "look",
+   "rows": 7
+  },
+  "look-live": {
+   "count": 66,
+   "kind": "look",
+   "rows": 7
+  },
+  "sad": {
+   "count": 58,
+   "hold": [
+    16,
+    36
+   ],
+   "kind": "clip",
+   "rows": 6
+  },
+  "speak": {
+   "count": 72,
+   "kind": "loop",
+   "rest": [
+    0,
+    9,
+    10,
+    11,
+    12,
+    18,
+    27,
+    35,
+    36,
+    37,
+    45,
+    54,
+    60,
+    61,
+    62,
+    63
+   ],
+   "rows": 8
   },
   "wake-dark": {
    "count": 48,
-   "rows": 5,
-   "kind": "clip"
+   "kind": "clip",
+   "rows": 5
+  },
+  "wake-light": {
+   "count": 48,
+   "kind": "clip",
+   "rows": 5
+  },
+  "yawn-dark": {
+   "count": 58,
+   "kind": "clip",
+   "rows": 6
+  },
+  "yawn-light": {
+   "count": 58,
+   "kind": "clip",
+   "rows": 6
   }
- },
- "atlas": {
-  "yaws": [
-   -0.6,
-   -0.45,
-   -0.3,
-   -0.15,
-   0,
-   0.15,
-   0.3,
-   0.45,
-   0.6
-  ],
-  "pitches": [
-   -0.36,
-   -0.18,
-   0,
-   0.18,
-   0.36
-  ],
-  "blinkFrames": 2
  }
 }

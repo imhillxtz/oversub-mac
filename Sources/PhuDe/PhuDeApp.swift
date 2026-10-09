@@ -23,6 +23,7 @@ final class AppModel {
         }
         DebugSnapshot.runIfRequested(engine: engine)
         DebugSnapshot.oveTestIfRequested(engine: engine)
+        DebugSnapshot.donateOveTestIfRequested()
         DebugSnapshot.dubTestIfRequested(engine: engine)
         DebugSnapshot.screenTestIfRequested(engine: engine)
         DebugSnapshot.layoutTestIfRequested(settings: settings)

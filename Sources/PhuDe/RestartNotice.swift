@@ -115,11 +115,13 @@ final class RestartNotice {
 private struct RestartCountdownView: View {
     @ObservedObject var model: RestartNotice.Model
     let restartNow: () -> Void
+    /// Ove chóng mặt theo bộ nhận chữ bị treo, giữ nét mặt tới khi khởi động lại.
+    @State private var ove = OvePoke(.hold(.dizzy))
 
     var body: some View {
         NoticeCard {
             HStack(alignment: .top, spacing: 16) {
-                OveStill(mood: .asleep, size: 52)
+                OveFigure(size: 52, poke: ove)
                 VStack(alignment: .leading, spacing: 8) {
                     Text(L("Bộ nhận chữ của macOS không phản hồi", "macOS text recognition stopped responding"))
                         .font(.headline)
@@ -150,11 +152,12 @@ private struct StuckAgainView: View {
     let restart: () -> Void
     let sendReport: () -> Void
     let close: () -> Void
+    @State private var ove = OvePoke(.hold(.sad))
 
     var body: some View {
         NoticeCard(width: 520) {
             HStack(alignment: .top, spacing: 16) {
-                OveStill(mood: .asleep, size: 52)
+                OveFigure(size: 52, poke: ove)
                 VStack(alignment: .leading, spacing: 8) {
                     Text(L("Bộ nhận chữ của macOS vẫn không phản hồi", "macOS text recognition is still not responding"))
                         .font(.headline)

@@ -192,17 +192,27 @@ struct MascotButton: View {
     @EnvironmentObject var engine: Engine
     /// Lúc Ove đang ngáp hay đang tỉnh dậy thì bỏ qua cú bấm thêm, để bấm nhanh không bật tắt loạn.
     @State private var lastToggle = Date.distantPast
+    /// Số cú bấm dồn đã bỏ qua; dồn tới cú thứ hai thì Ove chóng mặt.
+    @State private var extraTaps = 0
+    @State private var ove: OvePoke?
 
     var body: some View {
         let on = settings.speakEnabled
         VStack(spacing: 8) {
             Button {
-                guard Date().timeIntervalSince(lastToggle) > 1.6 else { return }
+                guard Date().timeIntervalSince(lastToggle) > 1.6 else {
+                    extraTaps += 1
+                    if extraTaps == 2 { ove = OvePoke(.express(.dizzy)) }
+                    return
+                }
+                extraTaps = 0
                 lastToggle = Date()
                 engine.toggleDub()
             } label: {
                 if OveLibrary.shared.available {
-                    OveView(mood: mood, size: orbRowHeight, cue: engine.transcript.last?.id)
+                    let last = engine.transcript.last
+                    OveView(mood: mood, size: orbRowHeight, cue: last?.id, story: last.flatMap { OveReaction.story($0.source) },
+                            appEvents: true, poke: ove)
                         .frame(width: orbRowHeight, height: orbRowHeight)
                 } else {
                     Mascot(mood: mood, size: orbRowHeight, cue: engine.transcript.last?.id)

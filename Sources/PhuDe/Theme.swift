@@ -417,10 +417,11 @@ private struct DialogButtonBody<Label: View>: View {
 /// Biểu tượng app cho hộp thoại, kèm huy hiệu nhỏ ở góc dưới phải như hộp thoại của macOS (vd. con bọ cho báo lỗi).
 struct DialogAppIcon: View {
     var badge: String?
+    var mascot = false
+    var ove: OvePoke? = nil
 
     var body: some View {
-        Image(nsImage: NSApp.applicationIconImage)
-            .resizable()
+        icon
             .frame(width: 64, height: 64)
             .overlay(alignment: .bottomTrailing) {
                 if let badge {
@@ -433,5 +434,13 @@ struct DialogAppIcon: View {
                         .offset(x: 4, y: 4)
                 }
             }
+    }
+
+    @ViewBuilder private var icon: some View {
+        if mascot {
+            OveFigure(size: 56, poke: ove)
+        } else {
+            Image(nsImage: NSApp.applicationIconImage).resizable()
+        }
     }
 }

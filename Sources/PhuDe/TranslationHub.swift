@@ -76,6 +76,7 @@ final class TranslationHub: ObservableObject {
     @Published private(set) var log: [LogEntry] = []
     @Published var activeLabel = L("Chưa có câu nào", "No lines yet")
     @Published var activeOK = false   // câu gần nhất dịch được (chấm xanh ở cửa sổ chính)
+    private var allFailed = false     // câu gần nhất không dịch vụ nào dịch được (để Ove khóc một lần, dịch lại được thì vui)
     @Published private(set) var benchmarking = false
 
     private let settings: AppSettings
@@ -387,6 +388,10 @@ final class TranslationHub: ObservableObject {
                 }
                 activeLabel = "\(outcome.label) · \(Int(outcome.ms)) ms"
                 activeOK = true
+                if allFailed {
+                    allFailed = false
+                    OveEvents.send(.happy, "dịch được lại")
+                }
                 return outcome
             }
             i += b == nil ? 1 : 2
@@ -394,6 +399,10 @@ final class TranslationHub: ObservableObject {
         let summary = failed.map { "\($0.0.title): \($0.1)" }.joined(separator: "; ")
         activeLabel = L("Không dịch vụ nào dịch được", "No service could translate")
         activeOK = false
+        if !allFailed {
+            allFailed = true
+            OveEvents.send(.cry, "không dịch vụ nào dịch được")
+        }
         throw AppError(summary.isEmpty ? L("Chưa bật dịch vụ dịch nào. Vui lòng bật ít nhất một dịch vụ ở Cài đặt → Dịch vụ dịch.", "No translation service is turned on. Go to Settings → Translation services.") : summary)
     }
 
@@ -466,6 +475,7 @@ final class TranslationHub: ObservableObject {
                     runtime[k.id, default: KeyRuntime()].cooldownUntil = until
                     runtime[k.id, default: KeyRuntime()].cooldownReason = reason
                     saveRuntime()
+                    OveEvents.send(.angry, "\(engine.title) hết hạn mức")
                     note(L("\(engine.title) key \(k.masked) tạm ngưng: \(reason). Dùng lại sau \(Self.human(until.timeIntervalSinceNow)).", "\(engine.title) key \(k.masked) paused: \(reason). Back in \(Self.human(until.timeIntervalSinceNow))."), resumeAt: until)
                     continue   // thử key kế tiếp của cùng engine
                 case .invalidKey(let m):
@@ -522,6 +532,7 @@ final class TranslationHub: ObservableObject {
         else if s.consecutiveFailures >= 3 { pause = 120 }           // lỗi liên tục
         if pause > 0 {
             s.downUntil = Date().addingTimeInterval(pause)
+            OveEvents.send(.sad, "\(engine.title) tạm ngưng")
             note(L("\(engine.title) tạm ngưng \(Self.human(pause)): \(f.message)", "\(engine.title) paused for \(Self.human(pause)): \(f.message)"), resumeAt: s.downUntil)
         }
         stats[engine] = s

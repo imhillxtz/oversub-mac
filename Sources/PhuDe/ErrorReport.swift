@@ -239,9 +239,11 @@ private struct ReportView: View {
     let openIssue: () -> Void
     let sendEmail: () -> Void
     let close: () -> Void
+    /// Ove buồn vì app vừa gặp lỗi.
+    @State private var ove = OvePoke(.hold(.sad))
 
     var body: some View {
-        DialogLayout(badge: "ladybug.fill", width: 560) {
+        DialogLayout(badge: "ladybug.fill", width: 560, mascot: true, ove: ove) {
             DialogHeader(title: L("Gửi báo lỗi", "Send a bug report"),
                          message: L("OverSub đã gói nhật ký và thông tin máy (không có key) vào tệp bên dưới. Nhật ký có chữ đọc được trong game; bạn có thể mở tệp xem trước khi gửi.",
                                     "OverSub packed the log and system information (no API keys) into the file below. The log includes text read from your games; you can open the file to review it before sending."))
