@@ -184,20 +184,32 @@ final class MascotLife: ObservableObject {
     }
 }
 
-/// Nút linh vật ở giữa màn hình chính: bật / tắt giọng đọc. Chữ bên dưới giữ như nút giọng đọc cũ.
+/// Nút Ove ở giữa màn hình chính: bật / tắt giọng đọc (tắt thì Ove ngáp rồi ngủ, bật thì tỉnh dậy). Chữ bên dưới giữ như
+/// nút giọng đọc cũ.
 struct MascotButton: View {
     @ObservedObject var speaker: Speaker
     @EnvironmentObject var settings: AppSettings
     @EnvironmentObject var engine: Engine
+    /// Lúc Ove đang ngáp hay đang tỉnh dậy thì bỏ qua cú bấm thêm, để bấm nhanh không bật tắt loạn.
+    @State private var lastToggle = Date.distantPast
 
     var body: some View {
         let on = settings.speakEnabled
         VStack(spacing: 8) {
-            Button { engine.toggleDub() } label: {
-                Mascot(mood: mood, size: orbRowHeight, cue: engine.transcript.last?.id)
+            Button {
+                guard Date().timeIntervalSince(lastToggle) > 1.6 else { return }
+                lastToggle = Date()
+                engine.toggleDub()
+            } label: {
+                if OveLibrary.shared.available {
+                    OveView(mood: mood, size: orbRowHeight, cue: engine.transcript.last?.id)
+                        .frame(width: orbRowHeight, height: orbRowHeight)
+                } else {
+                    Mascot(mood: mood, size: orbRowHeight, cue: engine.transcript.last?.id)
+                }
             }
             .buttonStyle(MascotPressStyle())
-            .background { SpeakingRipples(active: on && speaker.isSpeaking, size: orbRowHeight) }
+            .background { if !OveLibrary.shared.available { SpeakingRipples(active: on && speaker.isSpeaking, size: orbRowHeight) } }
             VStack(spacing: 2) {
                 Text(settings.dubCharacters ? "Dub" : "Voice-over").font(.headline)
                 Text(detail).font(.caption).foregroundStyle(.secondary).contentTransition(.opacity)

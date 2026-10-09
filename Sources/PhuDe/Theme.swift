@@ -101,9 +101,9 @@ struct SpeakingRipples: View {
     }
 }
 
-/// Ống nối giữa nút Phụ đề và linh vật (giọng đọc): lời thoại "chảy" từ phụ đề sang giọng đọc. Ống kính mềm, bên trong có
-/// các vệt sáng luôn trôi từ trái sang phải. Ba mức: chưa chạy (vệt trắng mờ, trôi chậm), đang chạy (vệt cam, nhanh hơn),
-/// đang đọc (sáng và nhanh nhất, ống phát sáng nhẹ).
+/// Ống nối giữa nút Phụ đề và Ove (giọng đọc): lời thoại "chảy" từ phụ đề sang giọng đọc. Ống kính trong như thuỷ tinh (mép
+/// trên bắt sáng, đáy sẫm nhẹ), bên trong có những giọt sáng mềm trôi như nước từ trái sang phải. Ba mức: chưa chạy (giọt
+/// nhạt, trôi chậm), đang chạy (giọt cam, nhanh hơn), đang đọc (sáng và nhanh nhất, ống phát sáng nhẹ).
 ///
 /// Vệt sáng chạy bằng Core Animation (hệ thống tự chạy, app không vẽ lại từng khung hình): bản vẽ bằng SwiftUI tốn khoảng 15%
 /// CPU suốt lúc cửa sổ mở. Đổi mức thì đổi tốc độ nhưng giữ nguyên vị trí vệt, không giật.
@@ -116,18 +116,30 @@ struct EnergyLink: View {
 
     var body: some View {
         let light = scheme == .light
-        let ink: Color = light ? .black : .white   // màu trung tính của ống, theo nền
+        let base = Color(red: 0.55, green: 0.27, blue: 0.18)   // nâu ấm cho đáy ống trên nền sáng
         Capsule()
-            // Thân ống: kính mờ, sáng ở mép trên, tối dần xuống dưới.
-            .fill(LinearGradient(colors: light ? [ink.opacity(0.05), ink.opacity(0.10)] : [ink.opacity(0.13), ink.opacity(0.04)],
+            // Thân ống: kính trong, mép trên sáng, xuống dưới trong dần rồi sẫm nhẹ ở đáy như ống thuỷ tinh.
+            .fill(LinearGradient(stops: light
+                    ? [.init(color: .white.opacity(0.78), location: 0), .init(color: .white.opacity(0.24), location: 0.45),
+                       .init(color: .white.opacity(0.06), location: 0.62), .init(color: base.opacity(0.13), location: 1)]
+                    : [.init(color: .white.opacity(0.30), location: 0), .init(color: .white.opacity(0.08), location: 0.45),
+                       .init(color: .white.opacity(0.03), location: 0.62), .init(color: .black.opacity(0.25), location: 1)],
                                  startPoint: .top, endPoint: .bottom))
-            .overlay(Capsule().strokeBorder(ink.opacity(light ? 0.12 : 0.10), lineWidth: 0.6))
+            .overlay(Capsule().strokeBorder(.white.opacity(light ? 0.85 : 0.22), lineWidth: 0.6))
             .overlay {
                 if enabled {
                     LinkStreaks(light: light, active: active, speaking: speaking, still: reduceMotion)
                         .clipShape(Capsule())
                 }
             }
+            // Vệt sáng mảnh chạy dọc mép trên của ống.
+            .overlay(alignment: .top) {
+                Capsule().fill(.white.opacity(light ? 0.92 : 0.45))
+                    .frame(height: 1.4)
+                    .padding(.horizontal, 4)
+                    .padding(.top, 1.2)
+            }
+            .shadow(color: base.opacity(light ? 0.12 : 0), radius: 1, y: 1)
             // Ánh cam quanh ống khi đang chạy / đang đọc (lớp tĩnh, chỉ đổi khi đổi mức).
             .background {
                 Capsule().fill(Theme.orangeEnd.opacity(speaking ? 0.5 : active ? 0.25 : 0))
@@ -152,9 +164,9 @@ private struct LinkStreaks: NSViewRepresentable {
     func updateNSView(_ view: StreakView, context: Context) { view.configure(light: light, active: active, speaking: speaking, still: still) }
 }
 
-/// Ba vệt sáng (đầu sáng, đuôi mờ dần, đốm sáng ở đầu) trôi vòng trong ống.
+/// Ba giọt sáng mềm (dài ngắn khác nhau, loang mờ ra mép) trôi vòng trong ống như nước.
 final class StreakView: NSView {
-    private struct Streak { let holder = CALayer(); let body = CAGradientLayer(); let dot = CALayer() }
+    private struct Streak { let holder = CALayer(); let body = CAGradientLayer() }
     private let lane = CALayer()
     private var streaks: [Streak] = []
     private var light = false, active = false, speaking = false, still = false
@@ -170,10 +182,11 @@ final class StreakView: NSView {
         layer?.addSublayer(lane)
         for _ in 0..<3 {
             let s = Streak()
-            s.body.startPoint = CGPoint(x: 0, y: 0.5)
-            s.body.endPoint = CGPoint(x: 1, y: 0.5)
+            s.body.type = .radial
+            s.body.startPoint = CGPoint(x: 0.5, y: 0.5)
+            s.body.endPoint = CGPoint(x: 1, y: 1)
+            s.body.locations = [0, 0.45, 1]
             s.holder.addSublayer(s.body)
-            s.holder.addSublayer(s.dot)
             lane.addSublayer(s.holder)
             streaks.append(s)
         }
@@ -200,18 +213,15 @@ final class StreakView: NSView {
     private func build() {
         builtWidth = bounds.width
         let w = bounds.width, h = bounds.height
-        let len = w * 0.34
+        let lengths: [CGFloat] = [0.3, 0.18, 0.4]
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         lane.frame = bounds
         for (i, s) in streaks.enumerated() {
-            s.holder.bounds = CGRect(x: 0, y: 0, width: len, height: h * 0.64)
-            s.holder.position = CGPoint(x: -len / 2, y: h / 2)
+            let len = w * lengths[i % lengths.count]
+            s.holder.bounds = CGRect(x: 0, y: 0, width: len, height: h * 0.62)
+            s.holder.position = CGPoint(x: -len / 2, y: h * (i == 1 ? 0.52 : 0.46))
             s.body.frame = s.holder.bounds
-            s.body.cornerRadius = h * 0.32
-            let d = h * 0.56
-            s.dot.frame = CGRect(x: len - h * 0.5, y: (h * 0.64 - d) / 2, width: d, height: d)
-            s.dot.cornerRadius = d / 2
             s.holder.removeAllAnimations()
             let phase = Double(i) / Double(streaks.count)
             if still {
@@ -229,19 +239,20 @@ final class StreakView: NSView {
         CATransaction.commit()
     }
 
-    /// Màu theo mức: chưa chạy thì trắng (đen trên nền sáng) mờ, chạy thì cam.
+    /// Màu theo mức: chưa chạy thì giọt đào nhạt (trắng trên nền tối), chạy thì cam xen giọt đào sáng.
     private func paint(animated: Bool) {
-        let level: CGFloat = speaking ? 1 : active ? (light ? 0.8 : 0.6) : (light ? 0.3 : 0.22)
+        let level: CGFloat = speaking ? 1 : active ? 0.9 : (light ? 0.75 : 0.5)
         let hot = active || speaking
-        let ink = light ? NSColor.black : NSColor.white
-        let head = hot ? NSColor(Theme.orangeStart) : ink
-        let tail = hot ? NSColor(Theme.orangeEnd) : ink
+        let calm = light ? NSColor(srgbRed: 1, green: 0.73, blue: 0.59, alpha: 1) : NSColor.white
+        let orange = NSColor(Theme.orangeStart)
+        let peach = NSColor(srgbRed: 1, green: 0.84, blue: 0.75, alpha: 1)
         CATransaction.begin()
         CATransaction.setAnimationDuration(animated ? 0.4 : 0)
         CATransaction.setDisableActions(!animated)
-        for s in streaks {
-            s.body.colors = [tail.withAlphaComponent(0).cgColor, tail.withAlphaComponent(0.55 * level).cgColor, head.withAlphaComponent(level).cgColor]
-            s.dot.backgroundColor = (hot ? NSColor.white : ink).withAlphaComponent((hot ? 0.9 : 0.75) * level).cgColor
+        for (i, s) in streaks.enumerated() {
+            let c = hot ? (i == 1 ? peach : orange) : calm
+            let a = level * (hot ? 0.85 : 0.8)
+            s.body.colors = [c.withAlphaComponent(a).cgColor, c.withAlphaComponent(a * 0.55).cgColor, c.withAlphaComponent(0).cgColor]
         }
         CATransaction.commit()
     }

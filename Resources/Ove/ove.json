@@ -1,0 +1,92 @@
+{
+ "frame": 280,
+ "cols": 10,
+ "fps": 24,
+ "sheets": {
+  "idle": {
+   "count": 90,
+   "rows": 9,
+   "kind": "atlas"
+  },
+  "live": {
+   "count": 90,
+   "rows": 9,
+   "kind": "atlas"
+  },
+  "speak": {
+   "count": 72,
+   "rows": 8,
+   "kind": "loop"
+  },
+  "happy": {
+   "count": 55,
+   "rows": 6,
+   "kind": "clip",
+   "hold": [
+    26,
+    37
+   ]
+  },
+  "sad": {
+   "count": 58,
+   "rows": 6,
+   "kind": "clip"
+  },
+  "angry": {
+   "count": 72,
+   "rows": 8,
+   "kind": "clip"
+  },
+  "dizzy": {
+   "count": 60,
+   "rows": 6,
+   "kind": "clip"
+  },
+  "cry": {
+   "count": 96,
+   "rows": 10,
+   "kind": "clip"
+  },
+  "yawn-light": {
+   "count": 62,
+   "rows": 7,
+   "kind": "clip"
+  },
+  "wake-light": {
+   "count": 48,
+   "rows": 5,
+   "kind": "clip"
+  },
+  "yawn-dark": {
+   "count": 62,
+   "rows": 7,
+   "kind": "clip"
+  },
+  "wake-dark": {
+   "count": 48,
+   "rows": 5,
+   "kind": "clip"
+  }
+ },
+ "atlas": {
+  "yaws": [
+   -0.6,
+   -0.45,
+   -0.3,
+   -0.15,
+   0,
+   0.15,
+   0.3,
+   0.45,
+   0.6
+  ],
+  "pitches": [
+   -0.36,
+   -0.18,
+   0,
+   0.18,
+   0.36
+  ],
+  "blinkFrames": 2
+ }
+}

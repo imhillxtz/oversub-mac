@@ -40,11 +40,11 @@ Tiếng Việt · [English](README.en.md)
 
 OverSub dùng được với mọi game hiện trên màn hình Mac: game Mac, game Windows chạy qua CrossOver hay Whisky, game đám mây, và máy console (Switch, PlayStation) chơi qua capture card, xem ngay trong Màn hình chơi game của OverSub hoặc bằng app xem hình như OBS. App không can thiệp vào game, nó chỉ nhìn màn hình như bạn.
 
-Cửa sổ chính có ba nút bật tắt riêng: Phụ đề bên trái, linh vật OverSub ở giữa (giọng đọc; đang đọc thì linh vật mấp máy miệng), Dịch màn hình bên phải.
+Cửa sổ chính có ba nút bật tắt riêng: Phụ đề bên trái, Ove ở giữa (linh vật 3D của OverSub, cũng là nút giọng đọc), Dịch màn hình bên phải. Ove nhìn theo chuột; đang đọc thì Ove mấp máy miệng và câu thoại hiện trong bong bóng kính của Ove; tắt giọng đọc thì Ove ngáp rồi ngủ. Đặt chuột lên đầu là Ove vui, rung chuột thật nhanh trên đầu là Ove giận.
 
 https://github.com/user-attachments/assets/db2bf69f-3bb9-4343-82d8-905128e31e92
 
-<sub>Cửa sổ chính với ba nút Phụ đề, Voice-over và Dịch màn hình. Khi OverSub đang đọc thoại, linh vật ở giữa mấp máy miệng.</sub>
+<sub>Cửa sổ chính với ba nút Phụ đề, Voice-over và Dịch màn hình. Khi OverSub đang đọc thoại, Ove ở giữa mấp máy miệng.</sub>
 
 | Tính năng | Làm gì |
 |---|---|
@@ -95,7 +95,7 @@ Bản 1.1.41 trở về trước chưa có tính năng này. Nếu đang dùng c
 2. Thêm key miễn phí (khuyên dùng): lấy key ở [Google AI Studio](https://aistudio.google.com/apikey) hoặc [Groq](https://console.groq.com/keys), vào Cài đặt → Dịch vụ dịch, dán key và bấm Kiểm tra & thêm. App sẽ thử key trước và chỉ thêm khi key dùng được.
 3. Thêm vùng phụ đề: mở game tới đoạn có lời thoại, bấm Thêm vùng phụ đề (⌘K, hoặc ⌃⌥K ngay trong game), kéo khung bao quanh chỗ phụ đề hiện ra. Nếu game có nhãn tên nhân vật, bạn nên bao cả nhãn đó. Bấm Xong, xem lại chữ đọc được rồi bấm Lưu.
 4. Bấm Bắt đầu (⌘R, hoặc ⌃⌥S trong game).
-5. Bật hoặc tắt Phụ đề, Voice-over (bấm vào linh vật ở giữa) và Dịch màn hình tuỳ nhu cầu.
+5. Bật hoặc tắt Phụ đề, Voice-over (bấm vào Ove ở giữa) và Dịch màn hình tuỳ nhu cầu.
 
 ## Hướng dẫn chi tiết
 

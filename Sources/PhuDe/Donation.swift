@@ -274,7 +274,7 @@ struct DonateView: View {
     private var header: some View {
         let lines = Donation.linesTranslated
         return HStack(spacing: 16) {
-            Mascot(mood: .idle, size: 64)
+            OveStill(mood: .idle, size: 64)
             VStack(alignment: .leading, spacing: 6) {
                 Text(L("Ủng hộ OverSub", "Support OverSub")).font(.title2.weight(.bold))
                 Text(L("OverSub miễn phí cho mọi người. Nếu thấy app hữu ích, bạn có thể mời mình một ly cà phê. Mỗi khoản ủng hộ giúp OverSub tiếp tục được sửa lỗi và có thêm tính năng mới.",

@@ -942,6 +942,65 @@ enum DebugSnapshot {
         }
     }
 
+    /// Thử Ove (OVERSUB_OVE_TEST=1, ảnh vào OVERSUB_SHOT_DIR, không kéo theo lượt chụp toàn bộ; OVERSUB_OVE_HOLD=<giây> giữ
+    /// trạng thái chờ và đang đọc lâu hơn để đo CPU): tắt giọng đọc (ngáp rồi ngủ), bật lại (tỉnh dậy), phiên
+    /// chạy (nghe), đang đọc kèm bong bóng thoại, rồi các biểu cảm vui, buồn, giận, chóng mặt rồi khóc. Mỗi bước chụp cửa sổ
+    /// chính và ghi nhật ký; xong thì trả công tắc giọng đọc và các câu về như cũ.
+    static func oveTestIfRequested(engine: Engine) {
+        let env = ProcessInfo.processInfo.environment
+        guard env["OVERSUB_OVE_TEST"] != nil, let dir = env["OVERSUB_SHOT_DIR"] else { return }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2.5))
+            NSApp.activate()
+            mainWindow()?.makeKeyAndOrderFront(nil)
+            let savedSpeak = engine.settings.speakEnabled, wasRunning = engine.running
+            let saved = (engine.lastSource, engine.lastTranslation, engine.lastSpeaker)
+            func shot(_ name: String, after wait: Double) async {
+                try? await Task.sleep(for: .seconds(wait))
+                DebugLog.write("Thử Ove: \(name)")
+                await shoot("ove-\(name)", dir: dir, window: mainWindow())
+            }
+            engine.settings.speakEnabled = true
+            await shot("idle", after: 1.2)
+            if let hold = Double(env["OVERSUB_OVE_HOLD"] ?? "") {
+                DebugLog.write("Thử Ove: giữ trạng thái chờ \(Int(hold)) giây")
+                try? await Task.sleep(for: .seconds(hold))
+            }
+            engine.settings.speakEnabled = false
+            await shot("yawn", after: 0.6)
+            await shot("asleep", after: 2.4)
+            engine.settings.speakEnabled = true
+            await shot("wake", after: 0.5)
+            await shot("idle-again", after: 2.0)
+            engine.running = true
+            await shot("listening", after: 1.5)
+            engine.lastSpeaker = "Expert Farmer"
+            engine.lastSource = "Back in the day, there used to be 100 Poogies around the vines."
+            engine.lastTranslation = "Ngày trước, có tới cả trăm chú Poogie quanh mấy giàn nho ấy chứ."
+            engine.speaker.debugSetSpeaking("")
+            await shot("speaking", after: 1.2)
+            await shot("speaking-later", after: 0.7)
+            // OVERSUB_OVE_HOLD=<giây>: giữ trạng thái đang đọc thêm từng ấy giây để đo CPU (do-cpu.sh).
+            if let hold = Double(env["OVERSUB_OVE_HOLD"] ?? "") {
+                DebugLog.write("Thử Ove: giữ đang đọc \(Int(hold)) giây")
+                try? await Task.sleep(for: .seconds(hold))
+            }
+            engine.speaker.debugSetSpeaking(nil)
+            await shot("after-speaking", after: 1.2)
+            // Mỗi đoạn biểu cảm phải chạy hết mới nhận đoạn sau (đang trong đoạn thì Ove bỏ qua), nên chờ đủ độ dài từng đoạn.
+            for (name, wait, rest) in [("happy", 1.0, 1.6), ("sad", 1.0, 1.7), ("angry", 0.9, 2.4), ("dizzy", 1.2, 1.6)] {
+                NotificationCenter.default.post(name: .oveDebugExpress, object: name)
+                await shot(name, after: wait)
+                try? await Task.sleep(for: .seconds(rest))
+                if name == "dizzy" { await shot("cry", after: 1.0); try? await Task.sleep(for: .seconds(3.4)) }
+            }
+            (engine.lastSource, engine.lastTranslation, engine.lastSpeaker) = saved
+            engine.running = wasRunning
+            engine.settings.speakEnabled = savedSpeak
+            DebugLog.write("Thử Ove xong: \(dir)")
+        }
+    }
+
     private static func mainWindow() -> NSWindow? {
         NSApp.windows.first { $0.identifier?.rawValue.hasPrefix("main") == true && $0.isVisible }
             ?? NSApp.windows.first { $0.isVisible && $0.frame.width > 600 && $0.toolbar != nil }

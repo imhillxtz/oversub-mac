@@ -402,24 +402,23 @@ struct VoiceOverStage: View {
     private var lineArea: some View {
         if hasLine {
             VStack(spacing: 8) {
-                // Hiện như phụ đề trên game (nền tối, chữ sáng): đúng tinh thần OverSub.
+                // Câu đang đọc là lời Ove nói: bong bóng thoại kính trong (Liquid Glass loại trong, khúc xạ ở mép), đuôi chỉ lên Ove.
                 VStack(spacing: 6) {
                     if let s = engine.lastSpeaker {
-                        Text(s).font(.caption.weight(.semibold)).foregroundStyle(.white.opacity(0.65))
+                        Text(s).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                     }
                     KaraokeText(speaker: speaker,
                                 text: engine.lastTranslation.isEmpty ? engine.lastSource : engine.lastTranslation,
-                                size: min(settings.windowFontSize, 30), onDark: true)
+                                size: min(settings.windowFontSize, 30))
                     if settings.windowShowsOriginal, !engine.lastTranslation.isEmpty, !engine.lastSource.isEmpty {
                         Text(engine.lastSource)
                             .font(.system(size: min(settings.windowFontSize, 30) * 0.55))
-                            .foregroundStyle(.white.opacity(0.6))
+                            .foregroundStyle(.secondary)
                             .lineLimit(3)
                     }
                 }
-                .padding(.horizontal, 22).padding(.vertical, 14)
-                .background(Color.black.opacity(0.72), in: RoundedRectangle(cornerRadius: 14))
-                .overlay(RoundedRectangle(cornerRadius: 14).stroke(.white.opacity(0.08)))
+                .padding(.horizontal, 22).padding(.top, 14 + OveBubbleShape.tail).padding(.bottom, 16)
+                .glassEffect(.clear, in: OveBubbleShape())
                 HStack(spacing: 16) {
                     Button { engine.replayLast() } label: { Label(L("Đọc lại", "Replay"), systemImage: "arrow.counterclockwise") }
                         .help(L("Đọc lại câu vừa rồi (\(HotkeyCenter.Action.replayLast.display))", "Replay the last line (\(HotkeyCenter.Action.replayLast.display))"))
@@ -561,6 +560,24 @@ struct KaraokeText: View {
             .lineLimit(lines)
             .minimumScaleFactor(lines == 1 ? 0.5 : 0.6)
             .animation(.smooth(duration: 0.18), value: end)
+    }
+}
+
+/// Bong bóng thoại của Ove: khối bo tròn có đuôi ở giữa cạnh trên, chỉ lên Ove nằm ngay phía trên.
+struct OveBubbleShape: Shape {
+    static let tail: CGFloat = 11
+    var radius: CGFloat = 22
+
+    func path(in rect: CGRect) -> Path {
+        let t = Self.tail
+        let body = CGRect(x: rect.minX, y: rect.minY + t, width: rect.width, height: rect.height - t)
+        let mid = rect.midX, half = t * 1.4
+        var tip = Path()
+        tip.move(to: CGPoint(x: mid - half, y: body.minY + 1))
+        tip.addQuadCurve(to: CGPoint(x: mid, y: rect.minY), control: CGPoint(x: mid - half * 0.3, y: body.minY))
+        tip.addQuadCurve(to: CGPoint(x: mid + half, y: body.minY + 1), control: CGPoint(x: mid + half * 0.3, y: body.minY))
+        tip.closeSubpath()
+        return Path(roundedRect: body, cornerRadius: radius, style: .continuous).union(tip)
     }
 }
 

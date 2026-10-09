@@ -294,6 +294,33 @@ Phím tắt toàn cục dùng được khi game toàn màn hình và không cầ
 
 Tay cầm (`GamepadControl`) dùng GameController, nhận nút cả khi game ở phía trước: giữ View/Share rồi bấm Y để đọc lại, X để bật tắt giọng đọc, B để ẩn hiện phụ đề.
 
+## Ove (linh vật 3D)
+
+Ove là đầu kính mờ có lõi cam, dựng bằng three.js ở `Tools/Ove/oversub-head.js` (cùng bộ dựng của prototype trên Claude
+Design). App không chạy 3D: mọi trạng thái và biểu cảm được dựng sẵn thành tấm khung hình HEIC trong `Resources/Ove`,
+`Ove.swift` lật khung bằng `contentsRect` của Core Animation.
+
+- Bộ góc đầu `idle` và `live`: 9 hướng ngang × 5 hướng dọc, mỗi góc một khung mở mắt và một khung nhắm mắt. Nhìn theo
+  chuột chọn góc gần nhất, quay đầu đi từng nấc mỗi khung.
+- Vòng đọc `speak` (3 giây, khớp đầu đuôi), các đoạn `happy` (có khoảng giữ khi được vuốt ve), `sad`, `angry`, `dizzy`,
+  `cry`, và `yawn`, `wake` riêng cho nền sáng, nền tối (mặt lúc ngủ xám khác nhau). Gợn sóng là một vòng ảnh
+  `ripple-light`, `ripple-dark` được phóng và làm mờ bằng Core Animation.
+- Mỗi khung dựng hai lần trên nền đen và nền trắng (nền chỉ dùng cho lượt khúc xạ của kính) rồi tách độ trong thật của kính,
+  nên một khung dùng được trên cả nền sáng lẫn nền tối.
+- Tương tác: bấm là bật tắt giọng đọc (ngáp rồi ngủ, tỉnh dậy; bấm thêm trong 1,6 giây bị bỏ qua); đặt chuột lên đầu nửa
+  giây là vui, vuốt hơn 1,6 giây rồi bỏ đi là buồn; rung chuột thật nhanh trên đầu (6 nhịp trong 1 giây, mỗi nhịp từ 14
+  điểm và 1100 điểm/giây) là giận; rê chuột vòng tròn quanh Ove hai vòng trong hai giây là chóng mặt rồi khóc.
+- Đo trên M1 Pro (Ove 128 điểm, cửa sổ hiện): đang đọc 0,3% một nhân, chờ khoảng 0,4%, bị che 0%; bộ nhớ cao nhất khoảng
+  124 MB lúc chuyển trạng thái, lúc thường khoảng 46 MB (app chỉ giữ tấm đang chiếu và bộ góc đầu của mặt hiện tại).
+
+Dựng lại bộ hình sau khi sửa `oversub-head.js` hay `export.html`:
+
+```sh
+python3 Tools/Ove/serve.py 8731          # phục vụ thư mục cha của Tools/Ove và nhận ảnh gửi về thư mục out/
+open http://127.0.0.1:8731/Ove/export.html   # chạy trong trình duyệt có WebGL, xong thì trang ghi "Xong."
+swift Tools/Ove/ove_pack.swift Tools/out  # nén sang HEIC, chép vào Resources/Ove kèm ove.json
+```
+
 ## Công cụ tự kiểm tra
 
 Các móc thử chỉ có trong bản dựng `OVERSUB_DEV=1 ./build.sh` (`DebugSnapshot.swift`), người dùng bình thường không bao giờ kích hoạt. Cách chạy: `open --env TÊN=giá-trị OverSub.app --args -onboardingDone YES`. Thử xong luôn mở lại app cho người dùng, vì mỗi lần thử phải tắt app đang chạy. Bài thử có ghi dữ liệu thì đặt `OVERSUB_CONTEXT_FILE` và `OVERSUB_MEMORY_DIR` vào thư mục tạm để không đụng dữ liệu thật.
@@ -317,6 +344,7 @@ Các móc thử chỉ có trong bản dựng `OVERSUB_DEV=1 ./build.sh` (`DebugS
 | `OVERSUB_LOG_ROTATE_TEST=<số dòng>` kèm `OVERSUB_LOG_ROTATE_BYTES=<byte>`, `OVERSUB_LOG_DIR=<thư mục>` | Ghi liền từng ấy dòng đánh số với ngưỡng xoay nhỏ, vào thư mục tạm để không đụng nhật ký thật (xoay ngay trên nhật ký thật sẽ đè mất `debug.1.log` của các buổi chơi trước). Đạt khi `debug.1.log` không vượt ngưỡng quá một dòng và số dòng ở cuối `debug.1.log` nối liền đầu `debug.log`. Thêm `OVERSUB_REPORT_TEST=1` để xem gói báo lỗi có kèm `debug.1.log`. `OVERSUB_LOG_ROTATE_BYTES` và `OVERSUB_LOG_DIR` dùng được với mọi bài thử khác. |
 | `OVERSUB_UPDATE_PROMPT_TEST=1` | Như bấm Kiểm tra cập nhật… ở menu, dùng `OVERSUB_UPDATE_FEED` (và `OVERSUB_UPDATE_LIST` dạng danh sách bản phát hành); chụp hộp thoại vào `OVERSUB_SHOT_DIR`. |
 | `OVERSUB_SHOT_DIR=<thư mục>` | Nơi các móc thử mới lưu ảnh chụp, không kéo theo lượt chụp toàn bộ giao diện như `OVERSUB_SNAPSHOT_DIR`. |
+| `OVERSUB_OVE_TEST=1` (kèm `OVERSUB_SHOT_DIR`) | Thử Ove: chờ, tắt giọng đọc (ngáp rồi ngủ), bật lại (tỉnh dậy), nghe, đang đọc kèm bong bóng thoại, rồi vui, buồn, giận, chóng mặt và khóc; mỗi bước chụp cửa sổ chính, xong trả công tắc giọng đọc như cũ. `OVERSUB_OVE_HOLD=<giây>` giữ trạng thái chờ và đang đọc lâu hơn để đo CPU. Cửa sổ phải lộ ra: bị che thì Ove dừng hoạt ảnh (đúng thiết kế) và ảnh biểu cảm sẽ đứng yên. |
 | `OVERSUB_REGION_STATE=<phụ đề>,<số vùng dịch>` | Đổi tên các nút vùng như khi có hoặc chưa có vùng (ví dụ `0,0`, `1,2`, `1,3`) để chụp, không đụng vùng thật. |
 | `OVERSUB_DUB_TEST=1`, `voiceover`, `gemini` | Thử ba đường phát giọng, một câu Voice-over, một câu Gemini (tốn một lượt). |
 | `OVERSUB_SCENE_TEST=1` | Chạy trọn quy trình dịch màn hình trên cảnh menu vẽ sẵn, lưu ảnh trước và sau. |

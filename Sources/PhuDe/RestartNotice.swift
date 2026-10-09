@@ -119,7 +119,7 @@ private struct RestartCountdownView: View {
     var body: some View {
         NoticeCard {
             HStack(alignment: .top, spacing: 16) {
-                Mascot(mood: .asleep, size: 52)
+                OveStill(mood: .asleep, size: 52)
                 VStack(alignment: .leading, spacing: 8) {
                     Text(L("Bộ nhận chữ của macOS không phản hồi", "macOS text recognition stopped responding"))
                         .font(.headline)
@@ -154,7 +154,7 @@ private struct StuckAgainView: View {
     var body: some View {
         NoticeCard(width: 520) {
             HStack(alignment: .top, spacing: 16) {
-                Mascot(mood: .asleep, size: 52)
+                OveStill(mood: .asleep, size: 52)
                 VStack(alignment: .leading, spacing: 8) {
                     Text(L("Bộ nhận chữ của macOS vẫn không phản hồi", "macOS text recognition is still not responding"))
                         .font(.headline)

@@ -22,6 +22,7 @@ final class AppModel {
             DispatchQueue.main.async { NSApp.appearance = NSAppearance(named: a == "light" ? .aqua : .darkAqua) }
         }
         DebugSnapshot.runIfRequested(engine: engine)
+        DebugSnapshot.oveTestIfRequested(engine: engine)
         DebugSnapshot.dubTestIfRequested(engine: engine)
         DebugSnapshot.screenTestIfRequested(engine: engine)
         DebugSnapshot.layoutTestIfRequested(settings: settings)

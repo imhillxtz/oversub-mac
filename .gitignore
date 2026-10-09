@@ -5,3 +5,4 @@ OverSub.app/
 *.dSYM
 .swiftpm/
 research/
+Tools/out/

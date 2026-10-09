@@ -40,11 +40,11 @@ OverSub reads the text in your game from the screen, translates it with AI and d
 
 OverSub works with any game shown on your Mac's screen: Mac games, Windows games through CrossOver or Whisky, cloud gaming, and consoles (Switch, PlayStation) played through a capture card, shown right in OverSub's game screen or in a viewer app such as OBS. It doesn't touch the game. It only looks at the screen, the same way you do.
 
-The main window has three switches: Subtitles on the left, the OverSub mascot in the middle (the voice; it moves its mouth while speaking) and Screen translation on the right.
+The main window has three switches: Subtitles on the left, Ove in the middle (OverSub's 3D mascot, which is also the voice switch) and Screen translation on the right. Ove follows your pointer; while reading, Ove moves its mouth and the line appears in Ove's glass speech bubble; turn the voice off and Ove yawns and falls asleep. Rest the pointer on Ove's head and it smiles; shake the pointer fast over it and it gets annoyed.
 
 https://github.com/user-attachments/assets/db2bf69f-3bb9-4343-82d8-905128e31e92
 
-<sub>The main window with its three switches: Subtitles, Voice-over and Screen translation. While OverSub is reading dialogue aloud, the mascot in the middle moves its mouth. The videos and screenshots on this page use Vietnamese as the target language; OverSub translates into 12 languages.</sub>
+<sub>The main window with its three switches: Subtitles, Voice-over and Screen translation. While OverSub is reading dialogue aloud, Ove in the middle moves its mouth. The videos and screenshots on this page use Vietnamese as the target language; OverSub translates into 12 languages.</sub>
 
 | Feature | What it does |
 |---|---|
@@ -95,7 +95,7 @@ Versions 1.1.41 and earlier can't update themselves. If you're on one of those, 
 2. Add a free key (recommended): get one from [Google AI Studio](https://aistudio.google.com/apikey) or [Groq](https://console.groq.com/keys), go to Settings → Translation services, paste it and click Check & add. The app tests the key first and only adds it if it works.
 3. Add the subtitle region: open your game at a point with dialogue, click Add subtitle region (⌘K, or ⌃⌥K in game) and drag a box around where subtitles appear. Include the character name label if the game has one. Click Done, check the text that was read, then click Save.
 4. Click Start (⌘R, or ⌃⌥S in game).
-5. Turn Subtitles, Voice-over (click the mascot in the middle) and Screen translation on or off as you like.
+5. Turn Subtitles, Voice-over (click Ove in the middle) and Screen translation on or off as you like.
 
 ## Detailed guide
 

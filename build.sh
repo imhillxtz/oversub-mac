@@ -12,6 +12,8 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$(swift build -c release $FLAGS --show-bin-path)/OverSub" "$APP/Contents/MacOS/OverSub"
 cp Info.plist "$APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+# Ove: các tấm khung hình dựng sẵn (Tools/Ove tạo ra) và bảng mô tả của chúng.
+cp -R Resources/Ove "$APP/Contents/Resources/Ove"
 # Thông báo bản quyền của FSR 1, Anime4K (giấy phép MIT yêu cầu kèm theo bản phát hành).
 cp Docs/THIRD_PARTY_NOTICES.md "$APP/Contents/Resources/THIRD_PARTY_NOTICES.md"
 # Icon kính (Liquid Glass) tự đổi sáng/tối: biên dịch Resources/AppIcon.icon bằng actool của Xcode.

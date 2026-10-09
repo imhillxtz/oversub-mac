@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Xuất khung hình Ove</title>
+<script src="three.min.js"></script>
+<script src="oversub-head.js"></script>
+<style>body{margin:0;background:#888;font:13px -apple-system,system-ui,sans-serif;color:#fff;padding:12px}#log{white-space:pre}</style>
+</head>
+<body>
+<div id="log">Đang xuất…</div>
+<script>
+/* Xuất khung hình cho app: mỗi khung dựng hai lần trên nền đen và nền trắng (nền chỉ dùng cho lượt khúc xạ của kính),
+   từ đó tách được độ trong thật của kính, nên một bộ hình dùng được cho cả nền sáng lẫn tối của cửa sổ chính.
+   Khung 280 px (đầu 256 px, đúng 128 điểm ở màn Retina), dựng ở 560 px rồi thu nhỏ cho mịn mép. */
+var F = 280, SS = 2, COLS = 10, FPS = 24;
+var logEl = document.getElementById('log');
+function log(s) { logEl.textContent += '\n' + s; }
+function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
+var simT = 1000;
+OverSubHead.setClock(function () { return simT; });
+var FACE = OverSubHead.FACE;
+
+var glc = document.createElement('canvas');
+var stage = new OverSubHead.Stage(glc, { still: true, frac: 256 / F, width: F * SS, height: F * SS });
+stage.resize(F * SS, F * SS);
+stage.renderer.setPixelRatio(1);
+stage.renderer.setSize(F * SS, F * SS, false);
+stage.shadow.visible = false;
+stage.glow.visible = false;
+
+var tmp = document.createElement('canvas');
+tmp.width = tmp.height = F;
+var tg = tmp.getContext('2d', { willReadFrequently: true });
+tg.imageSmoothingEnabled = true;
+tg.imageSmoothingQuality = 'high';
+
+function grab(q, bd) {
+  var r = Object.assign({}, q, { backdrop: bd, glow: 0, ripple: 0, orbitYaw: 0, orbitPitch: 0 });
+  stage.render(r);
+  tg.globalCompositeOperation = 'copy';
+  tg.fillStyle = bd;
+  tg.fillRect(0, 0, F, F);
+  tg.globalCompositeOperation = 'source-over';
+  tg.drawImage(glc, 0, 0, F, F);
+  return tg.getImageData(0, 0, F, F).data;
+}
+// Tách nền: trên nền đen C_b = a·F, trên nền trắng C_w = a·F + (1 − a) → a = 1 − (C_w − C_b).
+function matte(q) {
+  var b = grab(q, '#000000'), w = grab(q, '#ffffff');
+  var out = new ImageData(F, F), o = out.data;
+  for (var i = 0; i < b.length; i += 4) {
+    var a = 1 - ((w[i] - b[i]) + (w[i + 1] - b[i + 1]) + (w[i + 2] - b[i + 2])) / (3 * 255);
+    a = clamp(a, 0, 1);
+    if (a < 0.004) { o[i] = o[i + 1] = o[i + 2] = o[i + 3] = 0; continue; }
+    o[i] = Math.min(255, b[i] / a); o[i + 1] = Math.min(255, b[i + 1] / a); o[i + 2] = Math.min(255, b[i + 2] / a);
+    o[i + 3] = Math.round(a * 255);
+  }
+  return out;
+}
+
+function sleep0() { return new Promise(function (r) { setTimeout(r, 0); }); }
+function post(name, blob) { return fetch('/save?name=' + name, { method: 'POST', body: blob }); }
+
+var meta = { frame: F, cols: COLS, fps: FPS, sheets: {} };
+
+async function sheet(name, frames, extra) {
+  var rows = Math.ceil(frames.length / COLS);
+  var sc = document.createElement('canvas');
+  sc.width = F * COLS; sc.height = F * rows;
+  var sg = sc.getContext('2d');
+  for (var i = 0; i < frames.length; i++) {
+    sg.putImageData(matte(frames[i]), (i % COLS) * F, Math.floor(i / COLS) * F);
+    if (i % 6 === 5) await sleep0();
+  }
+  var blob = await new Promise(function (r) { sc.toBlob(r, 'image/png'); });
+  await post('ove-' + name + '.png', blob);
+  meta.sheets[name] = Object.assign({ count: frames.length, rows: rows }, extra || {});
+  log(name + ': ' + frames.length + ' khung, ' + Math.round(blob.size / 1024) + ' KB');
+}
+
+// Bộ góc đầu: 9 hướng ngang × 5 hướng dọc, mỗi góc hai khung mở mắt và nhắm mắt (để chớp).
+var YAWS = [-0.6, -0.45, -0.3, -0.15, 0, 0.15, 0.3, 0.45, 0.6], PITCHES = [-0.36, -0.18, 0, 0.18, 0.36];
+function atlas(face, blush, glass) {
+  var fr = [];
+  PITCHES.forEach(function (p) {
+    YAWS.forEach(function (y) {
+      [1, 0.12].forEach(function (open) {
+        fr.push({ top: face[0], bot: face[1], blush: blush, glass: glass, yaw: y, pitch: p,
+          ex: clamp(y * 0.05, -0.035, 0.035), ey: clamp(-p * 0.045, -0.03, 0.03), open: open, awake: 1, t: 0 });
+      });
+    });
+  });
+  return fr;
+}
+
+// Vòng đọc 3 giây, khớp đầu khớp đuôi: miệng |sin(8πt/L)·cos(3πt/L)|, đầu gật hai nhịp, lắc nhẹ một nhịp.
+function speakLoop() {
+  var L = 3, n = L * FPS, fr = [];
+  for (var i = 0; i < n; i++) {
+    var t = i / FPS, m = Math.abs(Math.sin(8 * Math.PI * t / L) * Math.cos(3 * Math.PI * t / L));
+    var yaw = 0.05 * Math.sin(2 * Math.PI * t / L), pitch = 0.035 * Math.sin(4 * Math.PI * t / L);
+    fr.push({ top: FACE.live[0], bot: FACE.live[1], blush: 1, glass: 0.62 + 0.38 * m, yaw: yaw, pitch: pitch,
+      roll: 0.03 * Math.sin(2 * Math.PI * t / L), ex: yaw * 0.04, ey: -pitch * 0.035, open: 0.9,
+      oval: 1, ovalW: 0.085 - 0.015 * m, ovalH: 0.04 + 0.04 * m, awake: 1, t: 0 });
+  }
+  return fr;
+}
+
+// Các đoạn biểu cảm: chạy đúng bộ cử động của prototype theo thời gian giả lập, ghi lại tư thế từng khung.
+function quiet(live) { live.nextBlink = Infinity; live.lookNext = Infinity; live.nextCue = Infinity; }
+function clip(mood, theme, action, seconds) {
+  simT = 1000;
+  var c = document.createElement('canvas');
+  c.width = c.height = 16;
+  var live = OverSubHead.create(c, { mood: mood, theme: theme, frac: 0.6, still: true, front: true, interactive: true });
+  cancelAnimationFrame(live.raf);
+  if (live.ro) live.ro.disconnect();
+  if (live.io) live.io.disconnect();
+  var caps = [];
+  live.stage.render = function (q) { caps.push(Object.assign({}, q, { top: q.top.slice(), bot: q.bot.slice() })); };
+  var dt = 1 / FPS;
+  quiet(live);
+  for (var i = 0; i < FPS; i++) { simT += dt; live.frame(simT, dt); }
+  caps.length = 0;
+  action(live);
+  quiet(live);
+  var n = Math.round(seconds * FPS);
+  for (var j = 0; j < n; j++) { simT += dt; live.frame(simT, dt); }
+  live.canvas.removeEventListener('pointerdown', live.onDown);
+  window.removeEventListener('pointermove', live.onMove);
+  window.removeEventListener('pointerup', live.onUp);
+  window.removeEventListener('pointercancel', live.onUp);
+  document.removeEventListener('pointerout', live.onLeave);
+  Stage_dispose(live);
+  return caps;
+}
+function Stage_dispose(live) { try { OverSubHead.Stage.prototype.dispose.call(live.stage); } catch (e) { /* bỏ qua */ } }
+
+// Vòng gợn sóng: một chùm sóng ở bán kính 0,62 (đơn vị đường kính đầu), ảnh 512 px phủ bán kính 1. App phóng và làm
+// mờ dần vòng này bằng Core Animation để ra gợn loang.
+async function ripple(theme) {
+  var N = 512, c = document.createElement('canvas');
+  c.width = c.height = N;
+  var g = c.getContext('2d'), img = g.createImageData(N, N), d = img.data;
+  var dark = theme === 'dark', L = [-0.55, 0.83], Ln = Math.hypot(L[0], L[1]);
+  var R = 0.62, w = 0.06, k = 2 * Math.PI / 0.12;
+  for (var y = 0; y < N; y++) for (var x = 0; x < N; x++) {
+    var px = (x + 0.5) / N * 2 - 1, py = 1 - (y + 0.5) / N * 2, r = Math.hypot(px, py);
+    var xx = r - R, e = Math.exp(-xx * xx / (w * w));
+    var slope = e * (k * Math.cos(k * xx) - 2 * xx / (w * w) * Math.sin(k * xx));
+    var dot = r > 1e-4 ? (px * L[0] + py * L[1]) / (r * Ln) : 0;
+    var lit = -slope * dot * 0.024;
+    var hi = clamp(lit, 0, 1) * (dark ? 0.7 : 0.95), lo = clamp(-lit, 0, 1) * (dark ? 0.6 : 0.4), tint = clamp(e, 0, 1) * 0.2;
+    var a = clamp(hi + lo + tint, 0, 1), s = Math.max(hi + lo + tint, 1e-4);
+    var shade = dark ? [0, 0, 0] : [115, 51, 31], col = [251, 129, 50];
+    var i = (y * N + x) * 4;
+    d[i] = (255 * hi + shade[0] * lo + col[0] * tint) / s;
+    d[i + 1] = (255 * hi + shade[1] * lo + col[1] * tint) / s;
+    d[i + 2] = (255 * hi + shade[2] * lo + col[2] * tint) / s;
+    d[i + 3] = a * 255;
+  }
+  g.putImageData(img, 0, 0);
+  var blob = await new Promise(function (r) { c.toBlob(r, 'image/png'); });
+  await post('ove-ripple-' + theme + '.png', blob);
+  log('ripple-' + theme + ': ' + Math.round(blob.size / 1024) + ' KB');
+}
+
+(async function () {
+  try {
+    var only = new URLSearchParams(location.search).get('only');
+    var want = function (n) { return !only || only.split(',').indexOf(n) >= 0; };
+    meta.atlas = { yaws: YAWS, pitches: PITCHES, blinkFrames: 2 };
+    if (want('idle')) await sheet('idle', atlas(FACE.idle, 0.75, 0.3), { kind: 'atlas' });
+    if (want('live')) await sheet('live', atlas(FACE.live, 0.9, 0.58), { kind: 'atlas' });
+    if (want('speak')) await sheet('speak', speakLoop(), { kind: 'loop' });
+    var clips = [
+      ['happy', 'listening', 'light', function (l) { l.play('happy'); l.expr.t0 = simT; l.bounceAt = simT; }, 2.3, { hold: [26, 37] }],
+      ['sad', 'listening', 'light', function (l) { l.play('sad'); l.expr.t0 = simT; }, 2.4],
+      ['angry', 'listening', 'light', function (l) { l.play('angry'); l.expr.t0 = simT; l.bounceAt = simT; }, 3.0],
+      ['dizzy', 'listening', 'light', function (l) { l.play('dizzy'); l.expr.t0 = simT; }, 2.5],
+      ['cry', 'listening', 'light', function (l) { l.play('cry'); l.expr.t0 = simT; }, 4.0],
+      ['yawn-light', 'idle', 'light', function (l) { l.setMood('asleep'); l.expr.t0 = simT; }, 2.6],
+      ['wake-light', 'asleep', 'light', function (l) { l.setMood('idle'); l.expr.t0 = simT; l.bounceAt = simT; }, 2.0],
+      ['yawn-dark', 'idle', 'dark', function (l) { l.setMood('asleep'); l.expr.t0 = simT; }, 2.6],
+      ['wake-dark', 'asleep', 'dark', function (l) { l.setMood('idle'); l.expr.t0 = simT; l.bounceAt = simT; }, 2.0]
+    ];
+    for (var i = 0; i < clips.length; i++) {
+      var c = clips[i];
+      if (!want(c[0])) continue;
+      var frames = clip(c[1], c[2], c[3], c[4]);
+      frames.forEach(function (q) { q.dark = c[2] === 'dark'; });
+      await sheet(c[0], frames, Object.assign({ kind: 'clip' }, c[5] || {}));
+    }
+    if (want('ripple')) { await ripple('light'); await ripple('dark'); }
+    await post('ove.json', new Blob([JSON.stringify(meta, null, 1)], { type: 'application/json' }));
+    log('Xong.');
+    window.done = true;
+  } catch (e) {
+    log('Lỗi: ' + e + '\n' + e.stack);
+    window.failed = String(e);
+  }
+})();
+</script>
+</body>
+</html>
