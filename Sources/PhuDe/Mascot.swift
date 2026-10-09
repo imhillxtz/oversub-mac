@@ -195,6 +195,7 @@ struct MascotButton: View {
     /// Số cú bấm dồn đã bỏ qua; dồn tới cú thứ hai thì Ove chóng mặt.
     @State private var extraTaps = 0
     @State private var ove: OvePoke?
+    @State private var hovering = false
 
     var body: some View {
         let on = settings.speakEnabled
@@ -212,13 +213,14 @@ struct MascotButton: View {
                 if OveLibrary.shared.available {
                     let last = engine.transcript.last
                     OveView(mood: mood, size: orbRowHeight, cue: last?.id, story: last.flatMap { OveReaction.story($0.source) },
-                            appEvents: true, poke: ove)
+                            appEvents: true, hovered: hovering, poke: ove)
                         .frame(width: orbRowHeight, height: orbRowHeight)
                 } else {
                     Mascot(mood: mood, size: orbRowHeight, cue: engine.transcript.last?.id)
                 }
             }
             .buttonStyle(MascotPressStyle())
+            .onHover { hovering = $0 }
             .background { if !OveLibrary.shared.available { SpeakingRipples(active: on && speaker.isSpeaking, size: orbRowHeight) } }
             VStack(spacing: 2) {
                 Text(settings.dubCharacters ? "Dub" : "Voice-over").font(.headline)

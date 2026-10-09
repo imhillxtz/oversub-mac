@@ -303,17 +303,24 @@ Design). App không chạy 3D: mọi trạng thái và biểu cảm được d�
 - Bộ quay đầu `look-idle` và `look-live`: khung nhìn thẳng (mở, nhắm mắt), rồi với mỗi hướng nhìn quanh (`look.targets`
   trong ove.json) 7 khung đi từ nhìn thẳng tới hướng đó theo nhịp sin và một khung nhắm mắt ở hướng đó để chớp; quay về
   thì chạy ngược. Bản thử đầu nhảy từng nấc 9° của bộ góc 9 × 5 hướng cũ nên Ove quay đầu khựng; bộ góc đó đã bỏ.
-- Vòng đọc `speak` (3 giây, khớp đầu đuôi; `rest` trong ove.json là các khung miệng gần khép), các đoạn `happy`, `sad`,
-  `angry`, `dizzy`, `cry` (mỗi đoạn có `hold`: khoảng giữ nét mặt), và `yawn`, `wake` riêng cho nền sáng, nền tối (mặt lúc
+- Vòng đọc `speak` (3 giây, khớp đầu đuôi; đầu chỉ lắc khi miệng mở, nên các khung `rest` miệng khép cũng là khung nhìn
+  thẳng), các đoạn `happy`, `sad`, `angry`, `dizzy`, `cry` ghi lại từ prototype (mỗi đoạn có `hold`: khoảng giữ nét mặt; hai
+  bản: mặt đang chạy và `-idle` cho mặt chờ; 6 khung đầu, 8 khung cuối được hoà về đúng mặt đứng yên), và `yawn`, `wake` riêng cho nền sáng, nền tối (mặt lúc
   ngủ xám khác nhau). Ngáp và tỉnh dậy tính tư thế từng khung (không ghi lại prototype) để khung đầu, khung cuối trùng
   khít mặt đứng yên: màu đổi chậm, mắt không mở lại giữa chừng, tỉnh dậy không cười. Gợn sóng là một vòng ảnh `ripple-light`, `ripple-dark` được phóng và làm mờ bằng Core Animation.
   Từ 1.1.77 kính của vòng đọc dày mỏng chậm một nhịp mỗi vòng; bản trước đổi theo từng lần mở miệng nên Ove nhấp nháy
   màu lúc đọc.
 - Mỗi khung dựng hai lần trên nền đen và nền trắng (nền chỉ dùng cho lượt khúc xạ của kính) rồi tách độ trong thật của kính,
   nên một khung dùng được trên cả nền sáng lẫn nền tối.
-- Lúc rảnh (chưa bấm Bắt đầu): chớp mắt, cứ 15 đến 30 giây nhìn quanh một kiểu (trái, phải, ngước lên, liếc qua lại...)
-  rồi nhìn thẳng lại, khoảng 2 phút vui khẽ một lần. Đang nhận phụ đề thì nhịp thưa gấp đôi. Trước khi đổi trạng thái hay
-  làm nét mặt, Ove luôn quay về nhìn thẳng (hai hình khác hướng mờ chồng lên nhau thì lộ bốn mắt).
+- Nét mặt lúc rảnh `fx-*` (phấn khích ><, nháy mắt, ngân nga, ngượng ><, tò mò, hắt xì, ngủ gật, ngạc nhiên) và bị cù
+  `tickle-idle`, `tickle-live` (đoạn vào, vòng cười lặp, đoạn ra; `parts` trong ove.json) tính tư thế từng khung từ mặt
+  đứng yên, đầu cuối trùng khít. Bộ dựng có thêm mắt nheo `squeeze` (><) và nháy một mắt `winkL`, `winkR`.
+- Lúc rảnh (chưa bấm Bắt đầu): chớp mắt; cứ 5 đến 9 giây một cử động nhỏ (nhìn quanh, nháy mắt, nghiêng đầu), cứ ba lần
+  thì một cảnh đời thường gắn với chỗ quanh Ove (ngó nút Bắt đầu rồi nháy mắt, nhìn sang Phụ đề tò mò, ngủ gật giật mình
+  rồi ngượng, hắt xì...). Mở app hay quay lại cửa sổ sau hơn 30 giây thì Ove chào. Đang nhận phụ đề: 30 đến 60 giây nhìn
+  quanh một lần, khoảng 4 phút vui một lần.
+- Không bao giờ mờ chồng hai hình khác tư thế (lộ hai mặt cùng lúc): bị ngắt giữa nét mặt thì tua ngược nhanh về khung
+  đầu; đang nghiêng đầu thì quay về nhìn thẳng (tính từ khung đang hiện thật) rồi mới đổi trạng thái.
 - Đọc xong: vòng đọc chạy tới khung miệng khép kế tiếp, sóng loang tiếp và lặn dần trong 1,6 giây, quầng cam nhạt dần, Ove
   gật nhẹ. Câu mới tới lúc đó thì đọc tiếp từ đúng khung đang hiện.
 - Biểu cảm theo sự kiện (`OveEvents.send`): chóng mặt khi Vision treo phải khởi động lại, khóc khi Vision vẫn treo, khi
@@ -323,13 +330,17 @@ Design). App không chạy 3D: mọi trạng thái và biểu cảm được d�
 - Phản ứng theo câu thoại: đọc xong một câu mà 1,2 giây không có câu nối tiếp, câu cười thì vui, câu buồn thì buồn, câu hét
   thì giận (bộ đoán cảm xúc `Emotion` của giọng lồng tiếng), nhiều nhất một lần mỗi phút.
 - Chuột: bấm là bật tắt giọng đọc (ngáp rồi ngủ, tỉnh dậy); bấm dồn trong 1,6 giây bị bỏ qua, dồn tới cú thứ hai thì Ove
-  chóng mặt. Không phản ứng khi rê chuột (đã thử, người dùng thấy tệ hơn).
+  chóng mặt. Rê chuột vào thì Ove như bị cù (nheo mắt >< cười khúc khích, lắc lư); rê qua lại từ ba lần trong 8 giây thì
+  lúc rời ra Ove đỏ mặt ngượng. Bản thử đầu dùng lại đoạn vui của mặt đang chạy nên đổi màu, lộ mặt kép, đã bỏ.
 - Hộp thoại có Ove (`OveFigure`): báo khởi động lại (chóng mặt), Vision vẫn treo (buồn), hộp thoại cập nhật và gửi báo lỗi
   (Ove thay biểu tượng app: có bản mới thì vui, lỗi thì buồn và giữ nét mặt), cửa sổ Ủng hộ (vui khi mở; mức cà phê cười
   thoáng, bữa sáng vui, bữa trưa rất vui, tuỳ bạn thì nhìn xuống mã QR; không mức nào làm Ove buồn; nhìn về mã QR khi
   đổi kênh, nhìn xuống khi gõ tên).
 - Lớp hình Ove tắt hoạt ảnh ngầm (`actions` của `contentsRect`, `contents`): thiếu nó thì mỗi lần đặt khung ngoài hoạt ảnh
   lật khung, Core Animation trượt ô cắt 0,25 giây qua tấm và Ove hiện thành mảnh ghép bốn khung.
+- Đổi tấm phải gỡ hoạt ảnh cũ, đặt hình và ô cắt trong cùng một lần cập nhật; lật khung thì giá trị gốc đặt bằng khung đầu,
+  hoạt ảnh giữ khung cuối (`fillMode` forwards) rồi mới chốt. Làm khác đi thì có khung lẻ bị bóp dẹt, nhiều mặt, hay khung
+  cuối lóe lên trước. Dò bằng cách quay màn hình và tìm khung khác hẳn cả hai khung kề (1.1.78: 15 khung lỗi còn 0).
 - Đang phát tiếng thì Ove đọc và nền rực theo, kể cả khi nghe thử giọng lúc giọng đọc đang tắt; đi giữa ngủ và đọc thì mờ
   chuyển nhanh, ngáp và tỉnh dậy chỉ chạy khi bấm tắt, bật giọng đọc.
 - Đo trên M1 Pro (Ove 128 điểm, cửa sổ hiện): đang đọc 0,3% một nhân, chờ khoảng 0,4%, bị che 0%. App chỉ giữ tấm đang

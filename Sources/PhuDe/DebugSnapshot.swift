@@ -943,7 +943,8 @@ enum DebugSnapshot {
     }
 
     /// Thử Ove (OVERSUB_OVE_TEST=1, ảnh vào OVERSUB_SHOT_DIR, không kéo theo lượt chụp toàn bộ; OVERSUB_OVE_HOLD=<giây> giữ
-    /// trạng thái chờ và đang đọc lâu hơn để đo CPU): nhìn quanh (nhịp rút ngắn), tắt giọng đọc (ngáp rồi
+    /// trạng thái chờ và đang đọc lâu hơn để đo CPU): tám nét mặt lúc rảnh, bị cù ba lần (lần ba thì ngượng), cảnh lúc rảnh
+    /// (nhịp rút ngắn), tắt giọng đọc (ngáp rồi
     /// ngủ), nghe thử giọng lúc ngủ, bật lại (tỉnh dậy), phiên chạy, đọc một câu có tiếng cười rồi đọc xong (Ove phản ứng
     /// vui), các biểu cảm theo sự kiện của app, và một sự kiện tới lúc đang đọc (xếp chờ, đọc xong mới làm). Mỗi bước chụp
     /// cửa sổ chính và ghi nhật ký; xong thì trả công tắc giọng đọc và các câu về như cũ.
@@ -962,19 +963,49 @@ enum DebugSnapshot {
                 await shoot("ove-\(name)", dir: dir, window: mainWindow())
             }
             func pause(_ seconds: Double) async { try? await Task.sleep(for: .seconds(seconds)) }
+            // OVERSUB_OVE_PARTS=fx,tickle,scene,rest: chỉ chạy các phần này (mặc định chạy hết).
+            let parts = env["OVERSUB_OVE_PARTS"].map { Set($0.split(separator: ",").map(String.init)) }
+            func want(_ part: String) -> Bool { parts?.contains(part) ?? true }
             engine.settings.speakEnabled = true
             await shot("idle", after: 1.2)
             if let hold = Double(env["OVERSUB_OVE_HOLD"] ?? "") {
                 DebugLog.write("Thử Ove: giữ trạng thái chờ \(Int(hold)) giây")
                 await pause(hold)
             }
-            // Nhìn quanh: rút nhịp còn khoảng 2 đến 4 giây một lần để thấy vài kiểu trong 12 giây.
-            OveLayerView.debugLifeScale = 0.13
-            NotificationCenter.default.post(name: .oveDebugLife, object: nil)
-            for i in 0..<6 { await shot("look-\(i)", after: 2.0) }
-            OveLayerView.debugLifeScale = 1
-            NotificationCenter.default.post(name: .oveDebugLife, object: nil)
-            await pause(2.0)
+            // Nét mặt lúc rảnh: diễn lần lượt từng nét, chụp ở giữa đoạn.
+            if want("fx") {
+            for (name, len) in [("wink", 1.4), ("excited", 1.7), ("hum", 2.8), ("shy", 2.4), ("curious", 2.2), ("sneeze", 2.0),
+                                ("doze", 3.0), ("surprised", 1.6)] {
+                NotificationCenter.default.post(name: .oveDebugFidget, object: name)
+                await shot("fx-\(name)", after: len * 0.45)
+                await pause(len * 0.55 + 0.8)
+            }
+            }
+            // Rê chuột vào, ra ba lần trong 8 giây: lần ba rời ra thì Ove đỏ mặt ngượng.
+            if want("tickle") {
+            for i in 0..<3 {
+                NotificationCenter.default.post(name: .oveDebugHover, object: true)
+                await shot("tickle-\(i)", after: 0.9)
+                NotificationCenter.default.post(name: .oveDebugHover, object: false)
+                await pause(1.4)
+            }
+            await shot("tickle-shy", after: 0.2)
+            await pause(2.6)
+            }
+            // Cảnh lúc rảnh: rút nhịp còn khoảng 2 đến 3,6 giây một lần để xem nhiều cảnh trong 20 giây.
+            if want("scene") {
+                OveLayerView.debugLifeScale = 0.4
+                NotificationCenter.default.post(name: .oveDebugLife, object: nil)
+                for i in 0..<5 { await shot("scene-\(i)", after: 4.0) }
+                OveLayerView.debugLifeScale = 1
+                NotificationCenter.default.post(name: .oveDebugLife, object: nil)
+                await pause(3.0)
+            }
+            guard want("rest") else {
+                engine.settings.speakEnabled = savedSpeak
+                DebugLog.write("Thử Ove xong: \(dir)")
+                return
+            }
             // Chụp dồn ngay sau mỗi lần đổi trạng thái để bắt khoảnh khắc chuyển cảnh (lỗi mảnh ghép bốn khung lộ ra ở đây).
             func burst(_ name: String) async { for i in 0..<4 { await shot("\(name)-\(i)", after: 0.06) } }
             engine.settings.speakEnabled = false

@@ -270,6 +270,8 @@
     this.eyeMat = mat(MATS.eye);
     var eyeGeo = new T.CapsuleGeometry(EYE.w / 2, EYE.h - EYE.w, 12, 28);
     var arcGeo = new T.TorusGeometry(0.042, 0.012, 12, 40, Math.PI);
+    // Mắt nheo "><": hai nét ngắn chụm đầu về phía giữa mặt (mắt trái ">", mắt phải lật thành "<").
+    var chevGeo = new T.CapsuleGeometry(0.0135, 0.058, 6, 14);
     this.eyes = [-1, 1].map(function (sx) {
       var g = new T.Group();
       var pill = new T.Mesh(eyeGeo, self.eyeMat);
@@ -280,8 +282,17 @@
       var down = new T.Mesh(arcGeo, self.eyeMat);
       down.rotation.z = Math.PI;
       down.position.set(0, 0.006, 0.006);
-      g.add(pill, up, down);
-      g.userData = { sx: sx, pill: pill, up: up, down: down };
+      var chev = new T.Group();
+      [1, -1].forEach(function (s) {
+        var m = new T.Mesh(chevGeo, self.eyeMat);
+        m.scale.z = 0.6;
+        m.position.set(-0.008, 0.021 * s, 0.006);
+        m.rotation.z = -s * 0.56 - Math.PI / 2;
+        chev.add(m);
+      });
+      chev.scale.x = -sx;
+      g.add(pill, up, down, chev);
+      g.userData = { sx: sx, pill: pill, up: up, down: down, chev: chev };
       self.head.add(g);
       return g;
     });
@@ -396,26 +407,30 @@
     this.eyeMat.color.setRGB(ec[0] / 255, ec[1] / 255, ec[2] / 255, T.SRGBColorSpace);
 
     var ex = q.ex || 0, ey = q.ey || 0, es = q.eyeScale || 1;
-    var happy = q.happy || 0, sleep = q.sleep == null ? 1 - awake : q.sleep;
+    var happy = q.happy || 0, sleep = q.sleep == null ? 1 - awake : q.sleep, squeeze = q.squeeze || 0;
     var open = q.open == null ? 1 : q.open;
-    // Đổi dáng mắt qua một nhịp khép như chớp mắt: viên thuốc khép thành vạch ở nửa đầu, nét cong mở ra từ vạch ở nửa sau,
-    // nên không có lúc hai hình chồng lên nhau.
-    var shut = Math.max(happy, sleep);
-    var pillK = clamp(1 - shut * 2, 0, 1);
-    var upK = clamp(happy * 2 - 1, 0, 1), downK = clamp(sleep * 2 - 1, 0, 1);
-    var pillY = Math.max(0.12, open * es * pillK);
+    // Đổi dáng mắt qua một nhịp khép như chớp mắt: viên thuốc khép thành vạch ở nửa đầu, nét cong (vui, ngủ) hay nét nheo
+    // "><" mở ra từ vạch ở nửa sau, nên không có lúc hai hình chồng lên nhau. Nháy mắt (`winkL`, `winkR`) là nét vui riêng
+    // một bên.
     this.eyes.forEach(function (g) {
       var u = g.userData;
+      var h = Math.max(happy, u.sx < 0 ? (q.winkL || 0) : (q.winkR || 0));
+      var shut = Math.max(h, sleep, squeeze);
+      var pillK = clamp(1 - shut * 2, 0, 1);
+      var upK = clamp(h * 2 - 1, 0, 1), downK = clamp(sleep * 2 - 1, 0, 1), sqK = clamp(squeeze * 2 - 1, 0, 1);
+      var pillY = Math.max(0.12, open * es * pillK);
       var x = u.sx * EYE.x * (1 + 0.08 * (es - 1)) + ex, y = EYE.y + ey - 0.02 * downK + 0.012 * upK;
       g.position.set(x, y, self.onCore(x, y, -0.006));
       g.rotation.set(-Math.asin(y / CORE.r), Math.asin(x / CORE.r), 0);
       u.pill.visible = shut < 0.5;
       u.pill.scale.set(es, pillY, 0.45);
       u.pill.rotation.z = u.sx * (q.eyeTilt || 0);
-      u.up.visible = happy >= 0.5 && happy >= sleep;
+      u.up.visible = h >= 0.5 && h >= sleep && h >= squeeze;
       u.up.scale.set(es, Math.max(0.05, upK) * es, 0.6);
-      u.down.visible = sleep >= 0.5 && sleep > happy;
+      u.down.visible = sleep >= 0.5 && sleep > h && sleep >= squeeze;
       u.down.scale.set(0.95, Math.max(0.05, downK) * 0.8, 0.6);
+      u.chev.visible = squeeze >= 0.5 && squeeze > h && squeeze > sleep;
+      u.chev.scale.set(-u.sx * es * Math.max(0.05, sqK), es * Math.max(0.05, sqK), 1);
     });
 
     var ov = q.oval || 0, my = -0.13;

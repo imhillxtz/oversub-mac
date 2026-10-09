@@ -1,142 +1,241 @@
 {
- "cols": 10,
- "fps": 24,
- "frame": 280,
- "look": {
-  "steps": 7,
-  "targets": [
-   [
-    -2,
-    0
-   ],
-   [
-    2,
-    0
-   ],
-   [
-    0,
-    -1
-   ],
-   [
-    0,
-    1
-   ],
-   [
-    2,
-    1
-   ],
-   [
-    2,
-    -1
-   ],
-   [
-    -3,
-    0
-   ],
-   [
-    3,
-    0
-   ]
-  ]
- },
- "sheets": {
-  "angry": {
-   "count": 72,
-   "hold": [
-    12,
-    54
-   ],
-   "kind": "clip",
-   "rows": 8
+  "cols" : 10,
+  "fps" : 24,
+  "frame" : 280,
+  "look" : {
+    "steps" : 7,
+    "targets" : [
+      [
+        -2,
+        0
+      ],
+      [
+        2,
+        0
+      ],
+      [
+        0,
+        -1
+      ],
+      [
+        0,
+        1
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        2,
+        -1
+      ],
+      [
+        -3,
+        0
+      ],
+      [
+        3,
+        0
+      ]
+    ]
   },
-  "cry": {
-   "count": 96,
-   "hold": [
-    16,
-    76
-   ],
-   "kind": "clip",
-   "rows": 10
-  },
-  "dizzy": {
-   "count": 60,
-   "hold": [
-    16,
-    40
-   ],
-   "kind": "clip",
-   "rows": 6
-  },
-  "happy": {
-   "count": 55,
-   "hold": [
-    26,
-    37
-   ],
-   "kind": "clip",
-   "rows": 6
-  },
-  "look-idle": {
-   "count": 66,
-   "kind": "look",
-   "rows": 7
-  },
-  "look-live": {
-   "count": 66,
-   "kind": "look",
-   "rows": 7
-  },
-  "sad": {
-   "count": 58,
-   "hold": [
-    16,
-    36
-   ],
-   "kind": "clip",
-   "rows": 6
-  },
-  "speak": {
-   "count": 72,
-   "kind": "loop",
-   "rest": [
-    0,
-    9,
-    10,
-    11,
-    12,
-    18,
-    27,
-    35,
-    36,
-    37,
-    45,
-    54,
-    60,
-    61,
-    62,
-    63
-   ],
-   "rows": 8
-  },
-  "wake-dark": {
-   "count": 48,
-   "kind": "clip",
-   "rows": 5
-  },
-  "wake-light": {
-   "count": 48,
-   "kind": "clip",
-   "rows": 5
-  },
-  "yawn-dark": {
-   "count": 58,
-   "kind": "clip",
-   "rows": 6
-  },
-  "yawn-light": {
-   "count": 58,
-   "kind": "clip",
-   "rows": 6
+  "sheets" : {
+    "angry" : {
+      "count" : 72,
+      "hold" : [
+        12,
+        54
+      ],
+      "kind" : "clip",
+      "rows" : 8
+    },
+    "angry-idle" : {
+      "count" : 72,
+      "hold" : [
+        12,
+        54
+      ],
+      "kind" : "clip",
+      "rows" : 8
+    },
+    "cry" : {
+      "count" : 96,
+      "hold" : [
+        16,
+        76
+      ],
+      "kind" : "clip",
+      "rows" : 10
+    },
+    "cry-idle" : {
+      "count" : 96,
+      "hold" : [
+        16,
+        76
+      ],
+      "kind" : "clip",
+      "rows" : 10
+    },
+    "dizzy" : {
+      "count" : 60,
+      "hold" : [
+        16,
+        40
+      ],
+      "kind" : "clip",
+      "rows" : 6
+    },
+    "dizzy-idle" : {
+      "count" : 60,
+      "hold" : [
+        16,
+        40
+      ],
+      "kind" : "clip",
+      "rows" : 6
+    },
+    "fx-curious" : {
+      "count" : 53,
+      "kind" : "clip",
+      "rows" : 6
+    },
+    "fx-doze" : {
+      "count" : 72,
+      "kind" : "clip",
+      "rows" : 8
+    },
+    "fx-excited" : {
+      "count" : 41,
+      "kind" : "clip",
+      "rows" : 5
+    },
+    "fx-hum" : {
+      "count" : 67,
+      "kind" : "clip",
+      "rows" : 7
+    },
+    "fx-shy" : {
+      "count" : 58,
+      "kind" : "clip",
+      "rows" : 6
+    },
+    "fx-sneeze" : {
+      "count" : 48,
+      "kind" : "clip",
+      "rows" : 5
+    },
+    "fx-surprised" : {
+      "count" : 38,
+      "kind" : "clip",
+      "rows" : 4
+    },
+    "fx-wink" : {
+      "count" : 34,
+      "kind" : "clip",
+      "rows" : 4
+    },
+    "happy" : {
+      "count" : 55,
+      "hold" : [
+        26,
+        37
+      ],
+      "kind" : "clip",
+      "rows" : 6
+    },
+    "happy-idle" : {
+      "count" : 55,
+      "hold" : [
+        26,
+        37
+      ],
+      "kind" : "clip",
+      "rows" : 6
+    },
+    "look-idle" : {
+      "count" : 66,
+      "kind" : "look",
+      "rows" : 7
+    },
+    "look-live" : {
+      "count" : 66,
+      "kind" : "look",
+      "rows" : 7
+    },
+    "sad" : {
+      "count" : 58,
+      "hold" : [
+        16,
+        36
+      ],
+      "kind" : "clip",
+      "rows" : 6
+    },
+    "sad-idle" : {
+      "count" : 58,
+      "hold" : [
+        16,
+        36
+      ],
+      "kind" : "clip",
+      "rows" : 6
+    },
+    "speak" : {
+      "count" : 72,
+      "kind" : "loop",
+      "rest" : [
+        0,
+        9,
+        12,
+        18,
+        27,
+        35,
+        36,
+        37,
+        45,
+        54,
+        60,
+        63
+      ],
+      "rows" : 8
+    },
+    "tickle-idle" : {
+      "count" : 29,
+      "kind" : "clip",
+      "parts" : [
+        8,
+        20
+      ],
+      "rows" : 3
+    },
+    "tickle-live" : {
+      "count" : 29,
+      "kind" : "clip",
+      "parts" : [
+        8,
+        20
+      ],
+      "rows" : 3
+    },
+    "wake-dark" : {
+      "count" : 48,
+      "kind" : "clip",
+      "rows" : 5
+    },
+    "wake-light" : {
+      "count" : 48,
+      "kind" : "clip",
+      "rows" : 5
+    },
+    "yawn-dark" : {
+      "count" : 58,
+      "kind" : "clip",
+      "rows" : 6
+    },
+    "yawn-light" : {
+      "count" : 58,
+      "kind" : "clip",
+      "rows" : 6
+    }
   }
- }
 }

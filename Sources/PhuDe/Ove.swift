@@ -64,6 +64,8 @@ extension Notification.Name {
     static let oveReaction = Notification.Name("vn.imhillxtz.oversub.oveReaction")
     #if DEVTOOLS
     static let oveDebugLife = Notification.Name("vn.imhillxtz.oversub.oveDebugLife")
+    static let oveDebugHover = Notification.Name("vn.imhillxtz.oversub.oveDebugHover")
+    static let oveDebugFidget = Notification.Name("vn.imhillxtz.oversub.oveDebugFidget")
     #endif
 }
 
@@ -88,6 +90,8 @@ final class OveLibrary {
         let hold: [Int]?
         /// Các khung miệng gần khép của vòng đọc.
         let rest: [Int]?
+        /// Chỗ chia đoạn (bị cù: đoạn vào kết thúc trước `parts[0]`, vòng lặp từ `parts[0]` tới trước `parts[1]`, rồi đoạn ra).
+        var parts: [Int]? = nil
 
         /// Ô của khung thứ `i` theo toạ độ đơn vị của `contentsRect`. Tấm xếp hàng từ trên xuống, còn `contentsRect` trên
         /// macOS tính từ đáy ảnh lên, nên phải lật hàng.
@@ -102,7 +106,9 @@ final class OveLibrary {
     }
 
     private struct Meta: Decodable {
-        struct SheetInfo: Decodable { let count: Int; let rows: Int; let kind: String; let hold: [Int]?; let rest: [Int]? }
+        struct SheetInfo: Decodable {
+            let count: Int; let rows: Int; let kind: String; let hold: [Int]?; let rest: [Int]?; let parts: [Int]?
+        }
         struct Look: Decodable { let targets: [[Int]]; let steps: Int }
         let frame: Int
         let cols: Int
@@ -164,7 +170,8 @@ final class OveLibrary {
     @discardableResult
     private func store(_ name: String, _ image: CGImage) -> Sheet? {
         guard let meta, let info = meta.sheets[name] else { return nil }
-        let s = Sheet(image: image, count: info.count, cols: meta.cols, rows: info.rows, hold: info.hold, rest: info.rest)
+        let s = Sheet(image: image, count: info.count, cols: meta.cols, rows: info.rows, hold: info.hold, rest: info.rest,
+                      parts: info.parts)
         cache[name] = s
         return s
     }
@@ -179,6 +186,15 @@ final class OveLibrary {
         guard let meta, a != .front, let k = lookTargets.firstIndex(of: a) else { return nil }
         let base = 2 + k * (meta.look.steps + 1)
         return Array(base..<base + meta.look.steps)
+    }
+
+    /// Khung `frame` của bộ quay đầu nằm ở hướng nào, bước thứ mấy trên dãy quay tới hướng đó (nhìn thẳng thì bước -1).
+    func lookPosition(of frame: Int) -> (OveAngle, Int)? {
+        guard let meta, frame >= 0 else { return nil }
+        if frame < 2 { return (.front, -1) }
+        let k = (frame - 2) / (meta.look.steps + 1), j = (frame - 2) % (meta.look.steps + 1)
+        guard k < lookTargets.count else { return nil }
+        return (lookTargets[k], min(j, meta.look.steps - 1))
     }
 
     /// Khung mở mắt (hay nhắm mắt) ở hướng `a` trong bộ quay đầu.
@@ -218,6 +234,8 @@ struct OveView: NSViewRepresentable {
     var story: OveReaction? = nil
     /// Nhận biểu cảm theo sự kiện của app (`OveEvents`). Chỉ Ove ở cửa sổ chính bật.
     var appEvents = false
+    /// Chuột đang nằm trên Ove: Ove như bị cù.
+    var hovered = false
     var poke: OvePoke? = nil
     @Environment(\.colorScheme) private var scheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -226,20 +244,22 @@ struct OveView: NSViewRepresentable {
     func makeNSView(context: Context) -> OveLayerView { OveLayerView(size: size) }
     func updateNSView(_ view: OveLayerView, context: Context) {
         view.configure(.init(mood: mood, dark: scheme == .dark, animating: animating, still: reduceMotion, cue: cue,
-                             story: story, appEvents: appEvents, poke: poke))
+                             story: story, appEvents: appEvents, hovered: hovered, poke: poke))
     }
 }
 
-/// Ove trong hộp thoại và cửa sổ phụ: sống như ở cửa sổ chính (chớp mắt, nhìn quanh) và làm nét mặt theo `poke`. Thiếu bộ
-/// hình thì dùng linh vật 2D.
+/// Ove trong hộp thoại và cửa sổ phụ: sống như ở cửa sổ chính (chớp mắt, nhìn quanh, diễn cảnh lúc rảnh), làm nét mặt
+/// theo `poke`, rê chuột vào thì như bị cù. Thiếu bộ hình thì dùng linh vật 2D.
 struct OveFigure: View {
     var size: CGFloat
     var poke: OvePoke? = nil
+    @State private var hovered = false
 
     var body: some View {
         if OveLibrary.shared.available {
-            OveView(mood: .idle, size: size, poke: poke)
+            OveView(mood: .idle, size: size, hovered: hovered, poke: poke)
                 .frame(width: size, height: size)
+                .onHover { hovered = $0 }
                 .accessibilityHidden(true)
         } else {
             Mascot(mood: .idle, size: size)
@@ -256,6 +276,7 @@ final class OveLayerView: NSView {
         var cue: UUID?
         var story: OveReaction?
         var appEvents: Bool
+        var hovered: Bool
         var poke: OvePoke?
     }
 
@@ -293,7 +314,6 @@ final class OveLayerView: NSView {
     private var lifeGen = 0
     /// Hướng đầu đang hiện trên bộ quay đầu.
     private var angle = OveAngle.front
-    private var lastGesture = -1
     /// Nét mặt đang giữ (hộp thoại báo lỗi): không chớp mắt, không nhìn quanh.
     private var held: OveReaction?
     /// Biểu cảm chờ chạy khi Ove đang bận (đang đọc, đang ngáp...), kèm lúc tới; quá 8 giây thì bỏ.
@@ -304,6 +324,8 @@ final class OveLayerView: NSView {
     private var lastStoryAt = Date.distantPast
     /// Lúc vòng đọc bắt đầu (giờ Core Animation), để biết miệng đang ở khung nào khi đọc xong.
     private var speakStart: CFTimeInterval = 0
+    /// Lần lật khung gần nhất (dãy khung, lúc bắt đầu, có lặp không), để tua ngược đoạn đang làm dở khi bị ngắt.
+    private var lastRun: (frames: [Int], start: CFTimeInterval, repeating: Bool)?
 
     #if DEVTOOLS
     /// Móc thử rút ngắn khoảng cách giữa các lần nhìn quanh, vui khẽ (OVERSUB_OVE_TEST).
@@ -342,6 +364,20 @@ final class OveLayerView: NSView {
             MainActor.assumeIsolated {
                 guard let self, self.observer != nil else { return }
                 self.startLife()
+            }
+        }
+        // Móc thử: giả lập rê chuột vào Ove ở cửa sổ chính, và diễn một nét mặt lúc rảnh theo tên.
+        NotificationCenter.default.addObserver(forName: .oveDebugHover, object: nil, queue: .main) { [weak self] n in
+            MainActor.assumeIsolated {
+                guard let self, self.observer != nil, let on = n.object as? Bool else { return }
+                self.hovered = on
+                self.hoverChanged()
+            }
+        }
+        NotificationCenter.default.addObserver(forName: .oveDebugFidget, object: nil, queue: .main) { [weak self] n in
+            MainActor.assumeIsolated {
+                guard let self, self.observer != nil, let f = (n.object as? String).flatMap(Fidget.init(rawValue:)) else { return }
+                self.act([.fx(f)])
             }
         }
         #endif
@@ -419,6 +455,13 @@ final class OveLayerView: NSView {
                 if mood != .asleep { bounce() }
             }
         }
+        if input.hovered != hovered {
+            hovered = input.hovered
+            hoverChanged()
+        }
+        if first {
+            after(1.2, alive: { true }) { [weak self] in self?.greet() }
+        }
         if let p = input.poke, p != poke {
             poke = p
             // Lần đầu thì chờ view vào cửa sổ và hiện xong khung đầu đã.
@@ -434,7 +477,7 @@ final class OveLayerView: NSView {
     private var awake: Bool { mood == .idle || mood == .listening }
     /// Đứng chờ ở bộ quay đầu, không bận đoạn nào: được chớp mắt, nhìn quanh, làm nét mặt.
     private var resting: Bool {
-        guard live, awake, !inClip, held == nil else { return false }
+        guard live, awake, !inClip, held == nil, !acting else { return false }
         if case .face = showing { return true }
         return false
     }
@@ -456,8 +499,19 @@ final class OveLayerView: NSView {
     private func enter(_ new: Mascot.Mood, from old: Mascot.Mood?) {
         moodGen += 1
         lifeGen += 1
-        // Đang nghiêng đầu nhìn quanh thì quay về nhìn thẳng trước rồi mới chuyển: hai hình khác hướng mờ chồng lên nhau
-        // thì lộ bốn mắt.
+        cancelScene()
+        tickling = false
+        tickleLooping = false
+        // Đang làm dở nét mặt thì tua ngược về mặt thường, đang nghiêng đầu nhìn quanh thì quay về nhìn thẳng, rồi mới chuyển:
+        // hai hình khác tư thế mờ chồng lên nhau thì lộ hai mặt cùng lúc.
+        if inClip, showing == .clip, rewindable, live {
+            let gen = moodGen
+            rewind { [weak self] in
+                guard let self, self.moodGen == gen else { return }
+                self.enterNow(new, from: old)
+            }
+            return
+        }
         if angle != .front, case .face = showing, live, !inClip {
             let gen = moodGen
             turn(to: .front) { [weak self] in
@@ -516,7 +570,7 @@ final class OveLayerView: NSView {
     private func showAsleep(fade: Bool = false, duration: Double = 0.22) {
         inClip = false
         showing = .asleep
-        guard let s = setSheet(dark ? "yawn-dark" : "yawn-light", fade: fade, duration: duration) else { return }
+        guard let s = setSheet(dark ? "yawn-dark" : "yawn-light", fade: fade, duration: duration, at: { $0.last }) else { return }
         sprite.removeAnimation(forKey: "frames")
         sprite.contentsRect = s.rect(s.last)
     }
@@ -526,7 +580,7 @@ final class OveLayerView: NSView {
         let fromSleep = showing == .asleep
         inClip = false
         showing = .loop
-        guard let s = setSheet("speak", fade: true, duration: fromSleep ? 0.4 : 0.22) else { return }
+        guard let s = setSheet("speak", fade: true, duration: fromSleep ? 0.4 : 0.22, at: { _ in frame }) else { return }
         guard live else {
             sprite.removeAnimation(forKey: "frames")
             sprite.contentsRect = s.rect(0)
@@ -555,7 +609,7 @@ final class OveLayerView: NSView {
         inClip = false
         showing = .face(face)
         angle = .front
-        guard let s = setSheet(face, fade: fade, duration: duration) else { return }
+        guard let s = setSheet(face, fade: fade, duration: duration, at: { [lib] _ in lib.lookFrame(.front) }) else { return }
         sprite.removeAnimation(forKey: "frames")
         sprite.contentsRect = s.rect(lib.lookFrame(.front))
     }
@@ -563,15 +617,19 @@ final class OveLayerView: NSView {
     private func showHeld(_ r: OveReaction) {
         inClip = false
         showing = .clip
-        guard let s = setSheet(r.rawValue, fade: false) else { return }
+        guard let s = setSheet(mood == .idle ? r.rawValue + "-idle" : r.rawValue, fade: false, at: { $0.peak }) else { return }
         sprite.removeAnimation(forKey: "frames")
         sprite.contentsRect = s.rect(s.peak)
     }
 
     // MARK: Khung hình
 
+    /// Đổi sang tấm `name`, hiện khung `frame`. Gỡ hoạt ảnh lật khung cũ, đặt hình và ô cắt trong cùng một lần cập nhật:
+    /// tách làm hai lần thì có lúc hệ thống vẽ hình mới với ô cắt (hay hoạt ảnh) của tấm cũ, lộ một khung có nhiều mặt hoặc
+    /// mặt bị kéo dãn (hay gặp khi đổi tấm ngay sau một hoạt ảnh vừa xong).
     @discardableResult
-    private func setSheet(_ name: String, fade: Bool, duration: Double = 0.22) -> OveLibrary.Sheet? {
+    private func setSheet(_ name: String, fade: Bool, duration: Double = 0.22,
+                          at frame: (OveLibrary.Sheet) -> Int = { _ in 0 }) -> OveLibrary.Sheet? {
         guard let s = lib.sheet(name) else { return nil }
         if sheetName != name {
             CATransaction.begin()
@@ -582,7 +640,9 @@ final class OveLayerView: NSView {
                 t.duration = duration
                 sprite.add(t, forKey: "fade")
             }
+            sprite.removeAnimation(forKey: "frames")
             sprite.contents = s.image
+            sprite.contentsRect = s.rect(frame(s))
             CATransaction.commit()
             // Chỉ giữ tấm đang chiếu và bộ quay đầu của mặt hiện tại (để quay về sau mỗi đoạn biểu cảm không phải đọc lại).
             if let old = sheetName, old != face { lib.release(old) }
@@ -592,32 +652,49 @@ final class OveLayerView: NSView {
     }
 
     /// Lật các khung `frames` của tấm hiện tại theo nhịp của bộ hình; xong thì gọi `done` (bị ngắt thì không gọi).
+    ///
+    /// Giá trị gốc của lớp hình đặt bằng khung đầu, hoạt ảnh giữ khung cuối khi chạy xong, rồi mới chốt khung cuối và gỡ hoạt
+    /// ảnh. Đặt giá trị gốc bằng khung cuối như trước thì có lúc hệ thống vẽ giá trị gốc một khung trước khi hoạt ảnh kịp
+    /// chạy: khung cuối (mặt cười của đoạn bị cù, đầu ngoái hẳn của lần quay đầu) lóe lên giữa hai khung thường.
     private func run(_ frames: [Int], sheet s: OveLibrary.Sheet, repeating: Bool = false, done: (() -> Void)? = nil) {
         token += 1
         let mine = token
-        guard let lastFrame = frames.last else { done?(); return }
+        guard let first = frames.first, let lastFrame = frames.last else { done?(); return }
         let anim = CAKeyframeAnimation(keyPath: "contentsRect")
         anim.values = frames.map { NSValue(rect: s.rect($0)) }
         anim.calculationMode = .discrete
         anim.duration = Double(frames.count) / lib.fps
+        anim.fillMode = .forwards
+        anim.isRemovedOnCompletion = false
+        anim.setValue(mine, forKey: "oveRun")
         if repeating { anim.repeatCount = .infinity }
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         CATransaction.setCompletionBlock { [weak self] in
             MainActor.assumeIsolated {
-                guard let self, self.token == mine else { return }
+                guard let self else { return }
+                // Chốt khung cuối nếu hoạt ảnh này vẫn đang gắn trên lớp hình (chưa bị lần lật khác thay).
+                if (self.sprite.animation(forKey: "frames")?.value(forKey: "oveRun") as? Int) == mine {
+                    CATransaction.begin()
+                    CATransaction.setDisableActions(true)
+                    self.sprite.contentsRect = s.rect(lastFrame)
+                    self.sprite.removeAnimation(forKey: "frames")
+                    CATransaction.commit()
+                }
+                guard self.token == mine else { return }
                 done?()
             }
         }
-        sprite.contentsRect = s.rect(repeating ? frames[0] : lastFrame)
+        sprite.contentsRect = s.rect(first)
         sprite.add(anim, forKey: "frames")
         CATransaction.commit()
+        lastRun = (frames, CACurrentMediaTime(), repeating)
     }
 
     private func playClip(_ name: String, from a: Int = 0, to b: Int? = nil, fade: Bool, done: @escaping () -> Void) {
         inClip = true
         showing = .clip
-        guard let s = setSheet(name, fade: fade) else { inClip = false; done(); return }
+        guard let s = setSheet(name, fade: fade, at: { _ in a }) else { inClip = false; done(); return }
         let end = min(b ?? s.last, s.last)
         guard live, a <= end else { sprite.contentsRect = s.rect(end); done(); return }
         run(Array(a...end), sheet: s, done: done)
@@ -630,18 +707,36 @@ final class OveLayerView: NSView {
     private func turn(to target: OveAngle, done: @escaping () -> Void) {
         guard let s = lib.sheet(face) else { done(); return }
         let goal = lib.lookPath(to: target) == nil ? .front : target
-        guard goal != angle else { done(); return }
+        // Tính từ khung đang hiện thật: lần quay trước có thể bị ngắt giữa chừng, tính từ đích của nó thì đầu nhảy cóc.
+        let (cur, idx) = shownLookPosition()
         var frames: [Int] = []
-        if let back = lib.lookPath(to: angle) { frames += back.dropLast().reversed() + [lib.lookFrame(.front)] }
-        if let go = lib.lookPath(to: goal) { frames += go }
+        if cur == goal, goal != .front, let path = lib.lookPath(to: goal) {
+            frames = Array(path[min(path.count, idx + 1)...])
+        } else {
+            if cur != .front, let back = lib.lookPath(to: cur) { frames += back[0..<max(0, idx)].reversed() + [lib.lookFrame(.front)] }
+            if let go = lib.lookPath(to: goal) { frames += go }
+        }
         angle = goal
         guard live, !frames.isEmpty else {
-            sprite.removeAnimation(forKey: "frames")
-            sprite.contentsRect = s.rect(lib.lookFrame(goal))
+            if !live {
+                sprite.removeAnimation(forKey: "frames")
+                sprite.contentsRect = s.rect(lib.lookFrame(goal))
+            }
             done()
             return
         }
         run(frames, sheet: s, done: done)
+    }
+
+    /// Hướng và bước đang hiện trên bộ quay đầu: đang lật khung thì đọc khung đang chiếu, không thì theo `angle`.
+    private func shownLookPosition() -> (OveAngle, Int) {
+        if case .face = showing, let r = lastRun, !r.frames.isEmpty, sprite.animation(forKey: "frames") != nil {
+            var i = Int((CACurrentMediaTime() - r.start) * lib.fps)
+            i = r.repeating ? i % r.frames.count : min(max(0, i), r.frames.count - 1)
+            if let pos = lib.lookPosition(of: r.frames[i]) { return pos }
+        }
+        if angle == .front { return (.front, -1) }
+        return (angle, (lib.lookPath(to: angle)?.count ?? 1) - 1)
     }
 
     /// Đang nhìn quanh thì quay về nhìn thẳng trước, rồi mới làm `done`.
@@ -656,24 +751,78 @@ final class OveLayerView: NSView {
 
     // MARK: Nhịp sống
 
-    /// Lúc đang nhận phụ đề thì thưa gấp đôi, để cử động không kéo mắt khỏi game.
-    private var pace: Double {
-        var p = mood == .listening ? 2.0 : 1.0
-        #if DEVTOOLS
-        p *= Self.debugLifeScale
-        #endif
-        return p
+    /// Nét mặt lúc rảnh, mỗi nét là một đoạn `fx-<tên>` dựng từ mặt chờ (khung đầu và khung cuối trùng mặt nhìn thẳng).
+    private enum Fidget: String { case excited, wink, hum, shy, curious, sneeze, doze, surprised }
+
+    /// Một nhịp trong cảnh: nhìn về một hướng rồi giữ (giây), hoặc làm một nét mặt.
+    private enum Beat {
+        case look(OveAngle, Double)
+        case fx(Fidget)
     }
 
-    /// Chớp mắt (2,8 đến 6,2 giây một lần), nhìn quanh (15 đến 30 giây), vui khẽ (khoảng 2 phút). Đều là hẹn giờ nên
-    /// giữa hai lần không tốn gì; cửa sổ bị che thì dừng hẳn.
+    /// Cử động nhỏ lúc rảnh: nhìn quanh, nháy mắt, nghiêng đầu. Hướng phải có trong bộ quay đầu (export.html, `LOOK`).
+    private static let small: [[Beat]] = [
+        [.look(OveAngle(yaw: -2, pitch: 0), 1.6)],
+        [.look(OveAngle(yaw: 2, pitch: 0), 1.6)],
+        [.look(OveAngle(yaw: 0, pitch: -1), 1.3)],
+        [.look(OveAngle(yaw: 0, pitch: 1), 1.3)],
+        [.look(OveAngle(yaw: 2, pitch: 1), 1.3)],
+        [.look(OveAngle(yaw: 2, pitch: -1), 1.3)],
+        [.look(OveAngle(yaw: -3, pitch: 0), 1.2)],
+        [.look(OveAngle(yaw: 3, pitch: 0), 1.2)],
+        [.look(OveAngle(yaw: -2, pitch: 0), 0.7), .look(OveAngle(yaw: 2, pitch: 0), 0.7)],
+        [.fx(.wink)],
+        [.fx(.curious)],
+    ]
+    /// Đang nhận phụ đề chỉ nhìn quanh (chín kiểu đầu của `small`).
+    private static let looks = Array(small.prefix(9))
+
+    /// Cảnh đời thường: Ove để ý những thứ quanh mình trên cửa sổ chính (nút Phụ đề bên trái, Dịch màn hình bên phải, nút
+    /// Bắt đầu bên dưới, ống năng lượng) rồi quay ra nhìn người dùng.
+    private static let scenes: [[Beat]] = [
+        [.look(OveAngle(yaw: 0, pitch: 1), 1.2), .fx(.wink)],                                   // ngó nút Bắt đầu rồi nháy mắt rủ bấm
+        [.look(OveAngle(yaw: -3, pitch: 0), 1.0), .fx(.curious)],                               // nhìn sang Phụ đề, tò mò
+        [.look(OveAngle(yaw: 3, pitch: 0), 0.8), .fx(.surprised)],                              // nhìn sang Dịch màn hình, ngạc nhiên
+        [.look(OveAngle(yaw: 0, pitch: -1), 1.0), .fx(.surprised)],                             // ngước lên như nghe tiếng gì
+        [.look(OveAngle(yaw: -2, pitch: 0), 0.9), .fx(.hum)],                                   // dõi giọt sáng trong ống rồi ngân nga
+        [.fx(.doze), .fx(.shy)],                                                                // ngủ gật, giật mình rồi ngượng
+        [.fx(.sneeze), .fx(.shy)],                                                              // hắt xì rồi ngượng
+        [.fx(.hum), .look(OveAngle(yaw: 2, pitch: -1), 0.9)],                                   // ngân nga rồi ngó lên
+        [.look(OveAngle(yaw: -2, pitch: 0), 0.6), .look(OveAngle(yaw: 2, pitch: 0), 0.6), .fx(.wink)],   // liếc quanh rồi nháy mắt
+        [.fx(.excited)],                                                                        // nhìn người dùng mà phấn khích
+        [.look(OveAngle(yaw: 2, pitch: 1), 1.0), .fx(.curious), .fx(.wink)],                    // ngó xuống, nghĩ ngợi, nháy mắt
+    ]
+
+    private var acting = false
+    private var sceneGen = 0
+    private var beatCount = 0
+    private var recentScenes: [Int] = []
+    private var recentSmall: [Int] = []
+    private var hiddenSince: Date?
+
+    /// Hệ số rút ngắn nhịp cho móc thử.
+    private var debugScale: Double {
+        #if DEVTOOLS
+        return Self.debugLifeScale
+        #else
+        return 1
+        #endif
+    }
+
+    /// Chớp mắt (2,8 đến 6,2 giây một lần). Lúc rảnh: cứ 5 đến 9 giây một cử động nhỏ, cứ ba lần thì một cảnh đời thường.
+    /// Đang nhận phụ đề: 30 đến 60 giây nhìn quanh một lần, khoảng 4 phút vui một lần, để không kéo mắt khỏi game.
+    /// Đều là hẹn giờ nên giữa hai lần không tốn gì; cửa sổ bị che thì dừng hẳn.
     private func startLife() {
         lifeGen += 1
         guard live, awake, held == nil else { return }
         let gen = lifeGen
         blinkLoop(gen)
-        lookLoop(gen)
-        happyLoop(gen)
+        if mood == .idle {
+            idleLoop(gen)
+        } else {
+            lookLoop(gen)
+            happyLoop(gen)
+        }
     }
 
     private func blinkLoop(_ gen: Int) {
@@ -683,75 +832,228 @@ final class OveLayerView: NSView {
         }
     }
 
+    /// Chớp mắt ở hướng đang nhìn, cả lúc đang giữ ánh nhìn trong một cảnh.
     private func blink() {
-        guard resting, sprite.animation(forKey: "frames") == nil, let s = lib.sheet(face) else { return }
+        guard live, awake, held == nil, !inClip, case .face = showing, sprite.animation(forKey: "frames") == nil,
+              let s = lib.sheet(face) else { return }
         let o = lib.lookFrame(angle), c = lib.lookFrame(angle, closed: true)
         var frames = [c, c, o]
         if Int.random(in: 0..<5) == 0 { frames += [o, o, c, c, o] }   // thỉnh thoảng chớp đôi
         run(frames, sheet: s)
     }
 
-    private func lookLoop(_ gen: Int) {
-        after(Double.random(in: 15...30) * pace, alive: { [weak self] in self?.lifeGen == gen }) { [weak self] in
+    private func idleLoop(_ gen: Int) {
+        after(Double.random(in: 5...9) * debugScale, alive: { [weak self] in self?.lifeGen == gen }) { [weak self] in
             guard let self else { return }
-            if self.resting, self.sprite.animation(forKey: "frames") == nil { self.gesture(gen) }
+            if self.resting, self.sprite.animation(forKey: "frames") == nil {
+                self.beatCount += 1
+                if self.beatCount % 3 == 0 {
+                    self.startScene(Self.pick(Self.scenes, recent: &self.recentScenes))
+                } else {
+                    self.startScene(Self.pick(Self.small, recent: &self.recentSmall))
+                }
+            }
+            self.idleLoop(gen)
+        }
+    }
+
+    private func lookLoop(_ gen: Int) {
+        after(Double.random(in: 30...60) * debugScale, alive: { [weak self] in self?.lifeGen == gen }) { [weak self] in
+            guard let self else { return }
+            if self.resting, self.sprite.animation(forKey: "frames") == nil {
+                self.startScene(Self.pick(Self.looks, recent: &self.recentSmall))
+            }
             self.lookLoop(gen)
         }
     }
 
     private func happyLoop(_ gen: Int) {
-        after(Double.random(in: 100...160) * pace, alive: { [weak self] in self?.lifeGen == gen }) { [weak self] in
+        after(Double.random(in: 200...320) * debugScale, alive: { [weak self] in self?.lifeGen == gen }) { [weak self] in
             guard let self else { return }
             if self.resting { self.play(.happy) }
             self.happyLoop(gen)
         }
     }
 
-    /// Các kiểu nhìn quanh: mỗi kiểu là chuỗi hướng nhìn kèm thời gian giữ (giây); xong thì nhìn thẳng lại. Hướng phải có
-    /// trong bộ quay đầu (Tools/Ove/export.html, `LOOK`).
-    private static let gestures: [[(OveAngle, ClosedRange<Double>)]] = [
-        [(OveAngle(yaw: -2, pitch: 0), 1.6...2.6)],                                            // nhìn sang trái
-        [(OveAngle(yaw: 2, pitch: 0), 1.6...2.6)],                                             // nhìn sang phải
-        [(OveAngle(yaw: 0, pitch: -1), 1.2...2.0)],                                            // ngước lên
-        [(OveAngle(yaw: 0, pitch: 1), 1.2...2.0)],                                             // cúi xuống
-        [(OveAngle(yaw: 2, pitch: 1), 1.2...2.0)],                                             // nhìn xuống bên phải
-        [(OveAngle(yaw: 2, pitch: -1), 1.2...2.0)],                                            // ngước lên bên phải
-        [(OveAngle(yaw: -2, pitch: 0), 0.6...0.9), (OveAngle(yaw: 2, pitch: 0), 0.6...0.9)],   // liếc trái rồi liếc phải
-        [(OveAngle(yaw: 3, pitch: 0), 1.0...1.6)],                                             // ngoái hẳn sang phải
-        [(OveAngle(yaw: -3, pitch: 0), 1.0...1.6)],                                            // ngoái hẳn sang trái
-    ]
-
-    /// Chọn một kiểu nhìn quanh, không lặp lại kiểu vừa làm.
-    private func gesture(_ gen: Int) {
-        var pick = Int.random(in: 0..<Self.gestures.count)
-        if pick == lastGesture { pick = (pick + 1) % Self.gestures.count }
-        lastGesture = pick
-        follow(Self.gestures[pick].map { ($0.0, Double.random(in: $0.1)) }, gen: gen)
+    /// Chọn ngẫu nhiên một mục, tránh hai mục vừa làm.
+    private static func pick(_ list: [[Beat]], recent: inout [Int]) -> [Beat] {
+        let fresh = list.indices.filter { !recent.contains($0) }
+        let i = fresh.randomElement() ?? 0
+        recent = Array((recent + [i]).suffix(2))
+        return list[i]
     }
 
-    private func follow(_ steps: [(OveAngle, Double)], gen: Int) {
-        guard lifeGen == gen, resting else { return }
-        guard let first = steps.first else {
-            turn(to: .front) {}
+    /// Diễn một cảnh: các nhịp nối nhau, xong thì nhìn thẳng lại. Cảnh mới, rê chuột, sự kiện của app hay đổi trạng thái
+    /// đều ngắt cảnh đang diễn.
+    private func startScene(_ beats: [Beat]) {
+        sceneGen += 1
+        acting = true
+        perform(beats[...], scene: sceneGen, mood: moodGen)
+    }
+
+    private func cancelScene() {
+        sceneGen += 1
+        acting = false
+    }
+
+    private func perform(_ beats: ArraySlice<Beat>, scene: Int, mood gen: Int) {
+        guard sceneGen == scene, moodGen == gen, live, awake, held == nil else {
+            if sceneGen == scene { acting = false }
             return
         }
-        let (target, hold) = first
-        turn(to: target) { [weak self] in
-            self?.after(hold, alive: { [weak self] in self?.lifeGen == gen }) { [weak self] in
-                self?.follow(Array(steps.dropFirst()), gen: gen)
+        let alive: @MainActor () -> Bool = { [weak self] in self?.sceneGen == scene && self?.moodGen == gen }
+        guard let beat = beats.first else {
+            turn(to: .front) { [weak self] in
+                guard let self, alive() else { return }
+                self.acting = false
+                self.flushSoon()
+            }
+            return
+        }
+        let rest = beats.dropFirst()
+        switch beat {
+        case .look(let target, let hold):
+            turn(to: target) { [weak self] in
+                self?.after(hold * Double.random(in: 0.8...1.25), alive: alive) { [weak self] in
+                    self?.perform(rest, scene: scene, mood: gen)
+                }
+            }
+        case .fx(let f):
+            // Nét mặt chỉ dựng cho mặt chờ; đang nhận phụ đề thì bỏ qua nhịp này.
+            guard mood == .idle else { perform(rest, scene: scene, mood: gen); return }
+            let name = "fx-" + f.rawValue
+            lib.prefetch(name) { [weak self] in
+                guard let self, alive() else { return }
+                self.toFront { [weak self] in
+                    guard let self, alive() else { return }
+                    // Khung đầu của đoạn trùng mặt nhìn thẳng nên chuyển thẳng, không mờ chồng.
+                    self.playClip(name, fade: false) { [weak self] in
+                        guard let self else { return }
+                        self.showFace(fade: false)
+                        self.perform(rest, scene: scene, mood: gen)
+                    }
+                }
             }
         }
     }
 
-    /// Nhìn về một hướng `seconds` giây rồi nhìn thẳng lại (cửa sổ Ủng hộ: nhìn về mã QR, nhìn xuống ô nhập tên).
-    /// Gọi lại khi đang nhìn thì đổi hướng và tính lại thời gian.
-    private func look(_ target: OveAngle, seconds: Double) {
-        guard resting else { return }
-        lifeGen += 1
-        let gen = lifeGen
-        turn(to: target) { [weak self] in
-            self?.after(seconds, alive: { [weak self] in self?.lifeGen == gen }) { [weak self] in
-                self?.turn(to: .front) { [weak self] in self?.startLife() }
+    /// Ngắt cảnh đang diễn để làm việc khác ngay (rê chuột, sự kiện của app, việc hộp thoại nhờ): nét mặt dở dang thì mờ
+    /// về mặt thường, đang nhìn đi chỗ khác thì quay về nhìn thẳng rồi mới làm `then`.
+    private func interrupt(_ then: @escaping () -> Void) {
+        cancelScene()
+        if inClip, showing == .clip, rewindable {
+            rewind { [weak self] in self?.toFront(then) }
+        } else {
+            toFront(then)
+        }
+    }
+
+    /// Đoạn đang hiện có khung đầu trùng mặt nhìn thẳng (nét mặt lúc rảnh, bị cù, biểu cảm theo sự kiện): tua ngược được.
+    private var rewindable: Bool {
+        guard let n = sheetName else { return false }
+        return n.hasPrefix("fx-") || n.hasPrefix("tickle-") || OveReaction.allCases.contains { n == $0.rawValue || n == $0.rawValue + "-idle" }
+    }
+
+    /// Tua ngược nhanh đoạn đang làm dở về khung đầu (mặt nhìn thẳng), nhiều nhất khoảng 12 khung, rồi về bộ quay đầu.
+    /// Mờ chồng thẳng sang mặt thường thì lộ hai mặt cùng lúc.
+    private func rewind(_ done: @escaping () -> Void) {
+        guard let r = lastRun, !r.frames.isEmpty, let s = sheetName.flatMap({ lib.sheet($0) }) else {
+            showFace(fade: false)
+            done()
+            return
+        }
+        var i = Int((CACurrentMediaTime() - r.start) * lib.fps)
+        i = r.repeating ? i % r.frames.count : min(max(0, i), r.frames.count - 1)
+        let from = r.frames[i]
+        let step = max(2, Int((Double(from) / 12).rounded(.up)))
+        let frames = Array(stride(from: from, to: 0, by: -step)) + [0]
+        inClip = true
+        run(frames, sheet: s) { [weak self] in
+            self?.showFace(fade: false)
+            done()
+        }
+    }
+
+    /// Chào người dùng: lúc mở app hay lúc quay lại cửa sổ sau một lúc vắng.
+    private func greet() {
+        guard mood == .idle, resting else { return }
+        startScene(Bool.random() ? [.fx(.wink)] : [.fx(.excited)])
+    }
+
+    // MARK: Rê chuột
+
+    private var hovered = false
+    /// Đang bị cù: từ lúc vào đoạn tới khi chạy xong đoạn ra.
+    private var tickling = false
+    private var tickleLooping = false
+    private var tickleStart: CFTimeInterval = 0
+    private var hoverEnters: [Date] = []
+    private var tickleSheet: String { mood == .idle ? "tickle-idle" : "tickle-live" }
+
+    /// Rê chuột vào thì Ove như bị cù: nheo mắt >< cười khúc khích, lắc lư tới khi chuột rời đi. Rê vào lại lúc đang cười
+    /// thì Ove nảy lên; rê qua lại từ ba lần trong 8 giây thì lúc rời ra Ove đỏ mặt ngượng. Đang đọc, đang ngủ, đang giữ
+    /// nét mặt hay đang làm biểu cảm theo sự kiện thì không phản ứng.
+    private func hoverChanged() {
+        if hovered {
+            hoverEnters = hoverEnters.filter { Date().timeIntervalSince($0) < 8 } + [Date()]
+            if tickling { bounce(); return }
+            guard live, awake, held == nil, resting || acting else { return }
+            interrupt { [weak self] in self?.startTickle() }
+        } else if tickleLooping {
+            endTickle()
+        }
+    }
+
+    private func startTickle() {
+        let gen = moodGen, name = tickleSheet
+        tickling = true
+        inClip = true
+        lib.prefetch(name) { [weak self] in
+            guard let self, self.moodGen == gen, self.tickling else { return }
+            guard self.hovered, let s = self.lib.sheet(name), let p = s.parts, p.count == 2 else {
+                self.tickling = false
+                self.backToFace()
+                return
+            }
+            self.playClip(name, to: p[0] - 1, fade: false) { [weak self] in
+                guard let self, self.tickling else { return }
+                if self.hovered {
+                    self.tickleStart = CACurrentMediaTime()
+                    self.tickleLooping = true
+                    self.run(Array(p[0]..<p[1]), sheet: s, repeating: true)
+                } else {
+                    self.endTickle()
+                }
+            }
+        }
+    }
+
+    /// Rời chuột: chạy nốt vòng cười tới pha đầu (nhiều nhất 0,5 giây) rồi đoạn ra.
+    private func endTickle() {
+        guard tickling, sheetName == tickleSheet, let s = lib.sheet(tickleSheet), let p = s.parts, p.count == 2 else {
+            tickling = false
+            tickleLooping = false
+            backToFace()
+            return
+        }
+        var frames: [Int] = []
+        if tickleLooping {
+            let n = p[1] - p[0]
+            let cur = max(0, Int((CACurrentMediaTime() - tickleStart) * lib.fps)) % n
+            frames += (cur..<n).map { p[0] + $0 }
+        }
+        frames += Array(p[1]..<s.count)
+        tickleLooping = false
+        let shy = mood == .idle && hoverEnters.filter { Date().timeIntervalSince($0) < 8 }.count >= 3
+        run(frames, sheet: s) { [weak self] in
+            guard let self else { return }
+            self.tickling = false
+            self.showFace(fade: false)
+            if shy {
+                self.hoverEnters.removeAll()
+                self.startScene([.fx(.shy)])
+            } else {
+                self.flushSoon()
             }
         }
     }
@@ -759,31 +1061,68 @@ final class OveLayerView: NSView {
     // MARK: Biểu cảm
 
     private func handle(_ action: OvePoke.Action) {
+        // Đang giữ nét mặt (hộp thoại) mà được nhờ việc khác: tua ngược nét mặt về mặt thường trước.
+        if held != nil, action != .calm, !isHold(action) {
+            releaseHeld { [weak self] in self?.handle(action) }
+            return
+        }
         switch action {
         case .express(let r):
-            if held != nil { held = nil; backToFace() }
             react(r)
         case .hold(let r):
             // Bật giảm chuyển động thì hiện luôn khung đỉnh của nét mặt, không chạy đoạn.
             guard live else { held = r; showHeld(r); return }
-            if held != nil { held = nil; showFace(fade: false) }
-            play(r, hold: true)
+            if held != nil {
+                releaseHeld { [weak self] in self?.play(r, hold: true) }
+            } else if acting {
+                interrupt { [weak self] in self?.play(r, hold: true) }
+            } else {
+                play(r, hold: true)
+            }
         case .look(let y, let p, let s):
-            look(OveAngle(yaw: y, pitch: p), seconds: s)
+            act([.look(OveAngle(yaw: y, pitch: p), s)])
         case .cheer(let level):
-            if held != nil { held = nil; backToFace() }
-            cheer(level)
+            // Mức tiền càng cao Ove càng vui; không mức nào làm Ove buồn để khỏi giống nài.
+            act(level <= 1 ? [.fx(.wink)] : level == 2 ? [.fx(.excited)] : [.fx(.excited), .fx(.shy)])
         case .calm:
-            guard held != nil else { return }
-            held = nil
-            backToFace()
+            releaseHeld {}
         }
     }
 
-    /// Một chuyện vừa xảy ra: Ove đang rảnh thì làm nét mặt ngay, đang bận (đọc, ngáp, đang làm nét mặt khác) thì xếp chờ.
+    private func isHold(_ action: OvePoke.Action) -> Bool {
+        if case .hold = action { return true }
+        return false
+    }
+
+    /// Thôi giữ nét mặt: tua ngược về mặt thường rồi sống lại như thường.
+    private func releaseHeld(_ then: @escaping () -> Void) {
+        guard held != nil else { then(); return }
+        held = nil
+        let gen = moodGen
+        let finish: () -> Void = { [weak self] in
+            guard let self, self.moodGen == gen else { return }
+            self.startLife()
+            self.flushSoon()
+            then()
+        }
+        if live, rewindable { rewind(finish) } else { showFace(fade: false); finish() }
+    }
+
+    /// Diễn ngay một cảnh do view chứa nhờ, ngắt cảnh đang diễn nếu có.
+    private func act(_ beats: [Beat]) {
+        guard live, awake, held == nil, !tickling, resting || acting else { return }
+        interrupt { [weak self] in self?.startScene(beats) }
+    }
+
+    /// Một chuyện vừa xảy ra: Ove đang rảnh (hay đang diễn cảnh lúc rảnh) thì làm nét mặt ngay, đang bận (đọc, ngáp, đang bị
+    /// cù, đang làm nét mặt khác) thì xếp chờ.
     private func react(_ r: OveReaction) {
         // Cùng một chuyện lặp lại liên tục (lỗi dịch từng câu) thì 20 giây chỉ làm một lần.
         if let t = lastPlayed[r], Date().timeIntervalSince(t) < 20 { return }
+        if acting, !tickling, live, awake {
+            interrupt { [weak self] in self?.react(r) }
+            return
+        }
         if resting { play(r); return }
         if let q = queued, q.reaction.weight > r.weight, Date().timeIntervalSince(q.at) < 8 { return }
         queued = (r, Date())
@@ -804,9 +1143,11 @@ final class OveLayerView: NSView {
     }
 
     /// Làm một nét mặt: quay về nhìn thẳng, chạy đoạn biểu cảm rồi về mặt thường, hoặc dừng ở đỉnh biểu cảm nếu `hold`.
+    /// Mỗi biểu cảm có bản mặt chờ (`-idle`) và bản mặt đang chạy.
     private func play(_ r: OveReaction, hold: Bool = false) {
         let gen = moodGen
-        lib.prefetch(r.rawValue) { [weak self] in
+        let name = mood == .idle ? r.rawValue + "-idle" : r.rawValue
+        lib.prefetch(name) { [weak self] in
             guard let self, self.moodGen == gen, self.resting else { return }
             self.lastPlayed[r] = Date()
             self.lifeGen += 1
@@ -814,54 +1155,19 @@ final class OveLayerView: NSView {
             self.inClip = true
             self.toFront { [weak self] in
                 guard let self, self.moodGen == gen else { return }
+                // Khung đầu, khung cuối của đoạn trùng mặt đứng yên của đúng mặt (chờ hay đang chạy): chuyển thẳng.
                 if hold {
-                    let peak = self.lib.sheet(r.rawValue)?.peak
-                    self.playClip(r.rawValue, to: peak, fade: true) { [weak self] in self?.inClip = false }
+                    let peak = self.lib.sheet(name)?.peak
+                    self.playClip(name, to: peak, fade: false) { [weak self] in self?.inClip = false }
                 } else {
-                    self.playClip(r.rawValue, fade: true) { [weak self] in self?.backToFace() }
+                    self.playClip(name, fade: false) { [weak self] in self?.backToFace(fade: false) }
                 }
             }
         }
     }
 
-    /// Vui theo mức (cửa sổ Ủng hộ: mức tiền càng cao Ove càng vui; không mức nào làm Ove buồn để khỏi giống nài):
-    /// 1 cười thoáng (khoảng 1 giây), 2 làm trọn đoạn vui, 3 giữ nụ cười lâu hơn và nảy lên hai lần.
-    private func cheer(_ level: Int) {
-        let gen = moodGen
-        lib.prefetch("happy") { [weak self] in
-            guard let self, self.moodGen == gen, self.resting, let s = self.lib.sheet("happy"), let h = s.hold else { return }
-            self.lastPlayed[.happy] = Date()
-            self.lifeGen += 1
-            self.inClip = true
-            self.toFront { [weak self] in
-                guard let self, self.moodGen == gen else { return }
-                switch level {
-                case ...1:
-                    // Nụ cười thoáng: lên nửa đường tới khoảng giữ rồi lui về, khoảng 1 giây.
-                    let top = h[0] / 2
-                    self.playClip("happy", to: top, fade: true) { [weak self] in
-                        self?.run(Array((0..<top).reversed()), sheet: s) { [weak self] in self?.backToFace() }
-                    }
-                case 2:
-                    self.playClip("happy", fade: true) { [weak self] in self?.backToFace() }
-                default:
-                    self.playClip("happy", to: h[1], fade: true) { [weak self] in
-                        guard let self else { return }
-                        self.bounce()
-                        let swing = Array((h[0]..<h[1]).reversed()) + Array(h[0]...h[1])
-                        self.run(swing + swing, sheet: s) { [weak self] in
-                            guard let self else { return }
-                            self.bounce()
-                            self.playClip("happy", from: h[1], fade: false) { [weak self] in self?.backToFace() }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private func backToFace() {
-        showFace(fade: true)
+    private func backToFace(fade: Bool = true) {
+        showFace(fade: fade)
         startLife()
         flushSoon()
     }
@@ -1035,6 +1341,10 @@ final class OveLayerView: NSView {
         glow.removeAllAnimations()
         stopRipples()
         inClip = false
+        cancelScene()
+        tickling = false
+        tickleLooping = false
+        hiddenSince = Date()
         showStill()
     }
 
@@ -1045,6 +1355,11 @@ final class OveLayerView: NSView {
         startLife()
         showStill()
         flushSoon()
+        // Quay lại cửa sổ sau một lúc vắng thì Ove chào.
+        if let h = hiddenSince, Date().timeIntervalSince(h) > 30 {
+            after(0.8, alive: { true }) { [weak self] in self?.greet() }
+        }
+        hiddenSince = nil
     }
 
     private func showStill() {
