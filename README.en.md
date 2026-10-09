@@ -19,6 +19,10 @@ OverSub reads the text in your game from the screen, translates it with AI and d
 
 </div>
 
+https://github.com/user-attachments/assets/e68b3fa4-5448-45bc-8e4d-ff01fdb6fd71
+
+<sub>The subtitle window in one-line mode, in the black bar under the game: the English dialogue appears letter by letter, the Vietnamese translation follows and is read aloud. The video has sound. The text in the videos and screenshots below is Vietnamese, because the app was set to translate into Vietnamese.</sub>
+
 ## Contents
 
 - [What OverSub does](#what-oversub-does)
@@ -41,6 +45,10 @@ OverSub reads the text in your game from the screen, translates it with AI and d
 OverSub works with any game shown on your Mac's screen: Mac games, Windows games through CrossOver or Whisky, cloud gaming, and consoles (Switch, PlayStation) played through a capture card, shown right in OverSub's game screen or in a viewer app such as OBS. It doesn't touch the game. It only looks at the screen, the same way you do.
 
 The main window has three switches: Subtitles on the left, the OverSub mascot in the middle (the voice; it moves its mouth while speaking) and Screen translation on the right.
+
+https://github.com/user-attachments/assets/f00357b3-9779-464f-a85c-2f61f74f8cd4
+
+<sub>The main window with its three switches: Subtitles, Voice-over and Screen translation. While OverSub is reading dialogue aloud, the mascot in the middle moves its mouth.</sub>
 
 | Feature | What it does |
 |---|---|
@@ -101,9 +109,24 @@ The sections below follow the order you'll meet things in: selecting regions, ch
 
 The region picker opens on a live view of the screen. If subtitles go by too fast, click Freeze frame (or press Space) and select on a still image.
 
+<div align="center">
+<img src="Docs/images/vi/chon-vung-phu-de.jpg" width="760" alt="Region picker: a white box around the game's dialogue box, with the toolbar at the top"><br>
+<sub>The picture is frozen, so there's no rush. Drag a box around the dialogue box and include the speaker's name label.</sub>
+</div>
+
 The subtitle region (only one) is where dialogue appears; the Find subtitles button can guess it for you. Screen regions (up to 3) go around menus, quest logs or item description boxes; add one with Add screen region in the toolbar. Once regions exist, the two buttons change to Edit subtitle region and Edit screen regions (with a count such as 2/3) for moving, resizing, removing or adding regions.
 
 Drag to move, drag a corner to resize, press Delete to remove a region. Click Done (Enter) to review the text read in every region, then Save or Save & start. When regions overlap, subtitles take priority, so two translation layers never sit on top of each other.
+
+<div align="center">
+<img src="Docs/images/vi/xem-lai-vung-truoc-khi-luu.jpg" width="760" alt="Review regions dialog listing the text read in the subtitle region and the screen region"><br>
+<sub>After you click Done, OverSub lists the text it read in each region so you can check it before choosing Save or Save &amp; start.</sub>
+</div>
+
+<div align="center">
+<img src="Docs/images/vi/cai-dat-vung.jpg" width="760" alt="Settings, Regions page: a preview with a white border for the subtitle region and an orange border for a screen region"><br>
+<sub>Settings → Regions keeps a preview of the game profile: the white border is the subtitle region and the orange border is a screen region.</sub>
+</div>
 
 ### Dialogue capture
 
@@ -119,7 +142,15 @@ Pick a mode in Settings → Subtitles, depending on how the game shows text:
 
 Subtitles over the game cover the original subtitle exactly. Background style, text size, alignment, position and whether to show the original line are in Settings → Subtitles.
 
+https://github.com/user-attachments/assets/d9f11e68-079e-46f8-95d4-c799093166b6
+
+<sub>The translation covers the original dialogue box exactly. Text that appears outside the box, at the left of the screen, is translated in place by a Screen translation region.</sub>
+
 The subtitle window (⌘J) is a separate floating window, handy on a second display or when you want the game image left alone. Hover over it to show the controls. The left edge has Start / Stop and Ignore this line. The right edge has Pin (stays above every Space, including full-screen games; it opens pinned), One line (shrinks to a thin strip that fits the black bar under the game), Background (blur and darkness) and A− / A+.
+
+https://github.com/user-attachments/assets/b125123e-f987-473b-ac57-f1a63830cd24
+
+<sub>The subtitle window over a cutscene: the Vietnamese translation sits in a strip under the picture and is read aloud as each line appears. The video has sound.</sub>
 
 <div align="center">
 <img src="Docs/images/en/subtitles-1line.png" width="760" alt="Subtitle window in one-line mode"><br>
@@ -154,9 +185,18 @@ There are three speed modes: Instant (Apple Translation), Instant then refined b
 
 Press ⌃⌥Q anywhere (you don't need to click Start), drag a box around some text and let go; the translation appears in place. Below the box are buttons to show the original text (with a button to copy it), copy the translation, and close. ⌘C copies the translation, ⇧⌘C the original, Esc closes. The screen freezes while you select; you can turn that off in Settings → Screen translation.
 
+<div align="center">
+<img src="Docs/images/vi/dich-nhanh.jpg" width="760" alt="Quick translate on a long description in a game, with the Vietnamese translation in place and a row of buttons below"><br>
+<sub>Quick translate on a long block of text: the translation appears in place, with buttons below to show the original, copy the translation and close.</sub>
+</div>
+
 ### Game screen
 
 Connect a capture card to your Mac (before or after opening OverSub). The bottom of the main window then shows "Signal detected from" with the card's name, resolution and frame rate, and an Open game screen button. The window never opens by itself. Without the notice, click Game screen at the bottom of the main window or choose it from the Window menu. The notice ignores webcams and the FaceTime camera; to use a camera, pick it under Video device.
+
+https://github.com/user-attachments/assets/52e95177-6590-4198-8b09-fe6789814012
+
+<sub>Playing a Switch through a capture card, filmed from the TV: OverSub translates the game's dialogue and reads it aloud in Vietnamese. The video has sound.</sub>
 
 The game screen is a regular window that remembers its position and size; drag the picture to move it and drag an edge to resize it. Click the green button, double-click the picture or press ⌃⌘F for full screen. The picture keeps its aspect ratio with black bars where needed, and the sound goes straight to your speakers. Move the pointer over the picture to show a small bar at the bottom: mute, volume, full screen and the options menu (right-clicking the picture opens the same menu). Closing the window stops the picture and sound from the card.
 

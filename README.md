@@ -19,6 +19,10 @@ Tiếng Việt · [English](README.en.md)
 
 </div>
 
+https://github.com/user-attachments/assets/e68b3fa4-5448-45bc-8e4d-ff01fdb6fd71
+
+<sub>Cửa sổ phụ đề ở chế độ một dòng, nằm trong dải đen dưới game: câu thoại tiếng Anh hiện từng chữ, bản dịch tiếng Việt theo sau và được đọc thành tiếng. Video có tiếng.</sub>
+
 ## Mục lục
 
 - [OverSub làm được gì](#oversub-làm-được-gì)
@@ -41,6 +45,10 @@ Tiếng Việt · [English](README.en.md)
 OverSub dùng được với mọi game hiện trên màn hình Mac: game Mac, game Windows chạy qua CrossOver hay Whisky, game đám mây, và máy console (Switch, PlayStation) chơi qua capture card, xem ngay trong Màn hình chơi game của OverSub hoặc bằng app xem hình như OBS. App không can thiệp vào game, nó chỉ nhìn màn hình như bạn.
 
 Cửa sổ chính có ba nút bật tắt riêng: Phụ đề bên trái, linh vật OverSub ở giữa (giọng đọc; đang đọc thì linh vật mấp máy miệng), Dịch màn hình bên phải.
+
+https://github.com/user-attachments/assets/f00357b3-9779-464f-a85c-2f61f74f8cd4
+
+<sub>Cửa sổ chính với ba nút Phụ đề, Voice-over và Dịch màn hình. Khi OverSub đang đọc thoại, linh vật ở giữa mấp máy miệng.</sub>
 
 | Tính năng | Làm gì |
 |---|---|
@@ -101,9 +109,24 @@ Các mục dưới đây đi theo thứ tự bạn sẽ gặp: chọn vùng, ch�
 
 Trình chọn vùng mở ra là hình trực tiếp của màn hình. Nếu phụ đề hiện quá nhanh, hãy bấm Dừng hình (hoặc phím Space) để chọn trên ảnh đứng yên.
 
+<div align="center">
+<img src="Docs/images/vi/chon-vung-phu-de.jpg" width="760" alt="Trình chọn vùng: khung trắng bao quanh hộp thoại của game, thanh công cụ ở trên"><br>
+<sub>Hình đang dừng nên có thể chọn thong thả. Kéo khung quanh hộp thoại và bao cả nhãn tên nhân vật.</sub>
+</div>
+
 Vùng phụ đề (chỉ một vùng) là nơi lời thoại hiện ra; nút Tự tìm phụ đề sẽ đoán chỗ đó giúp bạn. Vùng dịch màn hình (tối đa 3) đặt quanh menu, bảng nhiệm vụ hay ô mô tả vật phẩm, thêm bằng nút Thêm vùng dịch trên thanh công cụ. Khi đã có vùng, hai nút đổi thành Chỉnh vùng phụ đề và Chỉnh vùng dịch (kèm số vùng, ví dụ 2/3) để di chuyển, đổi cỡ, xoá hay thêm vùng.
 
 Kéo để di chuyển, kéo góc để đổi cỡ, phím Delete để xoá vùng. Bấm Xong (Enter) để xem lại chữ đọc được ở mọi vùng, rồi Lưu hoặc Lưu & bắt đầu. Nếu hai vùng chồng lên nhau, vùng phụ đề được ưu tiên, nên sẽ không có hai lớp bản dịch đè nhau.
+
+<div align="center">
+<img src="Docs/images/vi/xem-lai-vung-truoc-khi-luu.jpg" width="760" alt="Hộp thoại Xem lại các vùng liệt kê chữ đọc được ở vùng phụ đề và vùng dịch màn hình"><br>
+<sub>Sau khi bấm Xong, OverSub liệt kê chữ đọc được trong từng vùng để bạn kiểm tra trước khi Lưu hoặc Lưu &amp; bắt đầu.</sub>
+</div>
+
+<div align="center">
+<img src="Docs/images/vi/cai-dat-vung.jpg" width="760" alt="Cài đặt, mục Vùng: ảnh xem trước với viền trắng là vùng phụ đề và viền cam là vùng dịch màn hình"><br>
+<sub>Cài đặt → Vùng giữ ảnh xem trước của hồ sơ game: viền trắng là vùng phụ đề, viền cam là vùng dịch màn hình.</sub>
+</div>
 
 ### Cách bắt thoại
 
@@ -119,7 +142,15 @@ Chọn ở Cài đặt → Phụ đề, theo cách game hiện chữ:
 
 Phụ đề đè lên game phủ bản dịch đúng lên phụ đề gốc. Kiểu nền, cỡ chữ, căn lề, vị trí và việc hiện kèm câu gốc chỉnh ở Cài đặt → Phụ đề.
 
+https://github.com/user-attachments/assets/d9f11e68-079e-46f8-95d4-c799093166b6
+
+<sub>Bản dịch phủ đúng chỗ hộp thoại gốc. Câu thoại hiện ngoài hộp, ở góc trái màn hình, được dịch tại chỗ bằng một vùng Dịch màn hình.</sub>
+
 Cửa sổ phụ đề (⌘J) là một cửa sổ nổi riêng, hợp khi chơi trên màn hình thứ hai hoặc khi muốn giữ nguyên hình game. Rê chuột vào cửa sổ để hiện các nút. Mép trái có Bắt đầu / Dừng và Bỏ qua câu này. Mép phải có Ghim (nổi trên mọi Space kể cả game toàn màn hình; mở lên là ghim sẵn), Một dòng (thu còn một dải chữ mỏng, vừa với dải đen dưới game), Nền (độ mờ kính, độ tối) và A− / A+.
+
+https://github.com/user-attachments/assets/b125123e-f987-473b-ac57-f1a63830cd24
+
+<sub>Cửa sổ phụ đề trên một đoạn phim dựng sẵn: bản dịch tiếng Việt nằm ở dải chữ dưới khung hình và được đọc thành tiếng khi từng câu hiện ra. Video có tiếng.</sub>
 
 <div align="center">
 <img src="Docs/images/vi/subtitles-1line.png" width="760" alt="Cửa sổ phụ đề chế độ một dòng"><br>
@@ -154,9 +185,18 @@ Có ba chế độ tốc độ: Tức thì (Dịch máy Apple), Tức thì rồi
 
 Bấm ⌃⌥Q ở đâu cũng được (không cần bấm Bắt đầu), kéo khung quanh chữ, thả chuột là bản dịch hiện tại chỗ. Dưới khung có nút xem chữ gốc (kèm nút chép chữ gốc), nút chép bản dịch và nút đóng. Phím ⌘C chép bản dịch, ⇧⌘C chép chữ gốc, Esc để thoát. Mặc định màn hình dừng hình lúc bạn chọn; bạn có thể tắt ở Cài đặt → Dịch màn hình.
 
+<div align="center">
+<img src="Docs/images/vi/dich-nhanh.jpg" width="760" alt="Dịch nhanh một đoạn mô tả dài trong game, bản dịch tiếng Việt hiện tại chỗ kèm thanh nút bên dưới"><br>
+<sub>Dịch nhanh một đoạn chữ dài: bản dịch hiện tại chỗ, thanh nút bên dưới để xem chữ gốc, chép bản dịch và đóng.</sub>
+</div>
+
 ### Màn hình chơi game
 
 Cắm capture card vào Mac (lúc OverSub đang mở hay trước đó đều được), chân cửa sổ chính hiện dòng "Đã nhận tín hiệu từ" kèm tên card, độ phân giải, số khung hình và nút Mở màn hình chơi. App không tự mở cửa sổ. Không có dòng báo thì bấm Màn hình chơi game ở chân cửa sổ chính, hoặc mục cùng tên trong menu Window. Dòng báo không tính webcam và camera FaceTime; muốn dùng camera thì chọn trong mục Thiết bị hình.
+
+https://github.com/user-attachments/assets/52e95177-6590-4198-8b09-fe6789814012
+
+<sub>Chơi Switch qua capture card, quay từ màn hình TV: lời thoại của game được OverSub dịch và đọc thành tiếng Việt. Video có tiếng.</sub>
 
 Cửa sổ mở ra là cửa sổ thường, nhớ vị trí và cỡ; nắm kéo hình để di chuyển cửa sổ, kéo mép để đổi cỡ. Bấm nút xanh, bấm đúp vào hình hoặc ⌃⌘F để toàn màn hình. Hình giữ đúng tỉ lệ, dư thì có viền đen. Tiếng phát thẳng ra loa. Rê chuột vào hình thì hiện thanh nhỏ ở chân cửa sổ: tắt tiếng, âm lượng, toàn màn hình và menu tuỳ chọn (bấm phải vào hình cũng mở menu này). Đóng cửa sổ là app thôi nhận hình và tiếng từ card.
 
