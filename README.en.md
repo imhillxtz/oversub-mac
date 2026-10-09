@@ -40,7 +40,7 @@ OverSub reads the text in your game from the screen, translates it with AI and d
 
 OverSub works with any game shown on your Mac's screen: Mac games, Windows games through CrossOver or Whisky, cloud gaming, and consoles (Switch, PlayStation) played through a capture card, shown right in OverSub's game screen or in a viewer app such as OBS. It doesn't touch the game. It only looks at the screen, the same way you do.
 
-The main window has three switches: Subtitles on the left, Ove in the middle (OverSub's 3D mascot, which is also the voice switch) and Screen translation on the right. Ove follows your pointer; while reading, Ove moves its mouth and the line appears in Ove's glass speech bubble; turn the voice off and Ove yawns and falls asleep. Rest the pointer on Ove's head and it smiles; shake the pointer fast over it and it gets annoyed.
+The main window has three switches: Subtitles on the left, Ove in the middle (OverSub's 3D mascot, which is also the voice switch) and Screen translation on the right. Ove blinks; while reading (including a voice preview), Ove moves its mouth and the line appears in Ove's glass speech bubble; turn the voice off and Ove yawns and falls asleep.
 
 https://github.com/user-attachments/assets/db2bf69f-3bb9-4343-82d8-905128e31e92
 

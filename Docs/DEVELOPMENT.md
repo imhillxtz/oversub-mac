@@ -300,16 +300,21 @@ Ove là đầu kính mờ có lõi cam, dựng bằng three.js ở `Tools/Ove/ov
 Design). App không chạy 3D: mọi trạng thái và biểu cảm được dựng sẵn thành tấm khung hình HEIC trong `Resources/Ove`,
 `Ove.swift` lật khung bằng `contentsRect` của Core Animation.
 
-- Bộ góc đầu `idle` và `live`: 9 hướng ngang × 5 hướng dọc, mỗi góc một khung mở mắt và một khung nhắm mắt. Nhìn theo
-  chuột chọn góc gần nhất, quay đầu đi từng nấc mỗi khung.
+- Bộ góc đầu `idle` và `live`: 9 hướng ngang × 5 hướng dọc, mỗi góc một khung mở mắt và một khung nhắm mắt. Từ 1.1.76
+  Ove luôn nhìn thẳng (người dùng thấy quay đầu theo trạng thái là rối khi đã bỏ chuột): lúc nạp, app chỉ cắt hai khung
+  nhìn thẳng (mở, nhắm) để chớp mắt rồi bỏ tấm lớn. Các góc khác giữ trong tấm để dùng sau.
 - Vòng đọc `speak` (3 giây, khớp đầu đuôi), các đoạn `happy` (có khoảng giữ khi được vuốt ve), `sad`, `angry`, `dizzy`,
   `cry`, và `yawn`, `wake` riêng cho nền sáng, nền tối (mặt lúc ngủ xám khác nhau). Gợn sóng là một vòng ảnh
   `ripple-light`, `ripple-dark` được phóng và làm mờ bằng Core Animation.
 - Mỗi khung dựng hai lần trên nền đen và nền trắng (nền chỉ dùng cho lượt khúc xạ của kính) rồi tách độ trong thật của kính,
   nên một khung dùng được trên cả nền sáng lẫn nền tối.
-- Tương tác: bấm là bật tắt giọng đọc (ngáp rồi ngủ, tỉnh dậy; bấm thêm trong 1,6 giây bị bỏ qua); đặt chuột lên đầu nửa
-  giây là vui, vuốt hơn 1,6 giây rồi bỏ đi là buồn; rung chuột thật nhanh trên đầu (6 nhịp trong 1 giây, mỗi nhịp từ 14
-  điểm và 1100 điểm/giây) là giận; rê chuột vòng tròn quanh Ove hai vòng trong hai giây là chóng mặt rồi khóc.
+- Tương tác: bấm là bật tắt giọng đọc (ngáp rồi ngủ, tỉnh dậy; bấm thêm trong 1,6 giây bị bỏ qua). Tương tác chuột (nhìn
+  theo, vuốt ve, rung, rê vòng) có ở bản thử 1.1.75 rồi bỏ theo yêu cầu người dùng; bộ hình biểu cảm vẫn giữ, móc thử gọi
+  được.
+- Lớp hình Ove tắt hoạt ảnh ngầm (`actions` của `contentsRect`, `contents`): thiếu nó thì mỗi lần đặt khung ngoài hoạt ảnh
+  lật khung, Core Animation trượt ô cắt 0,25 giây qua tấm và Ove hiện thành mảnh ghép bốn khung.
+- Đang phát tiếng thì Ove đọc và nền rực theo, kể cả khi nghe thử giọng lúc giọng đọc đang tắt; đi giữa ngủ và đọc thì mờ
+  chuyển nhanh, ngáp và tỉnh dậy chỉ chạy khi bấm tắt, bật giọng đọc.
 - Đo trên M1 Pro (Ove 128 điểm, cửa sổ hiện): đang đọc 0,3% một nhân, chờ khoảng 0,4%, bị che 0%; bộ nhớ cao nhất khoảng
   124 MB lúc chuyển trạng thái, lúc thường khoảng 46 MB (app chỉ giữ tấm đang chiếu và bộ góc đầu của mặt hiện tại).
 

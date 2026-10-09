@@ -221,8 +221,9 @@ struct MascotButton: View {
     }
 
     private var mood: Mascot.Mood {
-        guard settings.speakEnabled else { return .asleep }
+        // Đang phát tiếng thì Ove đọc, kể cả khi nghe thử giọng lúc giọng đọc đang tắt.
         if speaker.isSpeaking { return .speaking }
+        guard settings.speakEnabled else { return .asleep }
         return engine.running ? .listening : .idle
     }
 

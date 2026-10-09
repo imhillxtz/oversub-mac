@@ -966,14 +966,24 @@ enum DebugSnapshot {
                 DebugLog.write("Thử Ove: giữ trạng thái chờ \(Int(hold)) giây")
                 try? await Task.sleep(for: .seconds(hold))
             }
+            // Chụp dồn ngay sau mỗi lần đổi trạng thái để bắt khoảnh khắc chuyển cảnh (lỗi mảnh ghép bốn khung lộ ra ở đây).
+            func burst(_ name: String) async { for i in 0..<4 { await shot("\(name)-\(i)", after: 0.06) } }
             engine.settings.speakEnabled = false
-            await shot("yawn", after: 0.6)
+            await burst("to-sleep")
+            await shot("yawn", after: 0.4)
             await shot("asleep", after: 2.4)
+            // Nghe thử giọng lúc giọng đọc đang tắt: Ove đọc rồi về ngủ, nền rực theo (giả lập, không phát tiếng).
+            engine.speaker.debugSetSpeaking("")
+            await shot("asleep-preview", after: 0.8)
+            engine.speaker.debugSetSpeaking(nil)
+            await shot("asleep-after-preview", after: 1.0)
             engine.settings.speakEnabled = true
-            await shot("wake", after: 0.5)
+            await burst("to-wake")
+            await shot("wake", after: 0.3)
             await shot("idle-again", after: 2.0)
             engine.running = true
-            await shot("listening", after: 1.5)
+            await burst("to-listen")
+            await shot("listening", after: 1.2)
             engine.lastSpeaker = "Expert Farmer"
             engine.lastSource = "Back in the day, there used to be 100 Poogies around the vines."
             engine.lastTranslation = "Ngày trước, có tới cả trăm chú Poogie quanh mấy giàn nho ấy chứ."

@@ -58,8 +58,8 @@ final class OveLibrary {
 
     var available: Bool { meta != nil }
     var fps: Double { Double(meta?.fps ?? 24) }
-    var yaws: [Double] { meta?.atlas.yaws ?? [0] }
-    var pitches: [Double] { meta?.atlas.pitches ?? [0] }
+    private var yaws: [Double] { meta?.atlas.yaws ?? [0] }
+    private var pitches: [Double] { meta?.atlas.pitches ?? [0] }
     /// Tỉ lệ khung so với đường kính đầu (khung 280 px cho đầu 256 px).
     var frameRatio: CGFloat { CGFloat(meta?.frame ?? 280) / 256 }
 
@@ -70,9 +70,25 @@ final class OveLibrary {
             DebugLog.write("Ove: không đọc được tấm \(name).heic")
             return nil
         }
-        let s = Sheet(image: image, count: info.count, cols: meta.cols, rows: info.rows, hold: info.hold)
+        var s = Sheet(image: image, count: info.count, cols: meta.cols, rows: info.rows, hold: info.hold)
+        // Ove luôn nhìn thẳng: bộ góc đầu chỉ cần khung nhìn thẳng mở mắt (0) và nhắm mắt (1). Cắt riêng hai khung đó
+        // thành tấm nhỏ (0,6 MB) rồi bỏ tấm lớn (khoảng 28 MB khi giải nén).
+        if info.kind == "atlas", let small = Self.crop(image, frames: [frontIndex, frontIndex + 1], from: s, side: meta.frame) {
+            s = Sheet(image: small, count: 2, cols: 2, rows: 1, hold: nil)
+        }
         cache[name] = s
         return s
+    }
+
+    private static func crop(_ image: CGImage, frames: [Int], from s: Sheet, side f: Int) -> CGImage? {
+        guard let ctx = CGContext(data: nil, width: f * frames.count, height: f, bitsPerComponent: 8, bytesPerRow: 0,
+                                  space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+        else { return nil }
+        for (k, i) in frames.enumerated() {
+            guard let part = image.cropping(to: CGRect(x: (i % s.cols) * f, y: (i / s.cols) * f, width: f, height: f)) else { return nil }
+            ctx.draw(part, in: CGRect(x: k * f, y: 0, width: f, height: f))
+        }
+        return ctx.makeImage()
     }
 
     /// Thả tấm không còn dùng: mỗi tấm giải nén khoảng 28 MB, giữ hết thì app nặng thêm hơn 100 MB. Đọc lại một tấm
@@ -95,7 +111,7 @@ final class OveLibrary {
         if let s = stills[key] { return s }
         let name = asleep ? (dark ? "yawn-dark" : "yawn-light") : "idle"
         guard let meta, let s = sheet(name) else { return nil }
-        let index = asleep ? s.last : frontIndex
+        let index = asleep ? s.last : 0
         let f = meta.frame
         guard let crop = s.image.cropping(to: CGRect(x: (index % s.cols) * f, y: (index / s.cols) * f, width: f, height: f)),
               let ctx = CGContext(data: nil, width: f, height: f, bitsPerComponent: 8, bytesPerRow: 0,
@@ -108,10 +124,8 @@ final class OveLibrary {
         return image
     }
 
-    /// Khung nhìn thẳng, mở mắt trong bộ góc đầu.
-    var frontIndex: Int { atlasIndex(row: pitches.count / 2, col: yaws.count / 2, closed: false) }
-
-    func atlasIndex(row: Int, col: Int, closed: Bool) -> Int { (row * yaws.count + col) * 2 + (closed ? 1 : 0) }
+    /// Khung nhìn thẳng, mở mắt trong bộ góc đầu đầy đủ (khung kế tiếp là nhắm mắt).
+    private var frontIndex: Int { ((pitches.count / 2) * yaws.count + yaws.count / 2) * 2 }
 
     private static func load(_ name: String) -> CGImage? {
         guard let url = Bundle.main.url(forResource: name, withExtension: "heic", subdirectory: "Ove"),
@@ -179,26 +193,7 @@ final class OveLayerView: NSView {
     private var inClip = false
     private var token = 0
     private var blinkGen = 0
-    private var lookGen = 0
-    private var pointerIdle: DispatchWorkItem?
-    private var petStart: DispatchWorkItem?
 
-    // Góc đầu đang hiện (hàng theo hướng dọc, cột theo hướng ngang) và đường đi dở giữa hai góc.
-    private var cell = (row: 2, col: 4)
-    private var path: [(row: Int, col: Int)] = []
-    private var pathStart: CFTimeInterval = 0
-    private var glanceOn = false
-    private var lookAway: (row: Int, col: Int)?
-
-    // Chuột.
-    private var monitor: Any?
-    private var pointerAt: CFTimeInterval = 0
-    private var pointerCell: (row: Int, col: Int)?
-    private var over = false
-    private var overSince: CFTimeInterval = 0
-    private var petting = false
-    private var scrub = (dir: 0, lastX: CGFloat(0), lastT: CFTimeInterval(0), peak: CGFloat(0), len: CGFloat(0), flips: [CFTimeInterval]())
-    private var circle = (lastAngle: CGFloat?.none, turns: [(CFTimeInterval, CGFloat)]())
 
     init(size: CGFloat) {
         self.size = size
@@ -213,7 +208,9 @@ final class OveLayerView: NSView {
         breather.addSublayer(drop)
         breather.addSublayer(sprite)
         sprite.contentsGravity = .resize
-        sprite.minificationFilter = .trilinear
+        // Không cho Core Animation tự trượt ô cắt hay hình: đổi khung là nhảy thẳng sang khung mới. Thiếu dòng này thì mỗi
+        // lần đặt khung ngoài hoạt ảnh lật khung, ô cắt trượt mượt 0,25 giây qua tấm và Ove hiện thành mảnh ghép bốn khung.
+        sprite.actions = ["contentsRect": NSNull(), "contents": NSNull(), "bounds": NSNull(), "position": NSNull()]
         for s in [glow, drop] {
             s.shadowPath = CGPath(ellipseIn: CGRect(x: 0, y: 0, width: size, height: size), transform: nil)
             s.shadowOpacity = 0
@@ -262,17 +259,6 @@ final class OveLayerView: NSView {
         CATransaction.commit()
     }
 
-    override func viewDidMoveToWindow() {
-        super.viewDidMoveToWindow()
-        if let monitor { NSEvent.removeMonitor(monitor); self.monitor = nil }
-        guard let window else { return }
-        window.acceptsMouseMovedEvents = true
-        monitor = NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged]) { [weak self] e in
-            MainActor.assumeIsolated { self?.pointer(e) }
-            return e
-        }
-    }
-
     // MARK: Cấu hình từ SwiftUI
 
     func configure(mood: Mascot.Mood, dark: Bool, animating: Bool, still: Bool, cue: UUID?) {
@@ -314,24 +300,20 @@ final class OveLayerView: NSView {
     // MARK: Chuyển trạng thái
 
     private func enter(_ new: Mascot.Mood, from old: Mascot.Mood?) {
-        endInteraction()
         if sheetName != (new == .idle ? "live" : "idle") { lib.release(new == .idle ? "live" : "idle") }
         updateGlow()
         updateMotion()
         startTimers()
         switch new {
         case .asleep:
-            if let old, old != .asleep, live {
+            // Ngáp chỉ khi tắt giọng đọc lúc đang thức; vừa đọc xong câu thử giọng mà giọng đang tắt thì mờ về ngủ luôn.
+            if let old, old != .asleep, old != .speaking, live {
                 playClip(dark ? "yawn-dark" : "yawn-light", fade: true) { [weak self] in self?.showAsleep() }
             } else {
-                showAsleep()
+                showAsleep(fade: old != nil)
             }
         case .speaking:
-            if old == .asleep, live {
-                playClip(dark ? "wake-dark" : "wake-light", fade: false) { [weak self] in self?.startSpeaking() }
-            } else {
-                startSpeaking()
-            }
+            startSpeaking()
         case .idle, .listening:
             if old == .asleep, live {
                 playClip(dark ? "wake-dark" : "wake-light", fade: false) { [weak self] in self?.showAtlas(fade: true) }
@@ -343,16 +325,10 @@ final class OveLayerView: NSView {
 
     private var face: String { mood == .idle ? "idle" : "live" }
 
-    private var restCell: (row: Int, col: Int) {
-        let mid = (row: lib.pitches.count / 2, col: lib.yaws.count / 2)
-        if mood == .listening { return (mid.row, glanceOn ? mid.col - 3 : mid.col - 2) }   // quay sang nút Phụ đề
-        return mid
-    }
-
-    private func showAsleep() {
+    private func showAsleep(fade: Bool = false) {
         inClip = false
         showing = .asleep
-        guard let s = setSheet(dark ? "yawn-dark" : "yawn-light", fade: false) else { return }
+        guard let s = setSheet(dark ? "yawn-dark" : "yawn-light", fade: fade) else { return }
         sprite.removeAnimation(forKey: "frames")
         sprite.contentsRect = s.rect(s.last)
     }
@@ -369,16 +345,13 @@ final class OveLayerView: NSView {
         }
     }
 
+    /// Ove luôn nhìn thẳng (không còn chuột để nhìn theo): mặt chờ hoặc mặt đang chạy, mở mắt.
     private func showAtlas(fade: Bool) {
         inClip = false
         showing = .atlas(face)
-        let target = pointerCell ?? lookAway ?? restCell
         guard let s = setSheet(face, fade: fade) else { return }
         sprite.removeAnimation(forKey: "frames")
-        path = []
-        cell = (lib.pitches.count / 2, lib.yaws.count / 2)
-        sprite.contentsRect = s.rect(lib.atlasIndex(row: cell.row, col: cell.col, closed: false))
-        look(at: target)
+        sprite.contentsRect = s.rect(0)
     }
 
     // MARK: Khung hình
@@ -436,97 +409,27 @@ final class OveLayerView: NSView {
         run(Array(a...end), sheet: s, done: done)
     }
 
-    // MARK: Góc đầu
-
-    private func nearest(_ values: [Double], _ v: Double) -> Int {
-        values.indices.min { abs(values[$0] - v) < abs(values[$1] - v) } ?? 0
-    }
-
-    /// Ô đang hiện, kể cả khi đang đi dở giữa hai góc.
-    private var currentCell: (row: Int, col: Int) {
-        guard !path.isEmpty else { return cell }
-        let k = Int((CACurrentMediaTime() - pathStart) * lib.fps)
-        return k >= path.count ? path[path.count - 1] : path[max(0, k)]
-    }
-
-    /// Quay đầu tới ô đích, mỗi khung đi một nấc theo cả hai hướng, nên đầu xoay đều chứ không nhảy cóc.
-    private func look(at target: (row: Int, col: Int)) {
-        guard case .atlas = showing, !inClip, let s = lib.sheet(face) else { return }
-        var cur = currentCell
-        guard cur != target else { return }
-        var steps: [(row: Int, col: Int)] = []
-        while cur != target {
-            cur.row += (target.row > cur.row ? 1 : target.row < cur.row ? -1 : 0)
-            cur.col += (target.col > cur.col ? 1 : target.col < cur.col ? -1 : 0)
-            steps.append(cur)
-        }
-        cell = target
-        guard live else {
-            path = []
-            sprite.removeAnimation(forKey: "frames")
-            sprite.contentsRect = s.rect(lib.atlasIndex(row: target.row, col: target.col, closed: false))
-            return
-        }
-        path = steps
-        pathStart = CACurrentMediaTime()
-        // Quay đầu lớn thì chớp mắt một cái cho tự nhiên.
-        let blinkMid = steps.count >= 3
-        let frames = steps.enumerated().map { i, c in
-            lib.atlasIndex(row: c.row, col: c.col, closed: blinkMid && i == steps.count / 2)
-        }
-        run(frames, sheet: s) { [weak self] in self?.path = [] }
-    }
-
     private func blink() {
-        guard case .atlas = showing, !inClip, path.isEmpty, live, let s = lib.sheet(face) else { return }
-        let open = lib.atlasIndex(row: cell.row, col: cell.col, closed: false)
-        let shut = lib.atlasIndex(row: cell.row, col: cell.col, closed: true)
-        var frames = [shut, shut, open]
-        if Int.random(in: 0..<5) == 0 { frames += [open, open, shut, shut, open] }   // thỉnh thoảng chớp đôi
+        guard case .atlas = showing, !inClip, live, let s = lib.sheet(face) else { return }
+        var frames = [1, 1, 0]
+        if Int.random(in: 0..<5) == 0 { frames += [0, 0, 1, 1, 0] }   // thỉnh thoảng chớp đôi
         run(frames, sheet: s)
     }
 
     // MARK: Nhịp sống
 
-    /// Chớp mắt sau mỗi 2,8 đến 6,2 giây; lúc nghe thì một phần ba số lần là liếc kỹ hơn sang nút Phụ đề; lúc chờ mà không
-    /// có chuột thì thỉnh thoảng nhìn quanh. Hẹn giờ nên giữa hai lần không tốn gì; cửa sổ bị che thì dừng hẳn.
+    /// Chớp mắt sau mỗi 2,8 đến 6,2 giây (thỉnh thoảng chớp đôi). Hẹn giờ nên giữa hai lần không tốn gì; cửa sổ bị che
+    /// thì dừng hẳn.
     private func startTimers() {
         blinkGen += 1
-        lookGen += 1
-        lookAway = nil
         guard live, mood != .asleep, mood != .speaking else { return }
         blinkLoop(blinkGen)
-        if mood == .idle { lookLoop(lookGen) }
     }
 
     private func blinkLoop(_ gen: Int) {
         after(Double.random(in: 2.8...6.2), alive: { [weak self] in self?.blinkGen == gen }) { [weak self] in
-            guard let self else { return }
-            if self.mood == .listening, self.pointerCell == nil, Int.random(in: 0..<3) == 0 {
-                self.glanceOn.toggle()
-                self.look(at: self.restCell)
-            } else {
-                self.blink()
-            }
-            self.blinkLoop(gen)
-        }
-    }
-
-    private func lookLoop(_ gen: Int) {
-        let alive: @MainActor () -> Bool = { [weak self] in self?.lookGen == gen && self?.mood == .idle }
-        after(Double.random(in: 3...6), alive: alive) { [weak self] in
-            guard let self else { return }
-            guard self.pointerCell == nil, !self.inClip else { self.lookLoop(gen); return }
-            let mid = (row: self.lib.pitches.count / 2, col: self.lib.yaws.count / 2)
-            let away = (row: mid.row + Int.random(in: -1...1), col: mid.col + Int.random(in: -2...2))
-            self.lookAway = away
-            self.look(at: away)
-            self.after(Double.random(in: 1.2...2.2), alive: alive) { [weak self] in
-                guard let self else { return }
-                self.lookAway = nil
-                if self.pointerCell == nil { self.look(at: self.restCell) }
-                self.lookLoop(gen)
-            }
+            self?.blink()
+            self?.blinkLoop(gen)
         }
     }
 
@@ -545,105 +448,12 @@ final class OveLayerView: NSView {
         return item
     }
 
-    // MARK: Chuột
+    // MARK: Biểu cảm
 
-    private var canExpress: Bool { live && mood != .asleep && mood != .speaking && !inClip }
-
-    private func pointer(_ e: NSEvent) {
-        guard e.window === window, live, mood != .asleep else { return }
-        let p = convert(e.locationInWindow, from: nil)
-        let dx = p.x - bounds.midX, dy = p.y - bounds.midY
-        let t = CACurrentMediaTime()
-        pointerAt = t
-        // Nhìn theo chuột: hướng ngang theo khoảng cách ngang, hướng dọc theo khoảng cách dọc (xuống dưới là cúi).
-        let yaw = max(-0.6, min(0.6, Double(dx) / 220 * 0.8)), pitch = max(-0.36, min(0.36, Double(-dy) / 220 * 0.55))
-        let target = (row: nearest(lib.pitches, pitch), col: nearest(lib.yaws, yaw))
-        if mood != .speaking, pointerCell.map({ $0 != target }) ?? true {
-            pointerCell = target
-            look(at: target)
-        }
-        // Bốn giây không rê chuột thì thôi nhìn theo, quay về tư thế của trạng thái.
-        pointerIdle?.cancel()
-        pointerIdle = workItem(4) { [weak self] in
-            guard let self, self.pointerCell != nil else { return }
-            self.pointerCell = nil
-            self.look(at: self.lookAway ?? self.restCell)
-        }
-        let r = hypot(dx, dy)
-        updatePet(over: r < size / 2 * 1.05, t: t)
-        if r < size / 2 * 1.05 { updateScrub(x: p.x, t: t) } else { scrub.lastX = .nan }
-        updateCircle(dx: dx, dy: dy, r: r, t: t)
-    }
-
-    /// Đặt chuột lên đầu nửa giây là được vuốt ve: vui, mắt cong. Đang vuốt mà bỏ đi sau hơn 1,6 giây thì buồn.
-    private func updatePet(over now: Bool, t: CFTimeInterval) {
-        if now && !over {
-            over = true
-            overSince = t
-            petStart?.cancel()
-            petStart = workItem(0.5) { [weak self] in
-                guard let self, self.over, self.canExpress, let s = self.lib.sheet("happy") else { return }
-                self.petting = true
-                self.playClip("happy", to: s.hold?.first ?? s.count / 2, fade: true) {}
-            }
-        } else if !now && over {
-            over = false
-            guard petting else { return }
-            petting = false
-            let long = t - overSince > 1.6
-            let from = lib.sheet("happy")?.hold?.last ?? 0
-            playClip("happy", from: from, fade: false) { [weak self] in
-                guard let self else { return }
-                if long { self.playClip("sad", fade: false) { [weak self] in self?.showAtlas(fade: true) } }
-                else { self.showAtlas(fade: true) }
-            }
-        }
-    }
-
-    /// Rung chuột qua lại thật nhanh trên đầu: chỉ tính nhịp đi đủ xa (từ 14 điểm) và đủ nhanh (từ 1100 điểm mỗi giây),
-    /// sáu nhịp trong một giây thì Ove giận. Xoa nhẹ để vuốt ve chậm hơn nhiều nên không bị tính.
-    private func updateScrub(x: CGFloat, t: CFTimeInterval) {
-        if scrub.lastX.isNaN || t - scrub.lastT > 0.25 { scrub = (0, x, t, 0, 0, []); return }
-        let dx = x - scrub.lastX, dt = max(0.004, t - scrub.lastT)
-        guard abs(dx) >= 2 else { return }
-        scrub.lastX = x
-        scrub.lastT = t
-        let dir = dx > 0 ? 1 : -1
-        if scrub.dir != 0 && dir != scrub.dir {
-            if scrub.peak > 1100 && scrub.len >= 14 { scrub.flips.append(t) }
-            scrub.peak = 0
-            scrub.len = 0
-        }
-        scrub.dir = dir
-        scrub.peak = max(scrub.peak, abs(dx) / CGFloat(dt))
-        scrub.len += abs(dx)
-        scrub.flips.removeAll { t - $0 > 1 }
-        if scrub.flips.count >= 6 {
-            scrub.flips = []
-            express("angry")
-        }
-    }
-
-    /// Rê chuột vòng tròn thật nhanh quanh Ove (hai vòng trong hai giây): chóng mặt rồi khóc nhè.
-    private func updateCircle(dx: CGFloat, dy: CGFloat, r: CGFloat, t: CFTimeInterval) {
-        guard r > size * 0.3, r < size * 1.6 else { circle.lastAngle = nil; return }
-        let a = atan2(dy, dx)
-        if let last = circle.lastAngle {
-            var d = a - last
-            if d > .pi { d -= 2 * .pi } else if d < -.pi { d += 2 * .pi }
-            circle.turns.append((t, d))
-        }
-        circle.lastAngle = a
-        circle.turns.removeAll { t - $0.0 > 2 }
-        if abs(circle.turns.reduce(0) { $0 + $1.1 }) > 4 * .pi {
-            circle.turns = []
-            express("dizzy", then: "cry")
-        }
-    }
-
+    /// Chạy một đoạn biểu cảm rồi về tư thế của trạng thái. Hiện chỉ móc thử gọi tới: tương tác chuột (vuốt ve, rung, rê
+    /// vòng) đã bỏ theo yêu cầu, bộ hình biểu cảm giữ lại để dùng sau.
     private func express(_ name: String, then next: String? = nil) {
-        guard live, mood != .asleep, mood != .speaking, !inClip || petting else { return }
-        petting = false
+        guard live, mood != .asleep, mood != .speaking, !inClip else { return }
         playClip(name, fade: true) { [weak self] in
             guard let self else { return }
             if let next { self.playClip(next, fade: false) { [weak self] in self?.showAtlas(fade: true) } }
@@ -651,12 +461,6 @@ final class OveLayerView: NSView {
         }
     }
 
-    private func endInteraction() {
-        petting = false
-        over = false
-        lookAway = nil
-        glanceOn = false
-    }
 
     #if DEVTOOLS
     /// Móc thử (OVERSUB_OVE_TEST): chạy một biểu cảm như thể có tương tác chuột.
@@ -741,17 +545,12 @@ final class OveLayerView: NSView {
     /// Cửa sổ bị che hay bật giảm chuyển động: bỏ mọi hoạt ảnh, giữ một khung đứng yên đúng trạng thái.
     private func freeze() {
         blinkGen += 1
-        lookGen += 1
-        pointerIdle?.cancel()
-        petStart?.cancel()
-        pointerCell = nil
         token += 1
-        path = []
         sprite.removeAllAnimations()
         bodyLayer.removeAllAnimations()
         breather.removeAllAnimations()
         for r in ripples { r.removeAllAnimations(); r.isHidden = true }
-        if petting || inClip { petting = false; inClip = false }
+        inClip = false
         switch mood {
         case .asleep: showAsleep()
         case .speaking: startSpeaking()
@@ -769,10 +568,6 @@ final class OveLayerView: NSView {
         }
     }
 
-    override func removeFromSuperview() {
-        if let monitor { NSEvent.removeMonitor(monitor); self.monitor = nil }
-        super.removeFromSuperview()
-    }
 }
 
 #if DEVTOOLS

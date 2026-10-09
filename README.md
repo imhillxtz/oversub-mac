@@ -40,7 +40,7 @@ Tiếng Việt · [English](README.en.md)
 
 OverSub dùng được với mọi game hiện trên màn hình Mac: game Mac, game Windows chạy qua CrossOver hay Whisky, game đám mây, và máy console (Switch, PlayStation) chơi qua capture card, xem ngay trong Màn hình chơi game của OverSub hoặc bằng app xem hình như OBS. App không can thiệp vào game, nó chỉ nhìn màn hình như bạn.
 
-Cửa sổ chính có ba nút bật tắt riêng: Phụ đề bên trái, Ove ở giữa (linh vật 3D của OverSub, cũng là nút giọng đọc), Dịch màn hình bên phải. Ove nhìn theo chuột; đang đọc thì Ove mấp máy miệng và câu thoại hiện trong bong bóng kính của Ove; tắt giọng đọc thì Ove ngáp rồi ngủ. Đặt chuột lên đầu là Ove vui, rung chuột thật nhanh trên đầu là Ove giận.
+Cửa sổ chính có ba nút bật tắt riêng: Phụ đề bên trái, Ove ở giữa (linh vật 3D của OverSub, cũng là nút giọng đọc), Dịch màn hình bên phải. Ove chớp mắt; đang đọc (kể cả khi nghe thử giọng) thì Ove mấp máy miệng và câu thoại hiện trong bong bóng kính của Ove; tắt giọng đọc thì Ove ngáp rồi ngủ.
 
 https://github.com/user-attachments/assets/db2bf69f-3bb9-4343-82d8-905128e31e92
 

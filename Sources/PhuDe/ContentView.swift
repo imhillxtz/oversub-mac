@@ -36,8 +36,8 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             footer
         }
-        // Nền gradient trôi chậm, rực hơn khi phiên đang chạy; chạy lên cả dưới thanh công cụ cho liền một mảng.
-        .background { HomeBackdrop(vivid: engine.anyRunning) }
+        // Nền gradient trôi chậm, rực hơn khi phiên đang chạy hay Ove đang đọc; chạy lên cả dưới thanh công cụ cho liền một mảng.
+        .background { HomeStageBackdrop(speaker: engine.speaker, running: engine.anyRunning) }
         .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
         .animation(.smooth(duration: 0.3), value: engine.problem)
         .animation(.smooth(duration: 0.3), value: support.pending)
@@ -381,10 +381,11 @@ struct VoiceOverStage: View {
                     MascotButton(speaker: speaker)
                 }
                 .background(alignment: .top) {
-                    // Ống chạy từ mép nút Phụ đề tới mép linh vật (lấn vào dưới mỗi bên một chút cho liền).
-                    EnergyLink(enabled: settings.speakEnabled, active: engine.running && settings.speakEnabled, speaking: settings.speakEnabled && speaker.isSpeaking)
+                    // Ống chạy từ dưới nút Phụ đề tới giữa Ove: đầu ống nấp sau lõi cam, nhìn qua lớp kính trong như ống cắm vào
+                    // đầu Ove (dừng ở mép thì đầu ống cụt lộ ra trong kính).
+                    EnergyLink(enabled: settings.speakEnabled || speaker.isSpeaking, active: engine.running && settings.speakEnabled, speaking: speaker.isSpeaking)
                         .padding(.leading, orbColumn / 2 + 44)
-                        .padding(.trailing, orbColumn / 2 + 58)
+                        .padding(.trailing, orbColumn / 2)
                         .offset(y: (orbRowHeight - 10) / 2)
                 }
                 ScreenTranslateButton()
@@ -561,6 +562,13 @@ struct KaraokeText: View {
             .minimumScaleFactor(lines == 1 ? 0.5 : 0.6)
             .animation(.smooth(duration: 0.18), value: end)
     }
+}
+
+/// Nền màn hình chính: rực hơn khi phiên đang chạy hoặc khi Ove đang đọc (kể cả nghe thử giọng), để nền khớp với Ove.
+private struct HomeStageBackdrop: View {
+    @ObservedObject var speaker: Speaker
+    var running: Bool
+    var body: some View { HomeBackdrop(vivid: running || speaker.isSpeaking) }
 }
 
 /// Bong bóng thoại của Ove: khối bo tròn có đuôi ở giữa cạnh trên, chỉ lên Ove nằm ngay phía trên.
