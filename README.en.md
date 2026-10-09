@@ -158,23 +158,25 @@ Press ⌃⌥Q anywhere (you don't need to click Start), drag a box around some t
 
 Connect a capture card to your Mac (before or after opening OverSub). The bottom of the main window then shows "Signal detected from" with the card's name, resolution and frame rate, and an Open game screen button. The window never opens by itself. Without the notice, click Game screen at the bottom of the main window or choose it from the Window menu. The notice ignores webcams and the FaceTime camera; to use a camera, pick it under Video device.
 
-The game screen is a regular window that remembers its position and size; click the green button, double-click the picture or press ⌃⌘F for full screen. The picture keeps its aspect ratio with black bars where needed, and the sound goes straight to your speakers. Move the pointer over the picture to show a small bar at the bottom: mute, volume, full screen and the options menu (right-clicking the picture opens the same menu). Closing the window stops the picture and sound from the card.
+The game screen is a regular window that remembers its position and size; drag the picture to move it and drag an edge to resize it. Click the green button, double-click the picture or press ⌃⌘F for full screen. The picture keeps its aspect ratio with black bars where needed, and the sound goes straight to your speakers. Move the pointer over the picture to show a small bar at the bottom: mute, volume, full screen and the options menu (right-clicking the picture opens the same menu). Closing the window stops the picture and sound from the card.
 
 The options menu and Settings → Game screen offer the same choices: card, format, audio source, audio output, color range, color matrix, color space, HDR, picture preset, picture size (fit or fill), latency, mute when another app is active, and always on top.
 
 Picture presets bundle upscaling, sharpening, anti-aliasing and frame generation. A capture card only delivers the finished picture, with no motion or depth data from the game, so DLSS or FSR 2 and later can't be used; every preset below works on the finished picture:
 
-| Preset | What it does | GPU time measured on M1 Pro (1080p to full screen) |
+| Preset | What it does | Added lag measured on M1 Pro (60 / 30 fps signal) |
 |---|---|---|
-| Original | No extra processing, lowest latency | under 0.5 ms |
-| Sharp | Upscales with AMD FSR 1, then RCAS sharpening | 1.5 to 2 ms |
-| Smooth edges | FXAA anti-aliasing, then FSR 1 | 2 to 2.5 ms |
-| 3D games | Anime4K's AI network for 3D graphics, with anti-aliasing | 3 to 5 ms |
-| Cartoon art | Anime4K's AI network for line art | 4.5 to 6.5 ms |
-| Smooth 120 fps | Inserts a frame between every two real frames for 120 Hz displays; adds about 8 ms of latency | 1 to 1.5 ms more per inserted frame |
-| 30 fps games to 60 | Replaces the repeated frames of 30 fps games with in-between frames; adds about 17 ms of latency | 1 to 1.5 ms more per inserted frame |
+| Original | No extra processing, lowest latency | none |
+| Sharp | Upscales with AMD FSR 1, then RCAS sharpening | 3 / 3 ms |
+| Smooth edges | FXAA anti-aliasing, then FSR 1 | 3 / 4 ms |
+| 3D games | Anime4K's AI network for 3D graphics, with anti-aliasing | 5 / 6 ms |
+| Cartoon art | Anime4K's AI network for line art | 7 / 8 ms |
+| Smooth 120 fps (Smooth 60 on a 30 fps signal) | Inserts a frame between every two real frames: 60 to 120 (needs a 120 Hz display), 30 to 60 | 15 / 24 ms |
+| 30 fps games to 60 | Replaces the repeated frames of 30 fps games with in-between frames; on a 30 fps signal it doubles instead | 20 / 24 ms |
 
-Changing any single option (Upscaling, Sharpen, Anti-aliasing, Frame generation) switches the preset to Custom. In-between frames are built from two real frames by estimating motion in the picture, so fast-moving objects can smear at their edges; static text, health bars and maps stay sharp. The Frame generation options show the added latency for the current signal's frame rate, and the options menu shows the GPU time in use.
+Added lag is how much later the picture responds to a button press than with Original. The app shows it right next to every choice, worked out for your signal, picture size and the GPU time measured on your own Mac, and the preset in use also shows a live measurement. Higher numbers also mean more GPU work, a warmer Mac and more battery use. Changing any single option (Upscaling, Sharpen, Anti-aliasing, Frame generation) switches the preset to Custom, and each option shows the lag it adds on its own. In-between frames are built from two real frames by estimating motion in the picture, so fast-moving objects can smear at their edges; static text, health bars and maps stay sharp.
+
+Other trade-offs are noted next to each choice too: 30 fps formats (such as the 2560×1440 · 30 mode of many cards) are less smooth and add about 8 ms; YUV 4:2:2 keeps colored text edges crisper while 4:2:0 uses less CPU; Bluetooth speakers and headphones usually play sound more than 0.1 seconds late; Display P3 is more vivid but less accurate; Show HDR (EDR) limits presets to standard upscaling or MetalFX; strong sharpening can add bright halos; anti-aliasing softens small text slightly.
 
 If the colors on your Mac don't match the TV, check Color range. On Automatic the app reads the actual brightness of the signal, because many cards label the range wrong. Washed out with grey blacks: choose Limited. Harsh with crushed shadows: choose Full. Still washed out on Limited: on Switch 2, open System Settings › Display › RGB Range and choose Full Range. If Switch 2 sends HDR through the card and the picture looks grey and dull, choose HDR › Tone-map HDR to SDR, or turn off HDR Output on Switch 2.
 

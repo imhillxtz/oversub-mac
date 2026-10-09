@@ -59,6 +59,20 @@ final class PlayRenderer: @unchecked Sendable {
         statsLock.lock(); defer { statsLock.unlock() }
         return processing
     }
+    // Đo 2 giây một lần cho số trễ thêm trong menu và Cài đặt: thời gian GPU của đúng một cách xử lý (đổi cách, đổi cỡ giữa
+    // chừng thì bỏ lần đo đó). `cost` mang tín hiệu, cỡ khung hình và hệ số GPU của máy (xem PlayCost).
+    private var winGpu = 0.0, winFrames = 0
+    private var winStart = Date()
+    private var winKey = ""
+    private var winMixed = true
+    private var cost = PlayCost.saved
+    private var measuredLag: Double?
+    private var lastCostSave = Date.distantPast
+    /// Tín hiệu, cỡ khung hình, hệ số GPU đang dùng và độ trễ thêm đo được của cách đang dùng (gọi được từ luồng chính).
+    func costInfo() -> (cost: PlayCost, measured: Double?) {
+        statsLock.lock(); defer { statsLock.unlock() }
+        return (cost, measuredLag)
+    }
     private(set) var detector = RangeDetector()
     private var sampleTick = 0
     /// Cách hiểu đang dùng, để ghi nhật ký và hiện trong menu.
@@ -191,7 +205,7 @@ final class PlayRenderer: @unchecked Sendable {
         if Self.processing(o) {
             // Đổi màu vào texture trung gian ở độ phân giải gốc (đã cắt theo Lấp đầy), rồi chèn khung, khử răng cưa, phóng, làm nét.
             let sw = max(16, Int(cw.rounded())), sh = max(16, Int(ch.rounded()))
-            let gen = o.resizing ? PlayInterpolator.Mode.off : o.frameGen
+            let gen = o.resizing ? PlayInterpolator.Mode.off : PlayCost.effective(o.frameGen, fps: 1 / max(frameInterval, 0.001))
             guard let slot = gen != .off ? interpolator.nextSlot(width: sw, height: sh) : effects.texture("source", sw, sh) else { return skip("texture") }
             p.dst = SIMD4(-1, -1, 1, 1)
             draw(cb, target: slot, clear: false, pipeline: convert, format: slot.pixelFormat, params: p, textures: source)
@@ -252,9 +266,16 @@ final class PlayRenderer: @unchecked Sendable {
             self.statsLock.lock()
             self.gpuTotal += cb.gpuEndTime - cb.gpuStartTime
             self.gpuFrames += 1
+            self.winGpu += cb.gpuEndTime - cb.gpuStartTime
+            self.winFrames += 1
             self.statsLock.unlock()
         }
         cb.commit()
+        let processed = Self.processing(o)
+        let values: PlayCost.Values = processed
+            ? (o.resizing ? .bilinear : o.upscaler, o.resizing ? .off : o.sharpen, o.antiAlias, o.resizing ? .off : o.frameGen)
+            : (.bilinear, .off, false, .off)
+        updateCost(values, source: (cw.rounded(), ch.rounded()), output: (fitW, fitH), resizing: o.resizing)
         logProcessing(o)
         return shown > 0 ? true : skip("drawable")
     }
@@ -279,7 +300,42 @@ final class PlayRenderer: @unchecked Sendable {
         statsLock.unlock()
         lastFxLog = Date()
         let fg = o.frameGen == .off ? "" : String(format: ", chèn %d khung, %d khung lặp", interpolator.syntheticFrames, interpolator.duplicateFrames)
-        DebugLog.write(String(format: "Màn hình chơi: xử lý hình %@; GPU %.2f ms mỗi lần vẽ; hiện %.1f khung/giây%@", stages, ms, fps, fg))
+        let c = costInfo()
+        let lag = c.measured.map { String(format: "; trễ thêm đo được %.1f ms", $0) } ?? ""
+        DebugLog.write(String(format: "Màn hình chơi: xử lý hình %@; GPU %.2f ms mỗi lần vẽ; hiện %.1f khung/giây%@%@; hệ số GPU %.2f",
+                              stages, ms, fps, fg, lag, c.cost.factor))
+    }
+
+    /// Mỗi 2 giây: độ trễ thêm đo được của cách đang dùng, và chỉnh dần hệ số GPU của PlayCost theo số đo (chỉ khi có xử lý,
+    /// vì vẽ thẳng quá nhẹ để so). Lưu lại 10 giây một lần cho trang Cài đặt.
+    private func updateCost(_ v: PlayCost.Values, source: (Double, Double), output: (Double, Double), resizing: Bool) {
+        let key = "\(v.upscaler)-\(v.sharpen)-\(v.antiAlias)-\(v.frameGen)-\(source)-\(output)-\(frameInterval)-\(resizing)"
+        if key != winKey { winKey = key; winMixed = true }
+        guard Date().timeIntervalSince(winStart) >= 2 else { return }
+        statsLock.lock()
+        let ms = winFrames > 0 ? winGpu / Double(winFrames) * 1000 : nil
+        winGpu = 0; winFrames = 0
+        var c = cost
+        c.fps = 1 / max(frameInterval, 0.001)
+        c.sourceW = source.0; c.sourceH = source.1
+        c.outputW = output.0; c.outputH = output.1
+        if winMixed || resizing {
+            measuredLag = nil
+        } else if !PlayCost.processing(v) {
+            measuredLag = 0
+        } else if let ms {
+            let m = c.model(v)
+            if m >= 0.5 { c.factor = min(8, max(0.5, c.factor * 0.7 + ms / m * 0.3)) }
+            measuredLag = c.measured(gpu: ms, frameGen: v.frameGen)
+        }
+        cost = c
+        statsLock.unlock()
+        winMixed = false
+        winStart = Date()
+        if Date().timeIntervalSince(lastCostSave) >= 10 {
+            lastCostSave = Date()
+            c.save()
+        }
     }
 
     private struct Params {

@@ -10,6 +10,9 @@ struct PlaySettingsPage: View {
     @ObservedObject private var play = PlayScreen.shared
     private static let superResolution = MTLCreateSystemDefaultDevice().map { MTLFXSpatialScalerDescriptor.supportsDevice($0) } ?? false
 
+    /// Các mục xử lý hình đang chọn, để tính độ trễ thêm của Tuỳ chỉnh và của từng lựa chọn.
+    private var current: PlayCost.Values { (s.upscaler, s.sharpen, s.antiAlias, s.frameGen) }
+
     /// Thiết bị mà các tuỳ chọn định dạng và nguồn tiếng đang nói tới: thiết bị đã chọn, không có thì capture card đang cắm.
     private var device: AVCaptureDevice? {
         cards.devices.first { $0.uniqueID == s.deviceID } ?? cards.devices.first { $0.uniqueID == cards.card?.id } ?? cards.devices.first
@@ -36,10 +39,11 @@ struct PlaySettingsPage: View {
             Section {
                 Picker(L("Bộ chỉnh hình", "Picture preset"), selection: $s.preset) {
                     ForEach(PlaySettings.Preset.allCases.filter { $0 != .custom || s.preset == .custom }, id: \.self) { p in
-                        Text(PlayLabels.preset(p, fps: 60)).tag(p)
+                        Text(PlayLabels.preset(p, current: current, cost: play.cost)).tag(p)
                     }
                 }
-                Note(PlayLabels.presetDetail(s.preset, fps: 60))
+                Note(PlayLabels.presetDetail(s.preset, cost: play.cost))
+                Note(PlayLabels.lagNote(cost: play.cost, measured: play.measuredLag))
             } header: { Text(L("Bộ chỉnh hình", "Picture preset")) }
 
             Section {
@@ -52,9 +56,10 @@ struct PlaySettingsPage: View {
                     Picker(L("Định dạng hình", "Video format"), selection: Binding(get: { s.formats[d.uniqueID] ?? "" }, set: { s.formats[d.uniqueID] = $0.isEmpty ? nil : $0 })) {
                         Text(L("Tự động", "Automatic") + (CaptureCards.bestFormat(d).map { " (\(CaptureCards.describe($0.format, fps: $0.fps)))" } ?? "")).tag("")
                         ForEach(Self.formats(d), id: \.self) { f in
-                            Text(CaptureCards.describe(f, fps: CaptureCards.fps(f), codec: true)).tag(CaptureCards.key(f))
+                            Text(PlayLabels.format(f)).tag(CaptureCards.key(f))
                         }
                     }
+                    Note(PlayLabels.formatNotes.joined(separator: " "))
                     Picker(L("Nguồn tiếng", "Audio source"), selection: Binding(get: { s.audioSources[d.uniqueID] ?? "" }, set: { s.audioSources[d.uniqueID] = $0.isEmpty ? nil : $0 })) {
                         Text(L("Tự động", "Automatic") + " (\(CaptureCards.audioDevice(for: d)?.localizedName ?? L("không thấy", "none found")))").tag("")
                         Text(L("Không dùng tiếng", "No audio")).tag("none")
@@ -63,8 +68,9 @@ struct PlaySettingsPage: View {
                 }
                 Picker(L("Phát tiếng ra", "Audio output"), selection: Binding(get: { s.outputUID ?? "" }, set: { s.outputUID = $0.isEmpty ? nil : $0 })) {
                     Text(L("Theo loa của macOS", "Same as macOS")).tag("")
-                    ForEach(AudioDevices.outputs(), id: \.uid) { Text($0.name).tag($0.uid) }
+                    ForEach(AudioDevices.outputs(), id: \.uid) { Text(PlayLabels.output($0)).tag($0.uid) }
                 }
+                Note(PlayLabels.outputNote)
                 SliderRow(title: L("Âm lượng", "Volume"), value: Binding(get: { s.volume * 100 }, set: { s.volume = $0 / 100 }),
                           range: 0...100, step: 5, format: "%.0f%%")
                 Toggle(L("Tắt tiếng khi chuyển sang app khác", "Mute when another app is active"), isOn: $s.muteWhenInactive)
@@ -86,36 +92,38 @@ struct PlaySettingsPage: View {
                 }
                 Picker(L("Không gian màu", "Color space"), selection: $s.gamut) {
                     Text(L("sRGB (đúng màu)", "sRGB (accurate)")).tag(PlaySettings.Gamut.srgb)
-                    Text(L("Display P3 (rực hơn)", "Display P3 (more vivid)")).tag(PlaySettings.Gamut.p3)
+                    Text(L("Display P3 (rực hơn, lệch màu gốc)", "Display P3 (more vivid, less accurate)")).tag(PlaySettings.Gamut.p3)
                 }
                 Picker("HDR", selection: $s.hdr) {
                     Text(L("Tắt (tín hiệu SDR)", "Off (SDR signal)")).tag(PlaySettings.HDR.off)
                     Text(L("Chuyển HDR về SDR", "Tone-map HDR to SDR")).tag(PlaySettings.HDR.tone)
                     Text(L("Hiện HDR (EDR)", "Show HDR (EDR)")).tag(PlaySettings.HDR.edr)
                 }
-                Note(L("Chỉ bật khi máy chơi game gửi tín hiệu HDR10 qua card: nếu Switch 2 bật HDR mà hình xám, nhạt màu, chọn Chuyển HDR về SDR, hoặc tắt HDR Output trên Switch 2. Với tín hiệu thường, để Tắt.",
-                       "Only for consoles that send HDR10 through the card: if Switch 2 outputs HDR and the picture looks grey and dull, choose Tone-map HDR to SDR, or turn off HDR Output on Switch 2. For a normal signal, leave it Off."))
+                Note(L("Chỉ bật khi máy chơi game gửi tín hiệu HDR10 qua card: nếu Switch 2 bật HDR mà hình xám, nhạt màu, chọn Chuyển HDR về SDR, hoặc tắt HDR Output trên Switch 2. Với tín hiệu thường, để Tắt. " + PlayLabels.edrNote,
+                       "Only for consoles that send HDR10 through the card: if Switch 2 outputs HDR and the picture looks grey and dull, choose Tone-map HDR to SDR, or turn off HDR Output on Switch 2. For a normal signal, leave it Off. " + PlayLabels.edrNote))
             } header: { Text(L("Màu", "Color")) }
 
             Section {
                 Picker(L("Phóng to", "Upscaling"), selection: $s.upscaler) {
-                    ForEach(PlayEffects.Upscaler.allCases.filter { $0 != .metalFX || Self.superResolution }, id: \.self) { Text(PlayLabels.upscaler($0)).tag($0) }
+                    ForEach(PlayEffects.Upscaler.allCases.filter { $0 != .metalFX || Self.superResolution }, id: \.self) { Text(PlayLabels.upscaler($0, current: current, cost: play.cost)).tag($0) }
                 }
+                if let note = PlayLabels.upscaleNote(cost: play.cost) { Note(note) }
                 Picker(L("Làm nét (RCAS)", "Sharpen (RCAS)"), selection: $s.sharpen) {
-                    ForEach(PlaySettings.Sharpen.allCases, id: \.self) { Text(PlayLabels.sharpen($0)).tag($0) }
+                    ForEach(PlaySettings.Sharpen.allCases, id: \.self) { Text(PlayLabels.sharpen($0, current: current, cost: play.cost)).tag($0) }
                 }
-                Toggle(L("Khử răng cưa (FXAA)", "Anti-aliasing (FXAA)"), isOn: $s.antiAlias)
+                Toggle(PlayLabels.antiAlias(current: current, cost: play.cost), isOn: $s.antiAlias)
+                Note(PlayLabels.sharpenNote + " " + PlayLabels.antiAliasNote)
                 Picker(L("Tăng FPS", "Frame generation"), selection: $s.frameGen) {
-                    ForEach(PlayInterpolator.Mode.allCases, id: \.self) { Text(PlayLabels.frameGen($0, fps: 60)).tag($0) }
+                    ForEach(PlayInterpolator.Mode.allCases, id: \.self) { Text(PlayLabels.frameGen($0, current: current, cost: play.cost)).tag($0) }
                 }
-                Note(PlayLabels.frameGenNote)
+                Note(PlayLabels.frameGenNote(cost: play.cost))
                 Picker(L("Khung hình", "Picture size"), selection: $s.fill) {
                     Text(L("Vừa khung (giữ trọn hình)", "Fit (show the whole picture)")).tag(false)
                     Text(L("Lấp đầy (cắt bớt phần thừa)", "Fill (crop what doesn't fit)")).tag(true)
                 }
                 Picker(L("Độ trễ", "Latency"), selection: $s.latency) {
                     Text(L("Thấp nhất", "Lowest")).tag(PlaySettings.Latency.lowest)
-                    Text(L("Mượt (chậm hơn khoảng một khung hình)", "Smooth (about one frame slower)")).tag(PlaySettings.Latency.smooth)
+                    Text(L("Mượt (trễ thêm tối đa \(Int((1000 / play.cost.fps).rounded())) ms)", "Smooth (adds up to \(Int((1000 / play.cost.fps).rounded())) ms)")).tag(PlaySettings.Latency.smooth)
                 }
                 Note(L("Lấp đầy bỏ viền đen khi toàn màn hình trên MacBook (màn 16:10), đổi lại hai bên hình mất một dải mỏng khoảng 5%. Độ trễ Mượt giữ nhịp khung đều hơn trên màn hình 120 Hz.",
                        "Fill removes the black bars in full screen on a MacBook (16:10 display), at the cost of a thin strip, about 5%, on each side. Smooth latency keeps frame pacing steadier on 120 Hz displays."))

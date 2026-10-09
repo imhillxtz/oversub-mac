@@ -263,22 +263,24 @@ final class PlayCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate,
             received = 0; drawn = 0; dropped = 0; windowReceived = 0; windowDrawn = 0; windowDropped = 0
             lastLog = Date(); lastFrameAt = Date()
         }
-        renderer.frameInterval = 1.0 / 60
+        // OVERSUB_PLAY_PATTERN_FPS=30: tín hiệu 30 khung/giây như chế độ 1440p30 của card (mặc định 60).
+        let fps = Double(ProcessInfo.processInfo.environment["OVERSUB_PLAY_PATTERN_FPS"] ?? "") ?? 60
+        renderer.frameInterval = 1.0 / fps
         // OVERSUB_PLAY_PATTERN_MOTION=60 hoặc 30: thêm hình vuông đỏ chạy ngang, đổi chỗ mỗi khung (60) hay mỗi hai khung (30, như
         // game 30 khung/giây qua card 60), để thử chèn khung. Chỉ với khung 420v.
         let motion = Int(ProcessInfo.processInfo.environment["OVERSUB_PLAY_PATTERN_MOTION"] ?? "") ?? 0
         let moving = motion > 0 && type == kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
         var tick = 0
         let t = DispatchSource.makeTimerSource(queue: videoQueue)
-        t.schedule(deadline: .now(), repeating: 1.0 / 60)
+        t.schedule(deadline: .now(), repeating: 1.0 / fps)
         t.setEventHandler { [weak self] in
             guard let self else { return }
             tick += 1
-            if moving, let f = Self.movingFrame(base: pb, step: motion >= 60 ? tick : tick / 2) { self.handle(f) } else { self.handle(pb) }
+            if moving, let f = Self.movingFrame(base: pb, step: motion >= Int(fps) ? tick : tick / 2) { self.handle(f) } else { self.handle(pb) }
         }
         t.resume()
         testTimer = t
-        DebugLog.write("Thử màn hình chơi: nguồn thử \(full ? "dải đầy đủ" : "dải giới hạn"), 1920x1080 \(name), 60 khung/giây" + (moving ? ", vật chạy \(motion) khung/giây" : ""))
+        DebugLog.write("Thử màn hình chơi: nguồn thử \(full ? "dải đầy đủ" : "dải giới hạn"), 1920x1080 \(name), \(Int(fps)) khung/giây" + (moving ? ", vật chạy \(motion) khung/giây" : ""))
     }
 
     /// Chép khung nền rồi vẽ hình vuông đỏ 160×160 (BT.709 dải giới hạn) chạy ngang 24 điểm mỗi bước.

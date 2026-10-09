@@ -18,6 +18,10 @@ final class PlayScreen: NSObject, ObservableObject, NSWindowDelegate {
     @Published private(set) var isOpen = false
     @Published private(set) var isFullScreen = false
     @Published private(set) var deviceName = ""
+    /// Cho số trễ thêm trong menu và Cài đặt: tín hiệu, cỡ khung hình và hệ số GPU của máy (lần dùng gần nhất khi chưa mở),
+    /// cùng độ trễ thêm đo được của cách đang dùng. Cập nhật 2 giây một lần khi có hình.
+    @Published private(set) var cost = PlayCost.saved
+    @Published private(set) var measuredLag: Double?
 
     /// Hồ sơ game tự chuyển khi cửa sổ này được chọn (Engine đặt).
     var onBecameKey: (() -> Void)?
@@ -38,6 +42,8 @@ final class PlayScreen: NSObject, ObservableObject, NSWindowDelegate {
     private var hoveringControls = false
     private var hideTask: Task<Void, Never>?
     private var watchTask: Task<Void, Never>?
+    private var costTask: Task<Void, Never>?
+    private var moveLogTask: Task<Void, Never>?
     private var bag = Set<AnyCancellable>()
     private var sessionBag = Set<AnyCancellable>()
 
@@ -201,6 +207,9 @@ final class PlayScreen: NSObject, ObservableObject, NSWindowDelegate {
         statusHost = nil
         view = nil
         renderer = nil
+        costTask?.cancel()
+        costTask = nil
+        measuredLag = nil
         device = nil
         window = nil
         isOpen = false
@@ -309,6 +318,21 @@ final class PlayScreen: NSObject, ObservableObject, NSWindowDelegate {
         phase = p
         DebugLog.write("Màn hình chơi: trạng thái \(p)")
         // Lời báo chỉ nằm trong cửa sổ khi chưa có hình; có hình thì gỡ hẳn để không lọt vào ảnh chụp phụ đề.
+        costTask?.cancel()
+        costTask = nil
+        if p == .live {
+            costTask = Task { @MainActor [weak self] in
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(2))
+                    guard let self, let info = self.renderer?.costInfo() else { return }
+                    // Chỉ đăng khi chữ hiển thị có thể đổi, khỏi vẽ lại trang Cài đặt mỗi lần hệ số nhích một chút.
+                    if !info.cost.similar(to: self.cost) { self.cost = info.cost }
+                    if info.measured.map({ ($0 * 2).rounded() }) != self.measuredLag.map({ ($0 * 2).rounded() }) { self.measuredLag = info.measured }
+                }
+            }
+        } else {
+            measuredLag = nil
+        }
         if p == .live {
             statusHost?.removeFromSuperview()
             statusHost = nil
@@ -431,11 +455,11 @@ final class PlayScreen: NSObject, ObservableObject, NSWindowDelegate {
             }
             for f in formats where seen.insert(CaptureCards.key(f)).inserted {
                 let key = CaptureCards.key(f)
-                items.append(PlayMenuItem(CaptureCards.describe(f, fps: CaptureCards.fps(f), codec: true), on: stored == key) { [weak self] in
+                items.append(PlayMenuItem(PlayLabels.format(f), on: stored == key) { [weak self] in
                     self?.settings.formats[dev.uniqueID] = key
                 })
             }
-            m.addItem(submenu(L("Định dạng hình", "Video format"), items: items))
+            m.addItem(submenu(L("Định dạng hình", "Video format"), items: items + [.separator()] + PlayLabels.formatNotes.map { PlayMenuItem.note($0) }))
 
             let auto = CaptureCards.audioDevice(for: dev)
             let source = s.audioSources[dev.uniqueID]
@@ -456,10 +480,13 @@ final class PlayScreen: NSObject, ObservableObject, NSWindowDelegate {
             m.addItem(submenu(L("Nguồn tiếng", "Audio source"), items: audio))
         }
 
-        var outputs = [PlayMenuItem(L("Theo loa của macOS", "Same as macOS"), on: s.outputUID == nil) { s.outputUID = nil }]
+        var outputs: [NSMenuItem] = [PlayMenuItem(L("Theo loa của macOS", "Same as macOS"), on: s.outputUID == nil) { s.outputUID = nil }]
         for o in AudioDevices.outputs() {
-            outputs.append(PlayMenuItem(o.name, on: s.outputUID == o.uid) { s.outputUID = o.uid })
+            outputs.append(PlayMenuItem(PlayLabels.output(o), on: s.outputUID == o.uid) { s.outputUID = o.uid })
         }
+        outputs += [.separator(),
+                    PlayMenuItem.note(L("Loa, tai nghe Bluetooth thường trễ tiếng hơn 0,1 giây.", "Bluetooth speakers and headphones usually lag over 0.1 s.")),
+                    PlayMenuItem.note(L("Chơi game nên dùng loa máy hoặc tai nghe cắm dây.", "For games, use built-in speakers or wired headphones."))]
         m.addItem(submenu(L("Phát tiếng ra", "Audio output"), items: outputs))
         m.addItem(.separator())
 
@@ -483,7 +510,7 @@ final class PlayScreen: NSObject, ObservableObject, NSWindowDelegate {
         ]))
         m.addItem(submenu(L("Không gian màu", "Color space"), items: [
             PlayMenuItem(L("sRGB (đúng màu)", "sRGB (accurate)"), on: s.gamut == .srgb) { s.gamut = .srgb },
-            PlayMenuItem(L("Display P3 (rực hơn)", "Display P3 (more vivid)"), on: s.gamut == .p3) { s.gamut = .p3 },
+            PlayMenuItem(L("Display P3 (rực hơn, lệch màu gốc)", "Display P3 (more vivid, less accurate)"), on: s.gamut == .p3) { s.gamut = .p3 },
         ]))
         m.addItem(submenu("HDR", items: [
             PlayMenuItem(L("Tắt (tín hiệu SDR)", "Off (SDR signal)"), on: s.hdr == .off) { s.hdr = .off },
@@ -492,30 +519,36 @@ final class PlayScreen: NSObject, ObservableObject, NSWindowDelegate {
             .separator(),
             PlayMenuItem.note(L("Switch 2 bật HDR mà hình xám, nhạt màu: chọn Chuyển HDR về SDR,", "If Switch 2 outputs HDR and the picture looks grey and dull,")),
             PlayMenuItem.note(L("hoặc tắt HDR Output trên Switch 2.", "choose Tone-map HDR to SDR, or turn off HDR Output on Switch 2.")),
+            PlayMenuItem.note(L("Hiện HDR: bộ chỉnh hình chỉ còn phóng thường hoặc MetalFX.", "Show HDR: presets can only use standard upscaling or MetalFX.")),
         ]))
         m.addItem(.separator())
 
-        // Bộ chỉnh hình và từng mục của nó; mục chèn khung ghi rõ độ trễ thêm theo tốc độ khung của tín hiệu.
-        let fps = renderer.map { 1 / max($0.frameInterval, 0.001) } ?? 60
+        // Bộ chỉnh hình và từng mục của nó, mỗi lựa chọn ghi độ trễ thêm (input lag) tính theo tín hiệu, cỡ khung hình và GPU
+        // của máy này (PlayCost).
+        let live = renderer?.costInfo()
+        let cost = live?.cost ?? self.cost
+        let current: PlayCost.Values = (s.upscaler, s.sharpen, s.antiAlias, s.frameGen)
         m.addItem(submenu(L("Bộ chỉnh hình", "Picture preset"), items: PlaySettings.Preset.allCases.filter { $0 != .custom || s.preset == .custom }.map { p in
-            PlayMenuItem(PlayLabels.preset(p, fps: fps), on: s.preset == p, enabled: p != .custom) { s.preset = p }
-        }))
-        let fx = renderer?.supportsSuperResolution ?? false
-        m.addItem(submenu(L("Phóng to", "Upscaling"), items: PlayEffects.Upscaler.allCases.map { u in
-            PlayMenuItem(PlayLabels.upscaler(u), on: s.upscaler == u, enabled: u != .metalFX || fx) { s.upscaler = u }
-        }))
-        m.addItem(submenu(L("Làm nét (RCAS)", "Sharpen (RCAS)"), items: PlaySettings.Sharpen.allCases.map { v in
-            PlayMenuItem(PlayLabels.sharpen(v), on: s.sharpen == v) { s.sharpen = v }
-        }))
-        m.addItem(PlayMenuItem(L("Khử răng cưa (FXAA)", "Anti-aliasing (FXAA)"), on: s.antiAlias) { s.antiAlias.toggle() })
-        m.addItem(submenu(L("Tăng FPS", "Frame generation"), items: PlayInterpolator.Mode.allCases.map { v -> NSMenuItem in
-            PlayMenuItem(PlayLabels.frameGen(v, fps: fps), on: s.frameGen == v) { s.frameGen = v }
+            PlayMenuItem(PlayLabels.preset(p, current: current, cost: cost), on: s.preset == p, enabled: p != .custom) { s.preset = p }
         } + [
             .separator(),
-            PlayMenuItem.note(L("Vật chạy nhanh có thể nhoè ở mép.", "Fast-moving objects can smear at their edges.")),
-            PlayMenuItem.note(L("Gấp đôi cần màn hình 120 Hz (ProMotion).", "Doubling needs a 120 Hz (ProMotion) display.")),
-            PlayMenuItem.note(L("Độ trễ ghi kèm chưa tính 1 đến 2 ms GPU xử lý.", "Added latency excludes 1 to 2 ms of GPU time.")),
-        ]))
+            PlayMenuItem.note(L("Trễ thêm: hình phản hồi nút bấm chậm hơn chừng đó so với Gốc,", "Added lag: how much later the picture responds to a button")),
+            PlayMenuItem.note(L("tính theo tín hiệu, cỡ khung hình và GPU của máy này.", "than with Original, for this signal, picture size and Mac.")),
+        ] + (live?.measured.map { [PlayMenuItem.note(L("Cách đang dùng đo được: ", "Measured for the current setup: ") + PlayLabels.lag($0) + ".")] } ?? [])))
+        let fx = renderer?.supportsSuperResolution ?? false
+        m.addItem(submenu(L("Phóng to", "Upscaling"), items: PlayEffects.Upscaler.allCases.map { u in
+            PlayMenuItem(PlayLabels.upscaler(u, current: current, cost: cost), on: s.upscaler == u, enabled: u != .metalFX || fx) { s.upscaler = u }
+        } + (PlayLabels.upscaleNote(cost: cost).map { [.separator(), PlayMenuItem.note($0)] } ?? [])))
+        m.addItem(submenu(L("Làm nét (RCAS)", "Sharpen (RCAS)"), items: PlaySettings.Sharpen.allCases.map { v in
+            PlayMenuItem(PlayLabels.sharpen(v, current: current, cost: cost), on: s.sharpen == v) { s.sharpen = v }
+        } + [.separator(),
+             PlayMenuItem.note(L("Mạnh hơn thì rõ hơn nhưng dễ lộ viền sáng", "Stronger is crisper but can add bright halos")),
+             PlayMenuItem.note(L("quanh nét và hạt nhiễu.", "and grain."))]))
+        m.addItem(PlayMenuItem(PlayLabels.antiAlias(current: current, cost: cost), on: s.antiAlias) { s.antiAlias.toggle() })
+        m.addItem(PlayMenuItem.note(PlayLabels.antiAliasNote))
+        m.addItem(submenu(L("Tăng FPS", "Frame generation"), items: PlayInterpolator.Mode.allCases.map { v -> NSMenuItem in
+            PlayMenuItem(PlayLabels.frameGen(v, current: current, cost: cost), on: s.frameGen == v) { s.frameGen = v }
+        } + [.separator()] + PlayLabels.frameGenNotes(cost: cost).map { PlayMenuItem.note($0) }))
         m.addItem(submenu(L("Khung hình", "Picture size"), items: [
             PlayMenuItem(L("Vừa khung (giữ trọn hình)", "Fit (show the whole picture)"), on: !s.fill) { s.fill = false },
             PlayMenuItem(L("Lấp đầy (cắt bớt phần thừa)", "Fill (crop what doesn't fit)"), on: s.fill) { s.fill = true },
@@ -525,7 +558,7 @@ final class PlayScreen: NSObject, ObservableObject, NSWindowDelegate {
         ]))
         m.addItem(submenu(L("Độ trễ", "Latency"), items: [
             PlayMenuItem(L("Thấp nhất", "Lowest"), on: s.latency == .lowest) { s.latency = .lowest },
-            PlayMenuItem(L("Mượt (chậm hơn khoảng một khung hình)", "Smooth (about one frame slower)"), on: s.latency == .smooth) { s.latency = .smooth },
+            PlayMenuItem(L("Mượt (trễ thêm tối đa \(Int((1000 / cost.fps).rounded())) ms)", "Smooth (adds up to \(Int((1000 / cost.fps).rounded())) ms)"), on: s.latency == .smooth) { s.latency = .smooth },
         ]))
         m.addItem(.separator())
 
@@ -570,6 +603,16 @@ final class PlayScreen: NSObject, ObservableObject, NSWindowDelegate {
 
     func windowDidResize(_ notification: Notification) {
         if let w = window, let c = controls { placeControls(c, in: w) }
+    }
+
+    /// Ghi chỗ mới một lần khi thôi kéo (windowDidMove đến liên tục trong lúc kéo).
+    func windowDidMove(_ notification: Notification) {
+        moveLogTask?.cancel()
+        moveLogTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(0.5))
+            guard let self, !Task.isCancelled, let w = self.window, !self.isFullScreen else { return }
+            DebugLog.write("Màn hình chơi: di chuyển xong \(Self.frameText(w))")
+        }
     }
 
     func windowDidEndLiveResize(_ notification: Notification) {
@@ -725,8 +768,15 @@ final class PlayView: NSView {
     override func mouseEntered(with event: NSEvent) { onPointer?() }
     override func mouseExited(with event: NSEvent) { onExit?() }
 
+    // Cửa sổ không có thanh tiêu đề thấy được và hình phủ kín (kể cả dải tiêu đề), nên nắm kéo ở đâu trên hình cũng di chuyển
+    // cửa sổ. Không có dòng này thì không kéo được chỗ nào, vì view đục (isOpaque) chặn việc kéo cửa sổ của macOS.
     override func mouseDown(with event: NSEvent) {
-        if event.clickCount == 2 { window?.toggleFullScreen(nil) } else { onPointer?() }
+        if event.clickCount == 2 {
+            window?.toggleFullScreen(nil)
+        } else {
+            onPointer?()
+            if window?.styleMask.contains(.fullScreen) == false { window?.performDrag(with: event) }
+        }
     }
 
     override func menu(for event: NSEvent) -> NSMenu? { menuProvider?() }

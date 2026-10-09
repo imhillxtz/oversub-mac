@@ -31,6 +31,7 @@ extension DebugSnapshot {
             case "hold": await holdTest()
             case "motion": await motionTest(dir: dir)
             case "ui": await playUITest(engine: engine, dir: dir)
+            case "menu": await menuTest()
             default: DebugLog.write("Thử màn hình chơi: không biết kiểu thử \(mode)")
             }
             DebugLog.write("=== Hết thử màn hình chơi ===")
@@ -49,16 +50,44 @@ extension DebugSnapshot {
         try? await Task.sleep(for: .seconds(1.5))
         guard let w = play.window else { return }
         let s = PlaySettings.shared
-        for preset in [PlaySettings.Preset.original, .sharp, .game3D, .cartoon, .fluid120, .fluid30] {
+        for preset in [PlaySettings.Preset.original, .sharp, .smoothEdges, .game3D, .cartoon, .fluid120, .fluid30] {
+            // Nhãn trong menu tính trước khi đổi bộ (theo hệ số GPU đã chỉnh từ các bộ trước), để so với số đo được sau đó.
+            let before = play.debugRenderer?.costInfo().cost ?? play.cost
+            let label = PlayLabels.preset(preset, current: (s.upscaler, s.sharpen, s.antiAlias, s.frameGen), cost: before)
             s.preset = preset
             let c0 = cpuSeconds(), t0 = Date()
             try? await Task.sleep(for: .seconds(11))
             let cpu = (cpuSeconds() - c0) / Date().timeIntervalSince(t0) * 100
             let info = play.debugRenderer?.processingInfo()
-            DebugLog.write(String(format: "Thử màn hình chơi: bộ %@: CPU %.1f%% một nhân; GPU %.2f ms mỗi lần vẽ (%@)", preset.rawValue, cpu, info?.ms ?? -1, info?.stages ?? "-"))
+            let lag = play.debugRenderer?.costInfo().measured ?? -1
+            DebugLog.write(String(format: "Thử màn hình chơi: bộ %@: CPU %.1f%% một nhân; GPU %.2f ms mỗi lần vẽ (%@); nhãn \"%@\", đo được trễ thêm %.1f ms",
+                                  preset.rawValue, cpu, info?.ms ?? -1, info?.stages ?? "-", label, lag))
             if let dir { await shoot("motion-\(preset.rawValue)", dir: dir, window: w) }
         }
         s.preset = .original
+        await closeTest()
+    }
+
+    /// OVERSUB_PLAY_TEST=menu: nguồn thử với bộ Mịn cạnh, chờ bộ vẽ đo GPU vài lần, rồi ghi mọi dòng của menu tuỳ chọn (cả menu
+    /// con, dấu ✓ cho mục đang chọn) ra nhật ký để kiểm số trễ thêm và các đánh đổi. OVERSUB_PLAY_HOLD=<giây>: giữ cửa sổ mở
+    /// thêm để thử bằng tay (kéo cửa sổ), dòng "di chuyển xong" ghi chỗ mới.
+    private static func menuTest() async {
+        let play = PlayScreen.shared
+        PlaySettings.shared.preset = .smoothEdges
+        play.debugOpenPattern(full: false, text: subtitle)
+        try? await Task.sleep(for: .seconds(9))
+        func dump(_ m: NSMenu, _ indent: String) {
+            for i in m.items where !i.isSeparatorItem {
+                DebugLog.write("Thử màn hình chơi: menu \(indent)\(i.state == .on ? "✓ " : "")\(i.title)")
+                if let sub = i.submenu { dump(sub, indent + "    ") }
+            }
+        }
+        dump(play.buildMenu(), "")
+        if let hold = Double(ProcessInfo.processInfo.environment["OVERSUB_PLAY_HOLD"] ?? "") {
+            DebugLog.write("Thử màn hình chơi: giữ cửa sổ \(Int(hold)) giây để thử bằng tay")
+            try? await Task.sleep(for: .seconds(hold))
+        }
+        PlaySettings.shared.preset = .original
         await closeTest()
     }
 

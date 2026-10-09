@@ -32,7 +32,9 @@ enum AudioDevices {
             var streamSize: UInt32 = 0
             guard AudioObjectGetPropertyDataSize(id, &streamAddr, 0, nil, &streamSize) == noErr, streamSize > 0,
                   let uid = string(id, kAudioDevicePropertyDeviceUID), let name = string(id, kAudioObjectPropertyName),
-                  !uid.hasPrefix("OverSub") else { return nil }
+                  !uid.hasPrefix("OverSub"),
+                  // Thiết bị gộp tạm macOS tạo cho app đang phát tiếng (màn hình chơi), không phải loa thật.
+                  !uid.hasPrefix("CADefaultDeviceAggregate"), !name.hasPrefix("CADefaultDeviceAggregate") else { return nil }
             return Device(id: id, uid: uid, name: name)
         }
     }
@@ -43,6 +45,13 @@ enum AudioDevices {
     }
 
     static func id(forUID uid: String) -> AudioObjectID? { outputs().first { $0.uid == uid }?.id }
+
+    /// Loa, tai nghe nối qua Bluetooth (tiếng trễ hơn loa có dây, đáng báo khi chơi game).
+    static func isBluetooth(_ id: AudioObjectID) -> Bool {
+        var t: UInt32 = 0
+        guard property(id, kAudioDevicePropertyTransportType, &t) else { return false }
+        return t == kAudioDeviceTransportTypeBluetooth || t == kAudioDeviceTransportTypeBluetoothLE
+    }
     static func uid(of id: AudioObjectID) -> String? { string(id, kAudioDevicePropertyDeviceUID) }
 
     /// Đối tượng âm thanh của một tiến trình (game); 0 nếu tiến trình đó chưa phát tiếng.
