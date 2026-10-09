@@ -37,6 +37,7 @@ final class AppModel {
         DebugSnapshot.hideTestIfRequested()
         DebugSnapshot.restartNoticeTestIfRequested()
         DebugSnapshot.noticesTestIfRequested(engine: engine)
+        DebugSnapshot.logRotateTestIfRequested()
         DebugSnapshot.reportTestIfRequested()
         DebugSnapshot.permissionDockTestIfRequested(engine: engine)
         DebugSnapshot.updatePromptTestIfRequested()

@@ -314,6 +314,7 @@ Các móc thử chỉ có trong bản dựng `OVERSUB_DEV=1 ./build.sh` (`DebugS
 | `OVERSUB_PERMISSION_DOCK_TEST=1` | Hiện hướng dẫn cấp quyền, bấm Mở Cài đặt hệ thống (chỉ mở trang xem), ghi khung thẻ thu gọn và khung Cài đặt vào nhật ký. |
 | `OVERSUB_SNAPSHOT_NOTICES=1` | Chụp bảng đang chuẩn bị, đã sẵn sàng, hộp thoại "vẫn không phản hồi" và hướng dẫn cấp quyền. |
 | `OVERSUB_REPORT_TEST=1` | Chỉ tạo gói báo lỗi và ghi đường dẫn, thời gian vào nhật ký. `=show` thêm cửa sổ Gửi báo lỗi và chụp vào `OVERSUB_SHOT_DIR`; `=issue` thêm bước mở trang Issue điền sẵn trong trình duyệt và chụp thẻ thu gọn (không bấm gửi). |
+| `OVERSUB_LOG_ROTATE_TEST=<số dòng>` kèm `OVERSUB_LOG_ROTATE_BYTES=<byte>`, `OVERSUB_LOG_DIR=<thư mục>` | Ghi liền từng ấy dòng đánh số với ngưỡng xoay nhỏ, vào thư mục tạm để không đụng nhật ký thật (xoay ngay trên nhật ký thật sẽ đè mất `debug.1.log` của các buổi chơi trước). Đạt khi `debug.1.log` không vượt ngưỡng quá một dòng và số dòng ở cuối `debug.1.log` nối liền đầu `debug.log`. Thêm `OVERSUB_REPORT_TEST=1` để xem gói báo lỗi có kèm `debug.1.log`. `OVERSUB_LOG_ROTATE_BYTES` và `OVERSUB_LOG_DIR` dùng được với mọi bài thử khác. |
 | `OVERSUB_UPDATE_PROMPT_TEST=1` | Như bấm Kiểm tra cập nhật… ở menu, dùng `OVERSUB_UPDATE_FEED` (và `OVERSUB_UPDATE_LIST` dạng danh sách bản phát hành); chụp hộp thoại vào `OVERSUB_SHOT_DIR`. |
 | `OVERSUB_SHOT_DIR=<thư mục>` | Nơi các móc thử mới lưu ảnh chụp, không kéo theo lượt chụp toàn bộ giao diện như `OVERSUB_SNAPSHOT_DIR`. |
 | `OVERSUB_REGION_STATE=<phụ đề>,<số vùng dịch>` | Đổi tên các nút vùng như khi có hoặc chưa có vùng (ví dụ `0,0`, `1,2`, `1,3`) để chụp, không đụng vùng thật. |
@@ -339,6 +340,8 @@ Người dùng bật Stage Manager: cửa sổ nằm ở dải bên thì ảnh c
 
 Nhật ký `~/Library/Logs/OverSub/debug.log` là cách nhanh nhất để tìm lỗi người dùng gặp khi chơi. Với lỗi lặp lại nhiều lần, nên rà toàn bộ nhật ký nhiều buổi chơi bằng script đo số liệu thay vì chỉ xem đoạn vừa xảy ra; lỗi "không nhận thoại" chỉ tìm ra gốc theo cách đó.
 
+Khi `debug.log` quá 2 MB, app đổi tên nó thành `debug.1.log` (đè bản cũ) rồi ghi tệp mới, nên lúc nào cũng còn một tệp trước đó, tổng cộng khoảng 4 MB. Bản 1.1.73 trở về trước xoá hẳn nội dung cũ: ngày 09/10/2026 đang điều tra lỗi tụt khung thì mất nhật ký trước 08:22. Rà nhiều buổi chơi thì đọc cả hai tệp theo thứ tự `debug.1.log` rồi `debug.log`; gói Gửi báo lỗi cũng kèm cả hai.
+
 ## Ghi chú SwiftUI
 
 Không dùng `@State` hay `@Observable`, vì Command Line Tools thiếu plugin macro của SwiftUI; dùng `ObservableObject`.
@@ -351,7 +354,7 @@ App không quan sát trực tiếp `Engine` hay `AppSettings` ở cấp `App` ho
 |---|---|
 | Key API | `~/Library/Application Support/OverSub/keys.json` (quyền 0600) |
 | Hồ sơ, ngữ cảnh, trí nhớ dịch | `~/Library/Application Support/OverSub` |
-| Nhật ký chẩn đoán | `~/Library/Logs/OverSub/debug.log` (tự xoá khi quá 2 MB) |
+| Nhật ký chẩn đoán | `~/Library/Logs/OverSub/debug.log`, quá 2 MB thì chuyển sang `debug.1.log` (giữ một tệp trước đó) |
 | Nhật ký cập nhật | `~/Library/Logs/OverSub/update.log` |
 | Khoá ký bản phát hành | `~/Library/Application Support/OverSub Release/update-signing.key` (ngoài kho mã) |
 

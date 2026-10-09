@@ -675,6 +675,13 @@ enum DebugSnapshot {
         }
     }
 
+    /// Thử xoay nhật ký (OVERSUB_LOG_ROTATE_TEST=<số dòng>): ghi liền từng ấy dòng đánh số. Đi cùng OVERSUB_LOG_ROTATE_BYTES
+    /// (ngưỡng nhỏ) và OVERSUB_LOG_DIR (thư mục tạm); số dòng ở cuối debug.1.log và đầu debug.log phải liền nhau.
+    static func logRotateTestIfRequested() {
+        guard let n = Int(ProcessInfo.processInfo.environment["OVERSUB_LOG_ROTATE_TEST"] ?? ""), n > 0 else { return }
+        for i in 1...n { DebugLog.write("Thử xoay nhật ký: dòng \(i)/\(n)") }
+    }
+
     /// Thử tạo gói báo lỗi (OVERSUB_REPORT_TEST=1): chỉ tạo tệp .zip và ghi đường dẫn vào nhật ký, không mở Mail.
     static func reportTestIfRequested() {
         let env = ProcessInfo.processInfo.environment

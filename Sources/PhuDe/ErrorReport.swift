@@ -154,8 +154,9 @@ enum ErrorReport {
         let zip = DebugLog.url.deletingLastPathComponent().appendingPathComponent(name + ".zip")
         do {
             try fm.createDirectory(at: dir, withIntermediateDirectories: true)
-            if fm.fileExists(atPath: DebugLog.url.path) {
-                try fm.copyItem(at: DebugLog.url, to: dir.appendingPathComponent("debug.log"))
+            // Kèm cả tệp trước lần xoay gần nhất: lỗi lặp thường phải đối chiếu nhiều buổi chơi.
+            for log in [DebugLog.url, DebugLog.previousURL] where fm.fileExists(atPath: log.path) {
+                try fm.copyItem(at: log, to: dir.appendingPathComponent(log.lastPathComponent))
             }
             try info.write(to: dir.appendingPathComponent("thong-tin-may.txt"), atomically: true, encoding: .utf8)
             let p = Process()
@@ -204,12 +205,17 @@ enum ErrorReport {
         ].joined(separator: "\n")
     }
 
-    /// Tối đa 60 dòng nhật ký gần nhất về lỗi, Vision, quyền, khởi động lại.
+    /// Tối đa 60 dòng nhật ký gần nhất về lỗi, Vision, quyền, khởi động lại. Nhật ký vừa xoay chưa đủ dòng thì lấy thêm từ
+    /// debug.1.log (chỉ đọc khi cần, để cửa sổ hiện nhanh như cũ).
     private static func notableLines() -> String {
-        guard let text = try? String(contentsOf: DebugLog.url, encoding: .utf8) else { return "-" }
         let keys = ["Lỗi", "Vision", "treo", "quyền", "Mở lại", "khởi động lại", "Không "]
-        let lines = text.split(separator: "\n").filter { line in keys.contains { line.contains($0) } }
-        return lines.suffix(60).joined(separator: "\n")
+        func notable(_ url: URL) -> [Substring]? {
+            guard let text = try? String(contentsOf: url, encoding: .utf8) else { return nil }
+            return text.split(separator: "\n").filter { line in keys.contains { line.contains($0) } }
+        }
+        var lines = notable(DebugLog.url) ?? []
+        if lines.count < 60, let older = notable(DebugLog.previousURL) { lines = older + lines }
+        return lines.isEmpty ? "-" : lines.suffix(60).joined(separator: "\n")
     }
 
     private static func sysctl(_ name: String) -> String {
