@@ -22,14 +22,14 @@ final class CMIOVideoStream: @unchecked Sendable {
     private let stream: CMIOStreamID
     private let deliver: DispatchQueue
     /// Khung mới nhất và số khung cũ hơn bị bỏ qua trong cùng lượt (gọi trên `deliver`).
-    private let onFrame: (CVPixelBuffer, Int) -> Void
+    private let onFrame: (CVPixelBuffer, Int, [Double]) -> Void
     private var queue: CMSimpleQueue?   // chỉ dùng trên deliver
     private var retained: Unmanaged<CMIOVideoStream>?
 
     /// Tìm thiết bị CoreMediaIO cùng UID với `video`, đặt định dạng và tốc độ khung khớp `format` (nil: giữ định dạng hiện tại).
     /// Trả nil kèm lý do trong nhật ký khi không dùng được; khi đó gọi bên ngoài quay về AVCaptureSession.
     init?(video: AVCaptureDevice, format: AVCaptureDevice.Format?, deliver: DispatchQueue,
-          onFrame: @escaping (CVPixelBuffer, Int) -> Void) {
+          onFrame: @escaping (CVPixelBuffer, Int, [Double]) -> Void) {
         func fail(_ why: String) { DebugLog.write("Màn hình chơi: không đọc thẳng CoreMediaIO được (\(why)), dùng AVCaptureSession") }
         guard let dev = Self.ids(CMIOObjectID(kCMIOObjectSystemObject), kCMIOHardwarePropertyDevices)
             .first(where: { Self.string($0, kCMIODevicePropertyDeviceUID) == video.uniqueID }) else {
@@ -122,13 +122,16 @@ final class CMIOVideoStream: @unchecked Sendable {
         guard let queue else { return }
         var latest: CVPixelBuffer?
         var skipped = 0
+        var times: [Double] = []
         while let p = CMSimpleQueueDequeue(queue) {
             let sample = Unmanaged<CMSampleBuffer>.fromOpaque(p).takeRetainedValue()
             guard let pb = CMSampleBufferGetImageBuffer(sample) else { continue }
             if latest != nil { skipped += 1 }
             latest = pb
+            let t = CMSampleBufferGetPresentationTimeStamp(sample)
+            if t.isValid { times.append(t.seconds) }
         }
-        if let latest { onFrame(latest, skipped) }
+        if let latest { onFrame(latest, skipped, times) }
     }
 
     // MARK: Thuộc tính CoreMediaIO

@@ -1,5 +1,5 @@
+import AppKit
 import AVFoundation
-import Foundation
 
 /// Ước lượng độ trễ thêm (input lag: bấm nút thì hình phản hồi chậm hơn bao nhiêu so với Gốc) của một cách xử lý hình.
 /// Gồm phần chờ của chèn khung (theo tốc độ khung của tín hiệu) và phần GPU vẽ lâu hơn. Thời gian GPU dựng theo số điểm ảnh
@@ -163,7 +163,11 @@ enum PlayLabels {
         "\(Int(c.sourceW))×\(Int(c.sourceH)) · \(Int(c.fps.rounded())) " + L("khung/giây", "fps")
     }
 
-    private static func doubled(_ fps: Double) -> Int { Int((fps * 2 / 10).rounded() * 10) }
+    /// Tốc độ sau khi gấp đôi, không vượt tần số màn hình chính (card 64 khung/giây trên màn 120 Hz thì là 120).
+    private static func doubled(_ fps: Double) -> Int {
+        let hz = Double(NSScreen.main?.maximumFramesPerSecond ?? 120)
+        return Int((min(fps * 2, hz) / 10).rounded() * 10)
+    }
 
     static func upscaler(_ u: PlayEffects.Upscaler) -> String {
         switch u {

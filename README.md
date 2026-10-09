@@ -176,6 +176,8 @@ Bộ chỉnh hình gom sẵn cách phóng to, làm nét, khử răng cưa và t�
 
 Trễ thêm là bấm nút trên tay cầm thì hình phản hồi chậm hơn chừng đó so với Gốc. App ghi số này ngay ở từng lựa chọn, tính theo tín hiệu, cỡ khung hình và thời gian GPU đo được trên chính máy bạn; bộ đang dùng có thêm số đo trực tiếp. Số càng lớn thì GPU càng nhiều việc, máy ấm và tốn pin hơn. Chỉnh từng mục (Phóng to, Làm nét, Khử răng cưa, Tăng FPS) thì bộ thành Tuỳ chỉnh, và mỗi mục ghi phần trễ riêng nó cộng vào. Khung chèn dựng từ hai khung thật bằng cách dò chuyển động trên hình, nên vật chạy nhanh có thể nhoè ở mép; chữ, thanh máu, bản đồ đứng yên vẫn giữ nguyên nét.
 
+Hình giật hay tụt khung thì thường là GPU của máy đang bị app khác chiếm (iOS Simulator, app vẽ hoạt hình liên tục, xuất video): đóng bớt các app đó hoặc chọn bộ chỉnh hình nhẹ hơn. Nhật ký ghi mức bận GPU của cả máy mỗi 10 giây để tra lại.
+
 Các đánh đổi khác cũng ghi ngay ở lựa chọn: định dạng 30 khung/giây (như 2560×1440 · 30 của nhiều card) kém mượt và trễ thêm khoảng 8 ms; YUV 4:2:2 giữ màu viền chữ rõ hơn còn 4:2:0 tốn ít CPU hơn; loa, tai nghe Bluetooth trễ tiếng thường hơn 0,1 giây; Display P3 rực hơn nhưng lệch màu gốc; Hiện HDR (EDR) chỉ còn phóng thường hoặc MetalFX; làm nét mạnh dễ lộ viền sáng; khử răng cưa làm mềm nhẹ chữ nhỏ.
 
 Nếu màu trên Mac lệch so với TV, hãy xem mục Dải màu. Để Tự động thì app đọc độ sáng thật của tín hiệu, vì nhiều card ghi sai dải màu. Hình nhạt, màu đen ngả xám: chọn Giới hạn. Hình gắt, vùng tối mất chi tiết: chọn Đầy đủ. Vẫn nhạt dù đã chọn Giới hạn thì trên Switch 2 vào System Settings › Display › RGB Range và chọn Full Range. Nếu Switch 2 xuất HDR qua card mà hình xám, nhạt màu, chọn HDR › Chuyển HDR về SDR hoặc tắt HDR Output trên Switch 2.

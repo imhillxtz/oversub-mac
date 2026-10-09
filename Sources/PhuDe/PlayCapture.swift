@@ -1,21 +1,34 @@
 import AVFoundation
+import IOKit
 import AppKit
 
 /// Phiên nhận hình và tiếng từ capture card. Hình đọc thẳng từ CoreMediaIO (`CMIOVideoStream`, không được thì AVCaptureSession)
-/// rồi đi thẳng vào bộ vẽ Metal (không qua luồng chính, để trễ thấp); tiếng đi thẳng ra loa bằng AVCaptureAudioPreviewOutput. Mọi thay đổi phiên chạy trên `sessionQueue` (startRunning chặn luồng).
+/// trên `videoQueue`, rồi vẽ bằng Metal trên `renderQueue` riêng (không qua luồng chính, để trễ thấp). Hai luồng tách nhau vì
+/// `nextDrawable` có thể chặn tới gần một giây khi WindowServer vẽ trễ (GPU bị app khác chiếm, đổi Space): trước đây việc vẽ nằm
+/// trên luồng nhận hình nên hàng đợi của card đầy và khung bị mất hẳn (đo được lỗ hổng 688 ms, có lúc chỉ nhận 19 khung/giây).
+/// Giờ luồng nhận hình luôn lấy hết khung, chỉ giữ khung mới nhất cho luồng vẽ; tiếng đi thẳng ra loa bằng AVCaptureAudioPreviewOutput. Mọi thay đổi phiên chạy trên `sessionQueue` (startRunning chặn luồng).
 final class PlayCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, @unchecked Sendable {
     let renderer: PlayRenderer
     private let session = AVCaptureSession()
     private let sessionQueue = DispatchQueue(label: "oversub.play.session")
     private let videoQueue = DispatchQueue(label: "oversub.play.video", qos: .userInteractive)
+    private let renderQueue = DispatchQueue(label: "oversub.play.render", qos: .userInteractive)
+    // Hộp chờ vẽ: luồng nhận hình đặt khung mới nhất, luồng vẽ lấy ra. Khung chưa kịp vẽ mà có khung mới thì bị thay.
+    private let boxLock = NSLock()
+    private var boxFrame: CVPixelBuffer?
+    private var boxScheduled = false
+    private var drawnTotal = 0, replacedTotal = 0   // ghi trên luồng vẽ hoặc dưới khoá, đọc dưới khoá
+    private var drawnAtLog = 0, replacedAtLog = 0   // chỉ dùng trên videoQueue
     private let output = AVCaptureVideoDataOutput()
     private var audioOut: AVCaptureAudioPreviewOutput?
     private var direct: CMIOVideoStream?
     private var runtimeObserver: NSObjectProtocol?
 
-    // Số liệu, chỉ dùng trên videoQueue.
-    private var received = 0, drawn = 0, dropped = 0
-    private var windowReceived = 0, windowDrawn = 0, windowDropped = 0
+    // Số liệu, chỉ dùng trên videoQueue (số khung đã vẽ nằm dưới boxLock).
+    private var received = 0, dropped = 0
+    private var windowReceived = 0, windowDropped = 0
+    /// Nhịp khung thật của card (theo mốc thời gian card ghi), để biết hình giật do card gửi không đều hay do app vẽ chậm.
+    private var cadence = Cadence()
     private var lastLog = Date()
     private var lastFrameAt = Date.distantPast
 
@@ -70,9 +83,10 @@ final class PlayCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate,
 
         // Hình đọc thẳng từ CoreMediaIO khi được: qua AVCaptureSession thì macOS chạy thêm đường hiệu ứng video, tốn gấp ba
         // (xem CMIOVideoStream). Định dạng nén hay thiết bị CoreMediaIO không nhận thì quay về AVCaptureSession.
-        let stream = Self.allowDirect ? CMIOVideoStream(video: s.video, format: s.format, deliver: videoQueue) { [weak self] pb, skipped in
+        let stream = Self.allowDirect ? CMIOVideoStream(video: s.video, format: s.format, deliver: videoQueue) { [weak self] pb, skipped, times in
             guard let self else { return }
             dropped += skipped; windowDropped += skipped
+            cadence.add(times)
             handle(pb)
         } : nil
         if let stream {
@@ -92,9 +106,9 @@ final class PlayCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate,
             if session.canAddOutput(output) { session.addOutput(output) }
         }
         let baselineFull = want == kCVPixelFormatType_420YpCbCr8BiPlanarFullRange || want == kCVPixelFormatType_420YpCbCr10BiPlanarFullRange
+        renderQueue.sync { renderer.resetDetection(baselineFull: baselineFull) }
         videoQueue.sync {
-            renderer.resetDetection(baselineFull: baselineFull)
-            received = 0; drawn = 0; dropped = 0; windowReceived = 0; windowDrawn = 0; windowDropped = 0
+            resetCounters()
             lastLog = Date(); lastFrameAt = Date()
         }
 
@@ -182,7 +196,7 @@ final class PlayCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate,
         }
         if let runtimeObserver { NotificationCenter.default.removeObserver(runtimeObserver) }
         runtimeObserver = nil
-        let total = videoQueue.sync { (received, drawn, dropped) }
+        let total = videoQueue.sync { (received, drawnCount, dropped) }
         DebugLog.write("Màn hình chơi: dừng nhận hình và tiếng (tổng \(total.0) khung nhận, \(total.1) khung vẽ, \(total.2) khung bỏ)")
     }
 
@@ -209,6 +223,8 @@ final class PlayCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate,
 
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         guard let pb = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        let t = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
+        if t.isValid { cadence.add([t.seconds]) }
         handle(pb)
     }
 
@@ -216,7 +232,15 @@ final class PlayCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate,
         dropped += 1; windowDropped += 1
     }
 
-    /// Một khung tới (từ card, hoặc từ nguồn thử trong bản dev). Chạy trên videoQueue.
+    private var drawnCount: Int { boxLock.lock(); defer { boxLock.unlock() }; return drawnTotal }
+
+    private func resetCounters() {
+        received = 0; dropped = 0; windowReceived = 0; windowDropped = 0
+        boxLock.lock(); drawnTotal = 0; replacedTotal = 0; boxLock.unlock()
+        drawnAtLog = 0; replacedAtLog = 0
+    }
+
+    /// Một khung tới (từ card, hoặc từ nguồn thử trong bản dev). Chạy trên videoQueue: đếm, rồi đặt vào hộp chờ cho luồng vẽ.
     private func handle(_ pb: CVPixelBuffer) {
         received += 1; windowReceived += 1
         lastFrameAt = Date()
@@ -225,19 +249,79 @@ final class PlayCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate,
             DebugLog.write("Màn hình chơi: khung đầu tiên \(info)")
             DispatchQueue.main.async { MainActor.assumeIsolated { self.onFirstFrame?(info) } }
         }
-        if renderer.render(pb) { drawn += 1; windowDrawn += 1 }
+        boxLock.lock()
+        if boxFrame != nil { replacedTotal += 1 }
+        boxFrame = pb
+        let schedule = !boxScheduled
+        boxScheduled = true
+        let drawn = drawnTotal, replaced = replacedTotal
+        boxLock.unlock()
+        if schedule { renderQueue.async { [weak self] in self?.drawPending() } }
+
         let elapsed = Date().timeIntervalSince(lastLog)
         if elapsed >= 10 {
-            let y = renderer.takeStats().map { "độ sáng \($0.0)–\($0.1)" } ?? "chưa lấy mẫu"
-            let i = renderer.current
-            let skips = renderer.takeSkips()
-            DebugLog.write(String(format: "Màn hình chơi: %.1f khung/giây nhận, %.1f vẽ, %d bỏ%@; %@; hiểu là dải %@%@, BT.%@, %d bit",
-                                  Double(windowReceived) / elapsed, Double(windowDrawn) / elapsed, windowDropped,
-                                  skips.isEmpty ? "" : " (không vẽ: \(skips))", y,
-                                  i.full ? "đầy đủ" : "giới hạn", i.auto ? " (tự động)" : "", i.matrix, i.bits))
-            windowReceived = 0; windowDrawn = 0; windowDropped = 0
+            // Phần của luồng nhận hình chụp ở đây; phần của bộ vẽ đọc trên luồng vẽ để khỏi tranh nhau trạng thái.
+            let head = String(format: "Màn hình chơi: %.1f khung/giây nhận, %.1f vẽ, %d bỏ", Double(windowReceived) / elapsed,
+                              Double(drawn - drawnAtLog) / elapsed, windowDropped)
+            let late = replaced - replacedAtLog
+            let tail = (late > 0 ? ", \(late) khung thay vì vẽ chậm" : "")
+            let (cad, median) = cadence.take()
+            // Nhịp đo thật lệch quá 3% so với nhịp đang dùng thì đổi theo (độ trễ Mượt, chèn khung, số trễ thêm).
+            if let m = median, m > 0.008, m < 0.05, abs(m - renderer.frameInterval) / renderer.frameInterval > 0.03 {
+                DebugLog.write(String(format: "Màn hình chơi: card gửi đều %.1f ms một khung (%.1f khung/giây), khác %.1f khung/giây đang dùng: dùng nhịp đo được",
+                                      m * 1000, 1 / m, 1 / renderer.frameInterval))
+                renderer.frameInterval = m
+            }
+            drawnAtLog = drawn; replacedAtLog = replaced
+            windowReceived = 0; windowDropped = 0
             lastLog = Date()
+            renderQueue.async { [renderer] in
+                let y = renderer.takeStats().map { "độ sáng \($0.0)–\($0.1)" } ?? "chưa lấy mẫu"
+                let i = renderer.current
+                let skips = renderer.takeSkips()
+                DebugLog.write(String(format: "%@%@%@; %@; hiểu là dải %@%@, BT.%@, %d bit%@%@%@", head, tail,
+                                      skips.isEmpty ? "" : " (không vẽ: \(skips))", y,
+                                      i.full ? "đầy đủ" : "giới hạn", i.auto ? " (tự động)" : "", i.matrix, i.bits,
+                                      cad, renderer.takeTiming(), Self.gpuLoad()))
+            }
         }
+    }
+
+    /// Luồng vẽ: vẽ khung mới nhất trong hộp chờ, lặp tới khi hộp trống (khung tới trong lúc đang vẽ thì vẽ tiếp khung mới nhất).
+    private func drawPending() {
+        while true {
+            boxLock.lock()
+            guard let pb = boxFrame else { boxScheduled = false; boxLock.unlock(); return }
+            boxFrame = nil
+            boxLock.unlock()
+            let ok = renderer.render(pb)
+            if ok { boxLock.lock(); drawnTotal += 1; boxLock.unlock() }
+        }
+    }
+
+    /// Mức bận GPU của cả máy (mọi app cộng lại) theo IOAccelerator, kèm trạng thái nhiệt khi máy nóng. App khác chiếm GPU
+    /// (iOS Simulator từng chiếm khoảng 27%) làm WindowServer vẽ trễ, khung hình bị dồn rồi bỏ.
+    nonisolated static func gpuLoad() -> String {
+        var text = ""
+        var it: io_iterator_t = 0
+        if IOServiceGetMatchingServices(kIOMainPortDefault, IOServiceMatching("IOAccelerator"), &it) == KERN_SUCCESS {
+            var s = IOIteratorNext(it)
+            while s != 0 {
+                if let p = IORegistryEntryCreateCFProperty(s, "PerformanceStatistics" as CFString, kCFAllocatorDefault, 0)?.takeRetainedValue() as? [String: Any],
+                   let u = p["Device Utilization %"] as? Int {
+                    text = "; GPU cả máy \(u)%"
+                }
+                IOObjectRelease(s)
+                s = IOIteratorNext(it)
+            }
+            IOObjectRelease(it)
+        }
+        switch ProcessInfo.processInfo.thermalState {
+        case .serious: text += ", máy nóng (serious)"
+        case .critical: text += ", máy rất nóng (critical)"
+        default: break
+        }
+        return text
     }
 
     /// Cỡ, kiểu điểm ảnh và thẻ màu card ghi trong khung (để biết card gửi gì khi người dùng báo lệch màu).
@@ -258,9 +342,9 @@ final class PlayCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate,
         let name = ProcessInfo.processInfo.environment["OVERSUB_PLAY_PATTERN_FORMAT"] ?? "420v"
         let type: OSType = name == "2vuy" ? kCVPixelFormatType_422YpCbCr8 : name == "yuvs" ? kCVPixelFormatType_422YpCbCr8_yuvs : kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
         guard let pb = Self.pattern(full: full, text: text, type: type) else { DebugLog.write("Thử màn hình chơi: không dựng được khung thử"); return }
+        renderQueue.sync { renderer.resetDetection(baselineFull: false) }
         videoQueue.sync {
-            renderer.resetDetection(baselineFull: false)
-            received = 0; drawn = 0; dropped = 0; windowReceived = 0; windowDrawn = 0; windowDropped = 0
+            resetCounters()
             lastLog = Date(); lastFrameAt = Date()
         }
         // OVERSUB_PLAY_PATTERN_FPS=30: tín hiệu 30 khung/giây như chế độ 1440p30 của card (mặc định 60).
@@ -311,7 +395,7 @@ final class PlayCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate,
         guard testTimer != nil else { return }
         testTimer?.cancel()
         testTimer = nil
-        let total = videoQueue.sync { (received, drawn) }
+        let total = videoQueue.sync { (received, drawnCount) }
         DebugLog.write("Thử màn hình chơi: dừng nguồn thử (\(total.0) khung nhận, \(total.1) khung vẽ)")
     }
 
@@ -392,4 +476,30 @@ final class PlayCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate,
         return pb
     }
     #endif
+}
+
+/// Khoảng cách giữa các khung theo mốc thời gian card ghi, gom theo cửa sổ 10 giây: trung vị, dài nhất, số lần hở (dài hơn
+/// 1,5 lần trung vị) và số lần dồn (ngắn hơn nửa trung vị). Chỉ dùng trên videoQueue.
+struct Cadence {
+    private var last: Double?
+    private var gaps: [Double] = []
+
+    mutating func add(_ times: [Double]) {
+        for t in times {
+            if let l = last, t > l { gaps.append(t - l) }
+            last = t
+        }
+    }
+
+    /// Chữ cho nhật ký và khoảng cách trung vị (giây; nil khi chưa đủ 50 khung để tin).
+    mutating func take() -> (String, Double?) {
+        defer { gaps.removeAll(keepingCapacity: true) }
+        guard gaps.count >= 10 else { return ("", nil) }
+        let sorted = gaps.sorted()
+        let median = sorted[sorted.count / 2]
+        let late = gaps.filter { $0 > median * 1.5 }.count
+        let bunched = gaps.filter { $0 < median * 0.5 }.count
+        return (String(format: "; nhịp card %.1f ms (dài nhất %.0f ms, %d lần hở, %d lần dồn)", median * 1000, sorted.last! * 1000, late, bunched),
+                gaps.count >= 50 ? median : nil)
+    }
 }

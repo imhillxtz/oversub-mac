@@ -25,12 +25,15 @@ struct PlayRenderOptions: Equatable {
     var resizing = false
     /// Độ sáng vượt mức trắng SDR mà màn hình đang cho phép (EDR).
     var headroom: Double = 1
+    /// Tần số tối đa của màn hình đang hiện cửa sổ (120 với ProMotion).
+    var displayHz: Double = 60
 }
 
 /// Vẽ khung hình capture card bằng Metal: đổi YCbCr sang RGB theo dải sáng và ma trận đã chọn (chỗ hay làm lệch màu so với
 /// TV), đổi HDR10 về SDR hoặc hiện HDR bằng EDR, rồi đặt vừa khung với viền đen. Khi bật bộ chỉnh hình thì đổi màu vào texture
 /// trung gian ở độ phân giải gốc, chèn khung (`PlayInterpolator`), khử răng cưa, phóng to và làm nét (`PlayEffects`) rồi mới
-/// đặt vào khung. Mọi hàm (trừ `update`) chạy trên một hàng đợi nhận hình duy nhất.
+/// đặt vào khung. Mọi hàm (trừ `update`, `frameInterval` và các hàm ghi rõ có khoá) chạy trên một hàng đợi vẽ duy nhất
+/// (`renderQueue` của PlayCapture, tách khỏi luồng nhận hình vì `nextDrawable` có thể chặn lâu).
 final class PlayRenderer: @unchecked Sendable {
     let layer = CAMetalLayer()
     private let device: MTLDevice
@@ -41,8 +44,17 @@ final class PlayRenderer: @unchecked Sendable {
 
     private let lock = NSLock()
     private var pending = PlayRenderOptions()
-    /// Khoảng cách giữa hai khung của tín hiệu (giây), cho chế độ Mượt.
-    var frameInterval: Double = 1.0 / 60
+    /// Khoảng cách giữa hai khung của tín hiệu (giây), cho độ trễ Mượt, chèn khung và số trễ thêm. Lúc mở lấy theo định dạng,
+    /// sau đó theo nhịp đo thật (card Hagibis ghi 60 khung/giây nhưng có lúc gửi đều 64). Có khoá: luồng nhận hình đặt, luồng vẽ đọc.
+    var frameInterval: Double {
+        get { intervalLock.lock(); defer { intervalLock.unlock() }; return interval }
+        set { intervalLock.lock(); interval = newValue; intervalLock.unlock() }
+    }
+    private let intervalLock = NSLock()
+    private var interval = 1.0 / 60
+    /// Chèn khung gấp đôi mà vượt tần số màn hình (64 khung/giây thành 128 trên màn 120 Hz) thì khung dồn lại chờ hiện: chỉ
+    /// chèn số khung màn hình kịp hiện, tích luỹ phần lẻ qua từng khung. Chỉ dùng trên luồng vẽ.
+    private var insertBudget = 0.0
 
     // Trạng thái chỉ dùng trong luồng nhận hình.
     private var layerConfig: (PlaySettings.HDR, PlaySettings.Gamut, PlaySettings.Latency, Bool)?
@@ -73,6 +85,26 @@ final class PlayRenderer: @unchecked Sendable {
         statsLock.lock(); defer { statsLock.unlock() }
         return (cost, measuredLag)
     }
+    // Thời gian chờ nextDrawable trong cửa sổ 10 giây (luồng nhận hình đứng chờ, khung mới dồn lại trong hàng đợi của card).
+    private var waitTotal = 0.0, waitMax = 0.0, waitCount = 0, waitLong = 0
+
+    private func nextDrawable() -> CAMetalDrawable? {
+        let t0 = CACurrentMediaTime()
+        let d = layer.nextDrawable()
+        let w = CACurrentMediaTime() - t0
+        waitTotal += w; waitCount += 1
+        waitMax = max(waitMax, w)
+        if w > 0.008 { waitLong += 1 }
+        return d
+    }
+
+    /// Thời gian chờ drawable từ lần hỏi trước, cho dòng nhật ký 10 giây. Chỉ dùng trên luồng nhận hình.
+    func takeTiming() -> String {
+        defer { waitTotal = 0; waitMax = 0; waitCount = 0; waitLong = 0 }
+        guard waitCount > 0 else { return "" }
+        return String(format: "; chờ drawable trung bình %.1f ms, lâu nhất %.0f ms, %d lần quá 8 ms", waitTotal / Double(waitCount) * 1000, waitMax * 1000, waitLong)
+    }
+
     private(set) var detector = RangeDetector()
     private var sampleTick = 0
     /// Cách hiểu đang dùng, để ghi nhật ký và hiện trong menu.
@@ -205,8 +237,14 @@ final class PlayRenderer: @unchecked Sendable {
         if Self.processing(o) {
             // Đổi màu vào texture trung gian ở độ phân giải gốc (đã cắt theo Lấp đầy), rồi chèn khung, khử răng cưa, phóng, làm nét.
             let sw = max(16, Int(cw.rounded())), sh = max(16, Int(ch.rounded()))
-            let gen = o.resizing ? PlayInterpolator.Mode.off : PlayCost.effective(o.frameGen, fps: 1 / max(frameInterval, 0.001))
-            guard let slot = gen != .off ? interpolator.nextSlot(width: sw, height: sh) : effects.texture("source", sw, sh) else { return skip("texture") }
+            let step = frameInterval
+            var gen = o.resizing ? PlayInterpolator.Mode.off : PlayCost.effective(o.frameGen, fps: 1 / max(step, 0.001))
+            if gen == .double {
+                let fps = 1 / max(step, 0.001)
+                insertBudget = min(1.999, insertBudget + max(0, (o.displayHz - fps) / fps))
+                if insertBudget >= 0.999 { insertBudget -= 1 } else { gen = .off }   // lượt này chỉ hiện khung thật
+            }
+            guard let slot = o.frameGen != .off && !o.resizing ? interpolator.nextSlot(width: sw, height: sh) : effects.texture("source", sw, sh) else { return skip("texture") }
             p.dst = SIMD4(-1, -1, 1, 1)
             draw(cb, target: slot, clear: false, pipeline: convert, format: slot.pixelFormat, params: p, textures: source)
             var duplicate = false
@@ -214,8 +252,9 @@ final class PlayRenderer: @unchecked Sendable {
                 let off: Int? = packed == nil ? nil : (type == kCVPixelFormatType_422YpCbCr8 ? 1 : 0)
                 duplicate = interpolator.isDuplicate(PlayInterpolator.signature(pb, packedYOffset: off, tenBit: tenBit))
             }
-            let outs = gen != .off ? interpolator.push(cb, mode: gen, interval: frameInterval, duplicate: duplicate)
-                                   : [PlayInterpolator.Output(texture: slot, after: 0, synthetic: false)]
+            // Đang chèn khung mà lượt này bỏ qua (vượt tần số màn hình) vẫn đưa khung qua bộ chèn để nó giữ khung trước cho lượt sau.
+            let outs = o.frameGen != .off && !o.resizing ? interpolator.push(cb, mode: gen, interval: step, duplicate: duplicate)
+                                                         : [PlayInterpolator.Output(texture: slot, after: 0, synthetic: false)]
             let vp = PlayEffects.Viewport(x: Int(((dw - fitW) / 2).rounded()), y: Int(((dh - fitH) / 2).rounded()), w: Int(fitW), h: Int(fitH))
             // RCAS: 0 là mạnh nhất, mỗi 1 giảm một nửa. Đang kéo đổi cỡ thì chỉ phóng song tuyến (khỏi dựng lại texture mỗi cỡ).
             let stops: Float?
@@ -228,7 +267,7 @@ final class PlayRenderer: @unchecked Sendable {
             let fx = PlayEffects.Options(upscaler: o.resizing ? .bilinear : o.upscaler, sharpenStops: o.resizing ? nil : stops,
                                          antiAlias: o.antiAlias, hdr: o.hdr == .edr)
             for out in outs {
-                guard let drawable = layer.nextDrawable() else { break }
+                guard let drawable = nextDrawable() else { break }
                 if !effects.encode(cb, source: out.texture, target: drawable.texture, vp: vp, options: fx) {
                     var q = Params()
                     q.dst = SIMD4(Float(-fitW / dw), Float(-fitH / dh), Float(fitW / dw), Float(fitH / dh))
@@ -247,7 +286,7 @@ final class PlayRenderer: @unchecked Sendable {
             lastStages = ((gen == .off ? [] : [gen == .double ? "chèn khung x2" : "chèn khung 30→60"]) + effects.lastStages)
                 .joined(separator: " → ")
         } else {
-            guard let drawable = layer.nextDrawable() else { return skip("drawable") }
+            guard let drawable = nextDrawable() else { return skip("drawable") }
             p.dst = SIMD4(Float(-fitW / dw), Float(-fitH / dh), Float(fitW / dw), Float(fitH / dh))
             draw(cb, target: drawable.texture, clear: true, pipeline: convert, format: outFormat, params: p, textures: source)
             countPresented(drawable)

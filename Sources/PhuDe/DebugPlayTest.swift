@@ -244,10 +244,30 @@ extension DebugSnapshot {
             await closeTest()
             return
         }
-        let hold = Double(ProcessInfo.processInfo.environment["OVERSUB_PLAY_HOLD"] ?? "") ?? 30
+        let env = ProcessInfo.processInfo.environment
+        let hold = Double(env["OVERSUB_PLAY_HOLD"] ?? "") ?? 30
+        // OVERSUB_PLAY_FULLSCREEN=1: toàn màn hình như lúc chơi thật. OVERSUB_PLAY_PRESETS=original,game3D: giữ từng bộ chỉnh
+        // hình `hold` giây (đo nhịp khung, thời gian chờ drawable, GPU cả máy qua dòng nhật ký 10 giây).
+        if env["OVERSUB_PLAY_FULLSCREEN"] == "1" {
+            play.toggleFullScreen()
+            try? await Task.sleep(for: .seconds(2))
+        }
+        let presets = (env["OVERSUB_PLAY_PRESETS"] ?? "").split(separator: ",").compactMap { PlaySettings.Preset(rawValue: String($0)) }
         DebugLog.write("Thử màn hình chơi: có hình sau \(waited) giây, bắt đầu giữ mở \(Int(hold)) giây (đo CPU khi mở)")
-        try? await Task.sleep(for: .seconds(hold))
+        if presets.isEmpty {
+            try? await Task.sleep(for: .seconds(hold))
+        } else {
+            for p in presets {
+                PlaySettings.shared.preset = p
+                DebugLog.write("Thử màn hình chơi: bộ \(p.rawValue)")
+                try? await Task.sleep(for: .seconds(hold))
+            }
+        }
         DebugLog.write("Thử màn hình chơi: hết giữ mở")
+        if play.isFullScreen {
+            play.toggleFullScreen()
+            try? await Task.sleep(for: .seconds(1.5))
+        }
         await closeTest()
     }
 

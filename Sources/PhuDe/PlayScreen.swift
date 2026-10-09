@@ -308,7 +308,8 @@ final class PlayScreen: NSObject, ObservableObject, NSWindowDelegate {
 
     private func updateHeadroom() {
         let h = Double(window?.screen?.maximumExtendedDynamicRangeColorComponentValue ?? 1)
-        renderer?.update { $0.headroom = h }
+        let hz = Double(window?.screen?.maximumFramesPerSecond ?? 60)
+        renderer?.update { $0.headroom = h; $0.displayHz = hz }
     }
 
     // MARK: Trạng thái trong cửa sổ
