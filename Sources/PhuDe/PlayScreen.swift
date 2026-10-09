@@ -288,7 +288,8 @@ final class PlayScreen: NSObject, ObservableObject, NSWindowDelegate {
         let s = settings
         renderer?.update {
             $0.range = s.range; $0.matrix = s.matrix; $0.gamut = s.gamut; $0.hdr = s.hdr
-            $0.sharpen = s.sharpen; $0.superResolution = s.superResolution; $0.fill = s.fill; $0.latency = s.latency
+            $0.upscaler = s.upscaler; $0.sharpen = s.sharpen; $0.antiAlias = s.antiAlias; $0.frameGen = s.frameGen
+            $0.fill = s.fill; $0.latency = s.latency
         }
         updateHeadroom()
         capture?.setVolume(Float(effectiveVolume), ramp: false)
@@ -494,12 +495,27 @@ final class PlayScreen: NSObject, ObservableObject, NSWindowDelegate {
         ]))
         m.addItem(.separator())
 
-        let sharpen: [(PlaySettings.Sharpen, String)] = [(.off, L("Tắt", "Off")), (.low, L("Nhẹ", "Low")), (.medium, L("Vừa", "Medium")), (.high, L("Mạnh", "High"))]
-        m.addItem(submenu(L("Làm nét", "Sharpen"), items: sharpen.map { v, t in PlayMenuItem(t, on: s.sharpen == v) { s.sharpen = v } }))
+        // Bộ chỉnh hình và từng mục của nó; mục chèn khung ghi rõ độ trễ thêm theo tốc độ khung của tín hiệu.
+        let fps = renderer.map { 1 / max($0.frameInterval, 0.001) } ?? 60
+        m.addItem(submenu(L("Bộ chỉnh hình", "Picture preset"), items: PlaySettings.Preset.allCases.filter { $0 != .custom || s.preset == .custom }.map { p in
+            PlayMenuItem(PlayLabels.preset(p, fps: fps), on: s.preset == p, enabled: p != .custom) { s.preset = p }
+        }))
         let fx = renderer?.supportsSuperResolution ?? false
-        m.addItem(PlayMenuItem(L("Siêu phân giải (MetalFX)", "Super resolution (MetalFX)"), on: s.superResolution && fx, enabled: fx) {
-            s.superResolution.toggle()
-        })
+        m.addItem(submenu(L("Phóng to", "Upscaling"), items: PlayEffects.Upscaler.allCases.map { u in
+            PlayMenuItem(PlayLabels.upscaler(u), on: s.upscaler == u, enabled: u != .metalFX || fx) { s.upscaler = u }
+        }))
+        m.addItem(submenu(L("Làm nét (RCAS)", "Sharpen (RCAS)"), items: PlaySettings.Sharpen.allCases.map { v in
+            PlayMenuItem(PlayLabels.sharpen(v), on: s.sharpen == v) { s.sharpen = v }
+        }))
+        m.addItem(PlayMenuItem(L("Khử răng cưa (FXAA)", "Anti-aliasing (FXAA)"), on: s.antiAlias) { s.antiAlias.toggle() })
+        m.addItem(submenu(L("Tăng FPS", "Frame generation"), items: PlayInterpolator.Mode.allCases.map { v -> NSMenuItem in
+            PlayMenuItem(PlayLabels.frameGen(v, fps: fps), on: s.frameGen == v) { s.frameGen = v }
+        } + [
+            .separator(),
+            PlayMenuItem.note(L("Vật chạy nhanh có thể nhoè ở mép.", "Fast-moving objects can smear at their edges.")),
+            PlayMenuItem.note(L("Gấp đôi cần màn hình 120 Hz (ProMotion).", "Doubling needs a 120 Hz (ProMotion) display.")),
+            PlayMenuItem.note(L("Độ trễ ghi kèm chưa tính 1 đến 2 ms GPU xử lý.", "Added latency excludes 1 to 2 ms of GPU time.")),
+        ]))
         m.addItem(submenu(L("Khung hình", "Picture size"), items: [
             PlayMenuItem(L("Vừa khung (giữ trọn hình)", "Fit (show the whole picture)"), on: !s.fill) { s.fill = false },
             PlayMenuItem(L("Lấp đầy (cắt bớt phần thừa)", "Fill (crop what doesn't fit)"), on: s.fill) { s.fill = true },
@@ -531,6 +547,9 @@ final class PlayScreen: NSObject, ObservableObject, NSWindowDelegate {
         m.addItem(.separator())
         if !signal.isEmpty, phase == .live {
             m.addItem(PlayMenuItem.note(L("Tín hiệu: ", "Signal: ") + signal))
+            if let info = renderer?.processingInfo(), info.stages != "vẽ thẳng" {
+                m.addItem(PlayMenuItem.note(String(format: L("Xử lý hình: %@, %.1f ms GPU mỗi lần vẽ", "Processing: %@, %.1f ms GPU per draw"), info.stages, info.ms)))
+            }
         }
         m.addItem(PlayMenuItem(L("Đóng màn hình chơi", "Close game screen")) { [weak self] in self?.close() })
         return m

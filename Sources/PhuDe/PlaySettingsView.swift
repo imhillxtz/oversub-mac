@@ -34,6 +34,15 @@ struct PlaySettingsPage: View {
             }
 
             Section {
+                Picker(L("Bộ chỉnh hình", "Picture preset"), selection: $s.preset) {
+                    ForEach(PlaySettings.Preset.allCases.filter { $0 != .custom || s.preset == .custom }, id: \.self) { p in
+                        Text(PlayLabels.preset(p, fps: 60)).tag(p)
+                    }
+                }
+                Note(PlayLabels.presetDetail(s.preset, fps: 60))
+            } header: { Text(L("Bộ chỉnh hình", "Picture preset")) }
+
+            Section {
                 Picker(L("Thiết bị hình", "Video device"), selection: Binding(get: { device?.uniqueID ?? "" }, set: { s.deviceID = $0.isEmpty ? nil : $0 })) {
                     if cards.devices.isEmpty { Text(L("Chưa thấy thiết bị nào", "No device found")).tag("") }
                     ForEach(cards.devices, id: \.uniqueID) { Text($0.localizedName).tag($0.uniqueID) }
@@ -89,14 +98,17 @@ struct PlaySettingsPage: View {
             } header: { Text(L("Màu", "Color")) }
 
             Section {
-                Picker(L("Làm nét", "Sharpen"), selection: $s.sharpen) {
-                    Text(L("Tắt", "Off")).tag(PlaySettings.Sharpen.off)
-                    Text(L("Nhẹ", "Low")).tag(PlaySettings.Sharpen.low)
-                    Text(L("Vừa", "Medium")).tag(PlaySettings.Sharpen.medium)
-                    Text(L("Mạnh", "High")).tag(PlaySettings.Sharpen.high)
+                Picker(L("Phóng to", "Upscaling"), selection: $s.upscaler) {
+                    ForEach(PlayEffects.Upscaler.allCases.filter { $0 != .metalFX || Self.superResolution }, id: \.self) { Text(PlayLabels.upscaler($0)).tag($0) }
                 }
-                Toggle(L("Siêu phân giải (MetalFX)", "Super resolution (MetalFX)"), isOn: $s.superResolution)
-                    .disabled(!Self.superResolution)
+                Picker(L("Làm nét (RCAS)", "Sharpen (RCAS)"), selection: $s.sharpen) {
+                    ForEach(PlaySettings.Sharpen.allCases, id: \.self) { Text(PlayLabels.sharpen($0)).tag($0) }
+                }
+                Toggle(L("Khử răng cưa (FXAA)", "Anti-aliasing (FXAA)"), isOn: $s.antiAlias)
+                Picker(L("Tăng FPS", "Frame generation"), selection: $s.frameGen) {
+                    ForEach(PlayInterpolator.Mode.allCases, id: \.self) { Text(PlayLabels.frameGen($0, fps: 60)).tag($0) }
+                }
+                Note(PlayLabels.frameGenNote)
                 Picker(L("Khung hình", "Picture size"), selection: $s.fill) {
                     Text(L("Vừa khung (giữ trọn hình)", "Fit (show the whole picture)")).tag(false)
                     Text(L("Lấp đầy (cắt bớt phần thừa)", "Fill (crop what doesn't fit)")).tag(true)
@@ -105,9 +117,9 @@ struct PlaySettingsPage: View {
                     Text(L("Thấp nhất", "Lowest")).tag(PlaySettings.Latency.lowest)
                     Text(L("Mượt (chậm hơn khoảng một khung hình)", "Smooth (about one frame slower)")).tag(PlaySettings.Latency.smooth)
                 }
-                Note(L("Lấp đầy bỏ viền đen khi toàn màn hình trên MacBook (màn 16:10), đổi lại hai bên hình mất một dải mỏng khoảng 5%. Siêu phân giải phóng hình lên cỡ cửa sổ bằng MetalFX, rõ hơn khi cửa sổ lớn hơn hình gốc. Mượt giữ nhịp khung đều hơn trên màn hình 120 Hz.",
-                       "Fill removes the black bars in full screen on a MacBook (16:10 display), at the cost of a thin strip, about 5%, on each side. Super resolution upscales the picture to the window size with MetalFX, which looks sharper when the window is larger than the source. Smooth keeps frame pacing steadier on 120 Hz displays."))
-            } header: { Text(L("Hình", "Picture")) }
+                Note(L("Lấp đầy bỏ viền đen khi toàn màn hình trên MacBook (màn 16:10), đổi lại hai bên hình mất một dải mỏng khoảng 5%. Độ trễ Mượt giữ nhịp khung đều hơn trên màn hình 120 Hz.",
+                       "Fill removes the black bars in full screen on a MacBook (16:10 display), at the cost of a thin strip, about 5%, on each side. Smooth latency keeps frame pacing steadier on 120 Hz displays."))
+            } header: { Text(L("Tuỳ chỉnh hình", "Picture options")) }
 
             Section {
                 LabeledContent(L("Hiệu ứng video của macOS", "macOS video effects")) {

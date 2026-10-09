@@ -189,6 +189,25 @@ final class PlaySettings: ObservableObject {
     enum HDR: String, CaseIterable { case off, tone, edr }
     enum Sharpen: String, CaseIterable { case off, low, medium, high }
     enum Latency: String, CaseIterable { case lowest, smooth }
+    /// Bộ chỉnh hình: gom cách phóng to, làm nét, khử răng cưa và tăng FPS thành vài lựa chọn sẵn. Tự chỉnh từng mục thì
+    /// thành Tuỳ chỉnh; chỉnh trùng một bộ có sẵn thì tự nhận lại bộ đó.
+    enum Preset: String, CaseIterable {
+        case original, sharp, smoothEdges, game3D, cartoon, fluid120, fluid30, custom
+
+        typealias Values = (upscaler: PlayEffects.Upscaler, sharpen: Sharpen, antiAlias: Bool, frameGen: PlayInterpolator.Mode)
+        var values: Values? {
+            switch self {
+            case .original: return (.bilinear, .off, false, .off)
+            case .sharp: return (.fsr, .low, false, .off)
+            case .smoothEdges: return (.fsr, .low, true, .off)
+            case .game3D: return (.anime3D, .off, false, .off)
+            case .cartoon: return (.animeCel, .off, false, .off)
+            case .fluid120: return (.fsr, .low, false, .double)
+            case .fluid30: return (.fsr, .low, false, .thirty)
+            case .custom: return nil
+            }
+        }
+    }
 
     private let d: UserDefaults
 
@@ -207,8 +226,42 @@ final class PlaySettings: ObservableObject {
     @Published var matrix: Matrix { didSet { d.set(matrix.rawValue, forKey: "play.matrix") } }
     @Published var gamut: Gamut { didSet { d.set(gamut.rawValue, forKey: "play.gamut") } }
     @Published var hdr: HDR { didSet { d.set(hdr.rawValue, forKey: "play.hdr") } }
-    @Published var sharpen: Sharpen { didSet { d.set(sharpen.rawValue, forKey: "play.sharpen") } }
-    @Published var superResolution: Bool { didSet { d.set(superResolution, forKey: "play.superRes") } }
+    @Published var preset: Preset {
+        didSet {
+            d.set(preset.rawValue, forKey: "play.preset")
+            guard !applying, let v = preset.values else { return }
+            applying = true
+            upscaler = v.upscaler; sharpen = v.sharpen; antiAlias = v.antiAlias; frameGen = v.frameGen
+            applying = false
+        }
+    }
+    @Published var upscaler: PlayEffects.Upscaler { didSet { d.set(upscaler.rawValue, forKey: "play.upscaler"); followPreset() } }
+    /// Làm nét bằng RCAS của FSR 1 sau khi phóng.
+    @Published var sharpen: Sharpen { didSet { d.set(sharpen.rawValue, forKey: "play.sharpen"); followPreset() } }
+    /// Khử răng cưa FXAA ở độ phân giải gốc, trước khi phóng.
+    @Published var antiAlias: Bool { didSet { d.set(antiAlias, forKey: "play.aa"); followPreset() } }
+    /// Tăng FPS bằng chèn khung (xem PlayInterpolator).
+    @Published var frameGen: PlayInterpolator.Mode { didSet { d.set(frameGen.rawValue, forKey: "play.frameGen"); followPreset() } }
+    private var applying = false
+
+    /// Cách gọi của bản 1.1.68 (bài thử cũ vẫn dùng): bật là phóng bằng MetalFX.
+    var superResolution: Bool {
+        get { upscaler == .metalFX }
+        set { upscaler = newValue ? .metalFX : .bilinear }
+    }
+
+    private func matches(_ v: Preset.Values) -> Bool {
+        v.upscaler == upscaler && v.sharpen == sharpen && v.antiAlias == antiAlias && v.frameGen == frameGen
+    }
+
+    private func followPreset() {
+        guard !applying else { return }
+        let match = Preset.allCases.first { $0.values.map(matches) ?? false } ?? .custom
+        guard match != preset else { return }
+        applying = true
+        preset = match
+        applying = false
+    }
     /// Lấp đầy cửa sổ (cắt phần thừa) thay vì giữ trọn hình với viền đen. Hợp với toàn màn hình trên màn 16:10 của MacBook.
     @Published var fill: Bool { didSet { d.set(fill, forKey: "play.fill") } }
     @Published var latency: Latency { didSet { d.set(latency.rawValue, forKey: "play.latency") } }
@@ -235,16 +288,23 @@ final class PlaySettings: ObservableObject {
         gamut = Gamut(rawValue: d.string(forKey: "play.gamut") ?? "") ?? .srgb
         hdr = HDR(rawValue: d.string(forKey: "play.hdr") ?? "") ?? .off
         sharpen = Sharpen(rawValue: d.string(forKey: "play.sharpen") ?? "") ?? .off
-        superResolution = d.bool(forKey: "play.superRes")
+        // Bản 1.1.68 chỉ có công tắc Siêu phân giải (MetalFX).
+        upscaler = PlayEffects.Upscaler(rawValue: d.string(forKey: "play.upscaler") ?? "") ?? (d.bool(forKey: "play.superRes") ? .metalFX : .bilinear)
+        antiAlias = d.bool(forKey: "play.aa")
+        frameGen = PlayInterpolator.Mode(rawValue: d.string(forKey: "play.frameGen") ?? "") ?? .off
+        preset = .custom
         fill = d.bool(forKey: "play.fill")
         latency = Latency(rawValue: d.string(forKey: "play.latency") ?? "") ?? .lowest
         notifyCard = d.object(forKey: "play.notify") as? Bool ?? true
+        applying = true
+        preset = Preset.allCases.first { $0.values.map(matches) ?? false } ?? .custom
+        applying = false
     }
 
     #if DEVTOOLS
     /// Bài thử bắt đầu từ tuỳ chọn mặc định.
     func debugReset() {
-        range = .auto; matrix = .auto; gamut = .srgb; hdr = .off; sharpen = .off; superResolution = false; fill = false; latency = .lowest
+        range = .auto; matrix = .auto; gamut = .srgb; hdr = .off; preset = .original; fill = false; latency = .lowest
         muted = false; volume = 1; onTop = false; muteWhenInactive = false
     }
     #endif

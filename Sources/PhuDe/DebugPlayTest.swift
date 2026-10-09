@@ -29,6 +29,7 @@ extension DebugSnapshot {
             case "pattern", "pattern-full": await patternTest(engine: engine, full: mode == "pattern-full", dir: dir)
             case "facetime", "device": await cameraTest(engine: engine, dir: dir)
             case "hold": await holdTest()
+            case "motion": await motionTest(dir: dir)
             case "ui": await playUITest(engine: engine, dir: dir)
             default: DebugLog.write("Thử màn hình chơi: không biết kiểu thử \(mode)")
             }
@@ -37,6 +38,35 @@ extension DebugSnapshot {
     }
 
     private static let subtitle = "Where did you find this sword?"
+
+    // MARK: Chèn khung
+
+    /// OVERSUB_PLAY_TEST=motion kèm OVERSUB_PLAY_PATTERN_MOTION=60 hoặc 30: nguồn thử có vật chạy; lần lượt từng bộ chỉnh hình,
+    /// mỗi bộ 11 giây, ghi CPU của tiến trình và (qua dòng nhật ký 10 giây của bộ vẽ) thời gian GPU, số khung hiện mỗi giây.
+    private static func motionTest(dir: String?) async {
+        let play = PlayScreen.shared
+        play.debugOpenPattern(full: false, text: subtitle)
+        try? await Task.sleep(for: .seconds(1.5))
+        guard let w = play.window else { return }
+        let s = PlaySettings.shared
+        for preset in [PlaySettings.Preset.original, .sharp, .game3D, .cartoon, .fluid120, .fluid30] {
+            s.preset = preset
+            let c0 = cpuSeconds(), t0 = Date()
+            try? await Task.sleep(for: .seconds(11))
+            let cpu = (cpuSeconds() - c0) / Date().timeIntervalSince(t0) * 100
+            let info = play.debugRenderer?.processingInfo()
+            DebugLog.write(String(format: "Thử màn hình chơi: bộ %@: CPU %.1f%% một nhân; GPU %.2f ms mỗi lần vẽ (%@)", preset.rawValue, cpu, info?.ms ?? -1, info?.stages ?? "-"))
+            if let dir { await shoot("motion-\(preset.rawValue)", dir: dir, window: w) }
+        }
+        s.preset = .original
+        await closeTest()
+    }
+
+    private static func cpuSeconds() -> Double {
+        var u = rusage()
+        getrusage(RUSAGE_SELF, &u)
+        return Double(u.ru_utime.tv_sec) + Double(u.ru_utime.tv_usec) / 1e6 + Double(u.ru_stime.tv_sec) + Double(u.ru_stime.tv_usec) / 1e6
+    }
 
     // MARK: Nguồn dựng sẵn
 
@@ -73,8 +103,13 @@ extension DebugSnapshot {
         // Các tuỳ chọn xử lý hình: mỗi cái bật một lúc, đo lại màu ô giữa và chụp.
         let s = PlaySettings.shared
         let steps: [(String, () -> Void, () -> Void)] = [
-            ("làm nét Mạnh", { s.sharpen = .high }, { s.sharpen = .off }),
-            ("siêu phân giải", { s.superResolution = true }, { s.superResolution = false }),
+            ("bộ Nét (FSR 1)", { s.preset = .sharp }, { s.preset = .original }),
+            ("bộ Mịn cạnh", { s.preset = .smoothEdges }, { s.preset = .original }),
+            ("bộ Game 3D (Anime4K)", { s.preset = .game3D }, { s.preset = .original }),
+            ("bộ Hoạt hình (Anime4K)", { s.preset = .cartoon }, { s.preset = .original }),
+            ("MetalFX", { s.upscaler = .metalFX }, { s.upscaler = .bilinear }),
+            ("bộ Mượt 120", { s.preset = .fluid120 }, { s.preset = .original }),
+            ("bộ Game 30 lên 60", { s.preset = .fluid30 }, { s.preset = .original }),
             ("lấp đầy", { s.fill = true }, { s.fill = false }),
             ("Display P3", { s.gamut = .p3 }, { s.gamut = .srgb }),
             ("HDR về SDR", { s.hdr = .tone }, { s.hdr = .off }),
@@ -242,6 +277,17 @@ extension DebugSnapshot {
             try? await Task.sleep(for: .seconds(0.6))
             await shoot("settings-play", dir: dir, window: w)
             DebugLog.write("Thử màn hình chơi: chụp trang cài đặt \(PlayScreen.frameText(w))")
+            // Cuộn trang (khung cuộn có nội dung cao nhất là trang chi tiết) để chụp nốt phần dưới.
+            func scrollViews(_ v: NSView) -> [NSScrollView] { (v as? NSScrollView).map { [$0] } ?? [] + v.subviews.flatMap(scrollViews) }
+            if let content = w.contentView, let sv = scrollViews(content).max(by: { ($0.documentView?.frame.height ?? 0) < ($1.documentView?.frame.height ?? 0) }) {
+                let total = (sv.documentView?.frame.height ?? 0) - sv.contentView.bounds.height
+                for (k, y) in [total * 0.45, total].enumerated() where total > 0 {
+                    sv.contentView.scroll(to: NSPoint(x: 0, y: y))
+                    sv.reflectScrolledClipView(sv.contentView)
+                    try? await Task.sleep(for: .seconds(0.5))
+                    await shoot("settings-play-\(k + 2)", dir: dir, window: w)
+                }
+            }
             w.close()
         }
     }

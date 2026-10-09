@@ -264,12 +264,45 @@ final class PlayCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate,
             lastLog = Date(); lastFrameAt = Date()
         }
         renderer.frameInterval = 1.0 / 60
+        // OVERSUB_PLAY_PATTERN_MOTION=60 hoặc 30: thêm hình vuông đỏ chạy ngang, đổi chỗ mỗi khung (60) hay mỗi hai khung (30, như
+        // game 30 khung/giây qua card 60), để thử chèn khung. Chỉ với khung 420v.
+        let motion = Int(ProcessInfo.processInfo.environment["OVERSUB_PLAY_PATTERN_MOTION"] ?? "") ?? 0
+        let moving = motion > 0 && type == kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
+        var tick = 0
         let t = DispatchSource.makeTimerSource(queue: videoQueue)
         t.schedule(deadline: .now(), repeating: 1.0 / 60)
-        t.setEventHandler { [weak self] in self?.handle(pb) }
+        t.setEventHandler { [weak self] in
+            guard let self else { return }
+            tick += 1
+            if moving, let f = Self.movingFrame(base: pb, step: motion >= 60 ? tick : tick / 2) { self.handle(f) } else { self.handle(pb) }
+        }
         t.resume()
         testTimer = t
-        DebugLog.write("Thử màn hình chơi: nguồn thử \(full ? "dải đầy đủ" : "dải giới hạn"), 1920x1080 \(name), 60 khung/giây")
+        DebugLog.write("Thử màn hình chơi: nguồn thử \(full ? "dải đầy đủ" : "dải giới hạn"), 1920x1080 \(name), 60 khung/giây" + (moving ? ", vật chạy \(motion) khung/giây" : ""))
+    }
+
+    /// Chép khung nền rồi vẽ hình vuông đỏ 160×160 (BT.709 dải giới hạn) chạy ngang 24 điểm mỗi bước.
+    private static func movingFrame(base: CVPixelBuffer, step: Int) -> CVPixelBuffer? {
+        let w = CVPixelBufferGetWidth(base), h = CVPixelBufferGetHeight(base)
+        var pb: CVPixelBuffer?
+        let attrs: [String: Any] = [kCVPixelBufferMetalCompatibilityKey as String: true, kCVPixelBufferIOSurfacePropertiesKey as String: [:]]
+        guard CVPixelBufferCreate(nil, w, h, kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange, attrs as CFDictionary, &pb) == kCVReturnSuccess, let pb else { return nil }
+        CVPixelBufferLockBaseAddress(base, .readOnly); CVPixelBufferLockBaseAddress(pb, [])
+        defer { CVPixelBufferUnlockBaseAddress(pb, []); CVPixelBufferUnlockBaseAddress(base, .readOnly) }
+        for p in 0..<2 {
+            guard let s = CVPixelBufferGetBaseAddressOfPlane(base, p), let d = CVPixelBufferGetBaseAddressOfPlane(pb, p) else { return nil }
+            let rows = CVPixelBufferGetHeightOfPlane(base, p), sr = CVPixelBufferGetBytesPerRowOfPlane(base, p), dr = CVPixelBufferGetBytesPerRowOfPlane(pb, p)
+            for y in 0..<rows { memcpy(d.advanced(by: y * dr), s.advanced(by: y * sr), min(sr, dr)) }
+        }
+        let x0 = 120 + (step * 24) % 1600, y0 = 640
+        guard let yb = CVPixelBufferGetBaseAddressOfPlane(pb, 0), let cbuf = CVPixelBufferGetBaseAddressOfPlane(pb, 1) else { return nil }
+        let yr = CVPixelBufferGetBytesPerRowOfPlane(pb, 0), cr = CVPixelBufferGetBytesPerRowOfPlane(pb, 1)
+        for y in y0..<(y0 + 160) { memset(yb.advanced(by: y * yr + x0), 63, 160) }
+        for y in (y0 / 2)..<((y0 + 160) / 2) {
+            let row = cbuf.advanced(by: y * cr).assumingMemoryBound(to: UInt8.self)
+            for x in (x0 / 2)..<((x0 + 160) / 2) { row[2 * x] = 102; row[2 * x + 1] = 240 }
+        }
+        return pb
     }
 
     func stopPattern() {

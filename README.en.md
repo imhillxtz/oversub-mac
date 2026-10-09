@@ -160,7 +160,21 @@ Connect a capture card to your Mac (before or after opening OverSub). The bottom
 
 The game screen is a regular window that remembers its position and size; click the green button, double-click the picture or press ⌃⌘F for full screen. The picture keeps its aspect ratio with black bars where needed, and the sound goes straight to your speakers. Move the pointer over the picture to show a small bar at the bottom: mute, volume, full screen and the options menu (right-clicking the picture opens the same menu). Closing the window stops the picture and sound from the card.
 
-The options menu and Settings → Game screen offer the same choices: card, format, audio source, audio output, color range, color matrix, color space, HDR, sharpening, super resolution (MetalFX), picture size (fit or fill), latency, mute when another app is active, and always on top.
+The options menu and Settings → Game screen offer the same choices: card, format, audio source, audio output, color range, color matrix, color space, HDR, picture preset, picture size (fit or fill), latency, mute when another app is active, and always on top.
+
+Picture presets bundle upscaling, sharpening, anti-aliasing and frame generation. A capture card only delivers the finished picture, with no motion or depth data from the game, so DLSS or FSR 2 and later can't be used; every preset below works on the finished picture:
+
+| Preset | What it does | GPU time measured on M1 Pro (1080p to full screen) |
+|---|---|---|
+| Original | No extra processing, lowest latency | under 0.5 ms |
+| Sharp | Upscales with AMD FSR 1, then RCAS sharpening | 1.5 to 2 ms |
+| Smooth edges | FXAA anti-aliasing, then FSR 1 | 2 to 2.5 ms |
+| 3D games | Anime4K's AI network for 3D graphics, with anti-aliasing | 3 to 5 ms |
+| Cartoon art | Anime4K's AI network for line art | 4.5 to 6.5 ms |
+| Smooth 120 fps | Inserts a frame between every two real frames for 120 Hz displays; adds about 8 ms of latency | 1 to 1.5 ms more per inserted frame |
+| 30 fps games to 60 | Replaces the repeated frames of 30 fps games with in-between frames; adds about 17 ms of latency | 1 to 1.5 ms more per inserted frame |
+
+Changing any single option (Upscaling, Sharpen, Anti-aliasing, Frame generation) switches the preset to Custom. In-between frames are built from two real frames by estimating motion in the picture, so fast-moving objects can smear at their edges; static text, health bars and maps stay sharp. The Frame generation options show the added latency for the current signal's frame rate, and the options menu shows the GPU time in use.
 
 If the colors on your Mac don't match the TV, check Color range. On Automatic the app reads the actual brightness of the signal, because many cards label the range wrong. Washed out with grey blacks: choose Limited. Harsh with crushed shadows: choose Full. Still washed out on Limited: on Switch 2, open System Settings › Display › RGB Range and choose Full Range. If Switch 2 sends HDR through the card and the picture looks grey and dull, choose HDR › Tone-map HDR to SDR, or turn off HDR Output on Switch 2.
 

@@ -160,7 +160,21 @@ Cắm capture card vào Mac (lúc OverSub đang mở hay trước đó đều đ
 
 Cửa sổ mở ra là cửa sổ thường, nhớ vị trí và cỡ; bấm nút xanh, bấm đúp vào hình hoặc ⌃⌘F để toàn màn hình. Hình giữ đúng tỉ lệ, dư thì có viền đen. Tiếng phát thẳng ra loa. Rê chuột vào hình thì hiện thanh nhỏ ở chân cửa sổ: tắt tiếng, âm lượng, toàn màn hình và menu tuỳ chọn (bấm phải vào hình cũng mở menu này). Đóng cửa sổ là app thôi nhận hình và tiếng từ card.
 
-Menu tuỳ chọn và trang Cài đặt → Màn hình chơi game có cùng các mục: chọn card, định dạng, nguồn tiếng, loa phát ra, dải màu, chuẩn màu, không gian màu, HDR, làm nét, siêu phân giải (MetalFX), khung hình (vừa khung hoặc lấp đầy), độ trễ, tắt tiếng khi chuyển sang app khác, luôn nằm trên cùng.
+Menu tuỳ chọn và trang Cài đặt → Màn hình chơi game có cùng các mục: chọn card, định dạng, nguồn tiếng, loa phát ra, dải màu, chuẩn màu, không gian màu, HDR, bộ chỉnh hình, khung hình (vừa khung hoặc lấp đầy), độ trễ, tắt tiếng khi chuyển sang app khác, luôn nằm trên cùng.
+
+Bộ chỉnh hình gom sẵn cách phóng to, làm nét, khử răng cưa và tăng FPS. Capture card chỉ đưa ra hình đã vẽ xong, không có dữ liệu chuyển động hay chiều sâu của game, nên DLSS hay FSR 2 trở lên không dùng được; các bộ dưới đây đều làm việc trên hình hoàn chỉnh:
+
+| Bộ | Làm gì | GPU đo trên M1 Pro (1080p lên toàn màn hình) |
+|---|---|---|
+| Gốc | Không xử lý thêm, độ trễ thấp nhất | dưới 0,5 ms |
+| Nét | Phóng bằng FSR 1 của AMD rồi làm nét RCAS | 1,5 đến 2 ms |
+| Mịn cạnh | Khử răng cưa FXAA, rồi FSR 1 | 2 đến 2,5 ms |
+| Game 3D | Mạng AI Anime4K cho hình 3D, có khử răng cưa | 3 đến 5 ms |
+| Hình hoạt hình | Mạng AI Anime4K cho nét vẽ hoạt hình | 4,5 đến 6,5 ms |
+| Mượt 120 khung/giây | Chèn một khung giữa mỗi hai khung thật cho màn 120 Hz; hình trễ thêm khoảng 8 ms | thêm 1 đến 1,5 ms mỗi khung chèn |
+| Game 30 khung/giây lên 60 | Thay khung lặp của game 30 khung/giây bằng khung giữa; hình trễ thêm khoảng 17 ms | thêm 1 đến 1,5 ms mỗi khung chèn |
+
+Chỉnh từng mục (Phóng to, Làm nét, Khử răng cưa, Tăng FPS) thì bộ thành Tuỳ chỉnh. Khung chèn dựng từ hai khung thật bằng cách dò chuyển động trên hình, nên vật chạy nhanh có thể nhoè ở mép; chữ, thanh máu, bản đồ đứng yên vẫn giữ nguyên nét. Mục Tăng FPS ghi sẵn độ trễ thêm theo tốc độ khung của tín hiệu, menu tuỳ chọn ghi thêm thời gian GPU đang tốn.
 
 Nếu màu trên Mac lệch so với TV, hãy xem mục Dải màu. Để Tự động thì app đọc độ sáng thật của tín hiệu, vì nhiều card ghi sai dải màu. Hình nhạt, màu đen ngả xám: chọn Giới hạn. Hình gắt, vùng tối mất chi tiết: chọn Đầy đủ. Vẫn nhạt dù đã chọn Giới hạn thì trên Switch 2 vào System Settings › Display › RGB Range và chọn Full Range. Nếu Switch 2 xuất HDR qua card mà hình xám, nhạt màu, chọn HDR › Chuyển HDR về SDR hoặc tắt HDR Output trên Switch 2.
 

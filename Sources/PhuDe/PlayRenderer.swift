@@ -10,8 +10,10 @@ struct PlayRenderOptions: Equatable {
     var matrix: PlaySettings.Matrix = .auto
     var gamut: PlaySettings.Gamut = .srgb
     var hdr: PlaySettings.HDR = .off
+    var upscaler: PlayEffects.Upscaler = .bilinear
     var sharpen: PlaySettings.Sharpen = .off
-    var superResolution = false
+    var antiAlias = false
+    var frameGen: PlayInterpolator.Mode = .off
     /// Phóng cho kín vùng vẽ, cắt phần thừa (thay vì giữ trọn hình với viền đen).
     var fill = false
     var latency: PlaySettings.Latency = .lowest
@@ -19,15 +21,16 @@ struct PlayRenderOptions: Equatable {
     var drawableSize: CGSize = .zero
     /// Cửa sổ còn hiện (bị thu nhỏ hay che kín thì khỏi vẽ).
     var visible = true
-    /// Đang kéo đổi cỡ: tạm không dùng MetalFX (dựng lại bộ phóng ở mỗi cỡ rất tốn).
+    /// Đang kéo đổi cỡ: tạm không dùng MetalFX và Anime4K (dựng lại bộ phóng hay texture ở mỗi cỡ rất tốn).
     var resizing = false
     /// Độ sáng vượt mức trắng SDR mà màn hình đang cho phép (EDR).
     var headroom: Double = 1
 }
 
 /// Vẽ khung hình capture card bằng Metal: đổi YCbCr sang RGB theo dải sáng và ma trận đã chọn (chỗ hay làm lệch màu so với
-/// TV), cắt viền, làm nét, phóng to bằng MetalFX, đổi HDR10 về SDR hoặc hiện HDR bằng EDR, rồi đặt vừa khung với viền đen.
-/// Mọi hàm (trừ `update`) chạy trên một hàng đợi nhận hình duy nhất.
+/// TV), đổi HDR10 về SDR hoặc hiện HDR bằng EDR, rồi đặt vừa khung với viền đen. Khi bật bộ chỉnh hình thì đổi màu vào texture
+/// trung gian ở độ phân giải gốc, chèn khung (`PlayInterpolator`), khử răng cưa, phóng to và làm nét (`PlayEffects`) rồi mới
+/// đặt vào khung. Mọi hàm (trừ `update`) chạy trên một hàng đợi nhận hình duy nhất.
 final class PlayRenderer: @unchecked Sendable {
     let layer = CAMetalLayer()
     private let device: MTLDevice
@@ -42,12 +45,20 @@ final class PlayRenderer: @unchecked Sendable {
     var frameInterval: Double = 1.0 / 60
 
     // Trạng thái chỉ dùng trong luồng nhận hình.
-    private var layerConfig: (PlaySettings.HDR, PlaySettings.Gamut, PlaySettings.Latency)?
-    private var scaler: MTLFXSpatialScaler?
-    private var scalerKey = ""
-    private var midTexture: MTLTexture?
-    private var bigTexture: MTLTexture?
-    private var fxFailed = false
+    private var layerConfig: (PlaySettings.HDR, PlaySettings.Gamut, PlaySettings.Latency, Bool)?
+    private lazy var effects = PlayEffects(device: device) { DebugLog.write("Màn hình chơi: \($0)") }
+    private lazy var interpolator = PlayInterpolator(device: device) { DebugLog.write("Màn hình chơi: \($0)") }
+    // Số liệu xử lý hình cho nhật ký và menu (ghi trên luồng nhận hình, GPU xong thì ghi ở luồng khác nên có khoá).
+    private let statsLock = NSLock()
+    private var gpuTotal = 0.0, gpuFrames = 0, presented = 0
+    private var lastFxLog = Date()
+    private var lastStages = ""
+    private var processing: (ms: Double, stages: String)?
+    /// Thời gian GPU trung bình mỗi lần vẽ (ms) và các bước xử lý ở lần thống kê gần nhất, cho menu (gọi được từ luồng chính).
+    func processingInfo() -> (ms: Double, stages: String)? {
+        statsLock.lock(); defer { statsLock.unlock() }
+        return processing
+    }
     private(set) var detector = RangeDetector()
     private var sampleTick = 0
     /// Cách hiểu đang dùng, để ghi nhật ký và hiện trong menu.
@@ -82,6 +93,11 @@ final class PlayRenderer: @unchecked Sendable {
     }
 
     var supportsSuperResolution: Bool { MTLFXSpatialScalerDescriptor.supportsDevice(device) }
+
+    /// Có bước xử lý nào sau đổi màu không (không có thì vẽ thẳng vào drawable, trễ thấp nhất).
+    private static func processing(_ o: PlayRenderOptions) -> Bool {
+        o.upscaler != .bilinear || o.sharpen != .off || o.antiAlias || o.frameGen != .off
+    }
 
     /// Gọi từ luồng chính khi tuỳ chọn, cỡ cửa sổ hay trạng thái hiện đổi.
     func update(_ change: (inout PlayRenderOptions) -> Void) {
@@ -166,45 +182,104 @@ final class PlayRenderer: @unchecked Sendable {
         p.src = SIMD4(Float(cu), Float(cv), Float(1 - cu), Float(1 - cv))
         p.yuv = Self.levels(full: full, tenBit: tenBit)
         p.coef = Self.coefficients(matrix)
-        let amount: Float
-        switch o.sharpen {
-        case .off: amount = 0
-        case .low: amount = 0.5
-        case .medium: amount = 0.9
-        case .high: amount = 1.4
-        }
-        p.sharp = SIMD4(amount, 1 / Float(w), 1 / Float(h), 0.12)
+        p.sharp = SIMD4(0, 1 / Float(w), 1 / Float(h), 0.12)   // làm nét giờ do RCAS đảm nhận (PlayEffects)
         p.mode = SIMD4(Float(o.hdr == .off ? 0 : o.hdr == .tone ? 1 : 2), Float(o.headroom), o.gamut == .p3 ? 1 : 0, 0)
 
-        guard let drawable = layer.nextDrawable(), let cb = queue.makeCommandBuffer() else { return skip("drawable") }
+        guard let cb = queue.makeCommandBuffer() else { return skip("command buffer") }
         let outFormat = layer.pixelFormat
-        let useFX = o.superResolution && !o.resizing && !fxFailed && fitW > cw * 1.05 && supportsSuperResolution
-        if useFX, let fx = prepareScaler(input: (Int(cw.rounded()), Int(ch.rounded())), output: (Int(min(fitW, cw * 2)), Int(min(fitH, ch * 2))),
-                                         format: o.hdr == .edr ? .rgba16Float : .rgba8Unorm, hdr: o.hdr == .edr),
-           let mid = midTexture, let big = bigTexture {
-            // Đổi màu ở độ phân giải gốc, MetalFX phóng to, rồi đặt vào khung.
+        var shown = 0
+        if Self.processing(o) {
+            // Đổi màu vào texture trung gian ở độ phân giải gốc (đã cắt theo Lấp đầy), rồi chèn khung, khử răng cưa, phóng, làm nét.
+            let sw = max(16, Int(cw.rounded())), sh = max(16, Int(ch.rounded()))
+            let gen = o.resizing ? PlayInterpolator.Mode.off : o.frameGen
+            guard let slot = gen != .off ? interpolator.nextSlot(width: sw, height: sh) : effects.texture("source", sw, sh) else { return skip("texture") }
             p.dst = SIMD4(-1, -1, 1, 1)
-            draw(cb, target: mid, clear: false, pipeline: convert, format: mid.pixelFormat, params: p, textures: source)
-            fx.colorTexture = mid
-            fx.outputTexture = big
-            fx.encode(commandBuffer: cb)
-            var q = Params()
-            q.dst = SIMD4(Float(-fitW / dw), Float(-fitH / dh), Float(fitW / dw), Float(fitH / dh))
-            q.src = SIMD4(0, 0, 1, 1)
-            draw(cb, target: drawable.texture, clear: true, pipeline: "frgb", format: outFormat, params: q, textures: [big])
+            draw(cb, target: slot, clear: false, pipeline: convert, format: slot.pixelFormat, params: p, textures: source)
+            var duplicate = false
+            if gen == .thirty {
+                let off: Int? = packed == nil ? nil : (type == kCVPixelFormatType_422YpCbCr8 ? 1 : 0)
+                duplicate = interpolator.isDuplicate(PlayInterpolator.signature(pb, packedYOffset: off, tenBit: tenBit))
+            }
+            let outs = gen != .off ? interpolator.push(cb, mode: gen, interval: frameInterval, duplicate: duplicate)
+                                   : [PlayInterpolator.Output(texture: slot, after: 0, synthetic: false)]
+            let vp = PlayEffects.Viewport(x: Int(((dw - fitW) / 2).rounded()), y: Int(((dh - fitH) / 2).rounded()), w: Int(fitW), h: Int(fitH))
+            // RCAS: 0 là mạnh nhất, mỗi 1 giảm một nửa. Đang kéo đổi cỡ thì chỉ phóng song tuyến (khỏi dựng lại texture mỗi cỡ).
+            let stops: Float?
+            switch o.sharpen {
+            case .off: stops = nil
+            case .low: stops = 1.0
+            case .medium: stops = 0.5
+            case .high: stops = 0.0
+            }
+            let fx = PlayEffects.Options(upscaler: o.resizing ? .bilinear : o.upscaler, sharpenStops: o.resizing ? nil : stops,
+                                         antiAlias: o.antiAlias, hdr: o.hdr == .edr)
+            for out in outs {
+                guard let drawable = layer.nextDrawable() else { break }
+                if !effects.encode(cb, source: out.texture, target: drawable.texture, vp: vp, options: fx) {
+                    var q = Params()
+                    q.dst = SIMD4(Float(-fitW / dw), Float(-fitH / dh), Float(fitW / dw), Float(fitH / dh))
+                    draw(cb, target: drawable.texture, clear: true, pipeline: "frgb", format: outFormat, params: q, textures: [out.texture])
+                }
+                countPresented(drawable)
+                if out.after > 0 {
+                    cb.present(drawable, afterMinimumDuration: out.after * (o.latency == .smooth ? 0.95 : 0.9))
+                } else if o.latency == .smooth {
+                    cb.present(drawable, afterMinimumDuration: frameInterval / Double(outs.count) * 0.95)
+                } else {
+                    cb.present(drawable)
+                }
+                shown += 1
+            }
+            lastStages = ((gen == .off ? [] : [gen == .double ? "chèn khung x2" : "chèn khung 30→60"]) + effects.lastStages)
+                .joined(separator: " → ")
         } else {
+            guard let drawable = layer.nextDrawable() else { return skip("drawable") }
             p.dst = SIMD4(Float(-fitW / dw), Float(-fitH / dh), Float(fitW / dw), Float(fitH / dh))
             draw(cb, target: drawable.texture, clear: true, pipeline: convert, format: outFormat, params: p, textures: source)
+            countPresented(drawable)
+            if o.latency == .smooth {
+                cb.present(drawable, afterMinimumDuration: frameInterval * 0.95)
+            } else {
+                cb.present(drawable)
+            }
+            shown = 1
+            lastStages = ""
         }
-        if o.latency == .smooth {
-            cb.present(drawable, afterMinimumDuration: frameInterval * 0.95)
-        } else {
-            cb.present(drawable)
+        // Giữ texture của khung tới khi GPU vẽ xong; ghi thời gian GPU.
+        cb.addCompletedHandler { [weak self] cb in
+            _ = frameTextures
+            guard let self, cb.gpuEndTime > cb.gpuStartTime else { return }
+            self.statsLock.lock()
+            self.gpuTotal += cb.gpuEndTime - cb.gpuStartTime
+            self.gpuFrames += 1
+            self.statsLock.unlock()
         }
-        // Giữ texture của khung tới khi GPU vẽ xong.
-        cb.addCompletedHandler { _ in _ = frameTextures }
         cb.commit()
-        return true
+        logProcessing(o)
+        return shown > 0 ? true : skip("drawable")
+    }
+
+    private func countPresented(_ d: CAMetalDrawable) {
+        d.addPresentedHandler { [weak self] d in
+            guard let self, d.presentedTime > 0 else { return }
+            self.statsLock.lock(); self.presented += 1; self.statsLock.unlock()
+        }
+    }
+
+    /// Mỗi 10 giây ghi các bước xử lý, thời gian GPU và số khung hiện được mỗi giây (chèn khung x2 thì phải gần 120).
+    private func logProcessing(_ o: PlayRenderOptions) {
+        let elapsed = Date().timeIntervalSince(lastFxLog)
+        guard elapsed >= 10 else { return }
+        statsLock.lock()
+        let ms = gpuFrames > 0 ? gpuTotal / Double(gpuFrames) * 1000 : 0
+        let fps = Double(presented) / elapsed
+        gpuTotal = 0; gpuFrames = 0; presented = 0
+        let stages = lastStages.isEmpty ? "vẽ thẳng" : lastStages
+        processing = (ms, stages)
+        statsLock.unlock()
+        lastFxLog = Date()
+        let fg = o.frameGen == .off ? "" : String(format: ", chèn %d khung, %d khung lặp", interpolator.syntheticFrames, interpolator.duplicateFrames)
+        DebugLog.write(String(format: "Màn hình chơi: xử lý hình %@; GPU %.2f ms mỗi lần vẽ; hiện %.1f khung/giây%@", stages, ms, fps, fg))
     }
 
     private struct Params {
@@ -263,8 +338,10 @@ final class PlayRenderer: @unchecked Sendable {
     /// Kiểu điểm ảnh, không gian màu và số khung đệm của lớp vẽ theo tuỳ chọn HDR, không gian màu và độ trễ.
     private func configureLayer(_ o: PlayRenderOptions) {
         if layer.drawableSize != o.drawableSize { layer.drawableSize = o.drawableSize }
-        if let cfg = layerConfig, cfg == (o.hdr, o.gamut, o.latency) { return }
-        layerConfig = (o.hdr, o.gamut, o.latency)
+        // Chèn khung hiện hai drawable mỗi khung tín hiệu nên cần ba khung đệm.
+        let triple = o.latency == .smooth || (o.frameGen != .off && Self.processing(o))
+        if let cfg = layerConfig, cfg == (o.hdr, o.gamut, o.latency, triple) { return }
+        layerConfig = (o.hdr, o.gamut, o.latency, triple)
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         if o.hdr == .edr {
@@ -276,37 +353,9 @@ final class PlayRenderer: @unchecked Sendable {
             layer.wantsExtendedDynamicRangeContent = false
             layer.colorspace = CGColorSpace(name: o.gamut == .p3 ? CGColorSpace.displayP3 : CGColorSpace.sRGB)
         }
-        layer.maximumDrawableCount = o.latency == .smooth ? 3 : 2
+        layer.maximumDrawableCount = triple ? 3 : 2
         CATransaction.commit()
-        DebugLog.write("Màn hình chơi: lớp vẽ \(o.hdr == .edr ? "EDR rgba16Float" : "SDR bgra8"), \(o.gamut == .p3 ? "Display P3" : "sRGB"), \(o.latency == .smooth ? "3" : "2") khung đệm")
-    }
-
-    /// Bộ phóng MetalFX cho cỡ vào/ra hiện tại; dựng lại khi cỡ đổi. Không dựng được thì tắt hẳn trong phiên này.
-    private func prepareScaler(input: (Int, Int), output: (Int, Int), format: MTLPixelFormat, hdr: Bool) -> MTLFXSpatialScaler? {
-        let key = "\(input.0)x\(input.1)>\(output.0)x\(output.1)-\(format.rawValue)"
-        if key == scalerKey, let scaler { return scaler }
-        let d = MTLFXSpatialScalerDescriptor()
-        d.inputWidth = input.0; d.inputHeight = input.1
-        d.outputWidth = output.0; d.outputHeight = output.1
-        d.colorTextureFormat = format; d.outputTextureFormat = format
-        d.colorProcessingMode = hdr ? .hdr : .perceptual
-        guard let s = d.makeSpatialScaler(device: device) else {
-            fxFailed = true
-            DebugLog.write("Màn hình chơi: không dựng được MetalFX cho \(key), dùng cách phóng thường")
-            return nil
-        }
-        let mid = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: format, width: input.0, height: input.1, mipmapped: false)
-        mid.usage = MTLTextureUsage([.renderTarget, .shaderRead]).union(s.colorTextureUsage)
-        mid.storageMode = .private
-        let big = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: format, width: output.0, height: output.1, mipmapped: false)
-        big.usage = MTLTextureUsage.shaderRead.union(s.outputTextureUsage)
-        big.storageMode = .private
-        midTexture = device.makeTexture(descriptor: mid)
-        bigTexture = device.makeTexture(descriptor: big)
-        scaler = s
-        scalerKey = key
-        DebugLog.write("Màn hình chơi: MetalFX \(key)")
-        return s
+        DebugLog.write("Màn hình chơi: lớp vẽ \(o.hdr == .edr ? "EDR rgba16Float" : "SDR bgra8"), \(o.gamut == .p3 ? "Display P3" : "sRGB"), \(triple ? "3" : "2") khung đệm")
     }
 
     // MARK: Màu
