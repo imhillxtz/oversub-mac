@@ -4,7 +4,7 @@
 
 # OverSub
 
-Vietnamese subtitles, voice and screen translation for any game on your Mac.
+Subtitles, voice and screen translation for any game on your Mac, in 12 languages.
 
 OverSub reads the text in your game from the screen, translates it with AI and draws the translation over the original text. It reads dialogue aloud with a Siri voice and translates menus and quest logs in place.
 
@@ -44,7 +44,7 @@ The main window has three switches: Subtitles on the left, the OverSub mascot in
 
 https://github.com/user-attachments/assets/db2bf69f-3bb9-4343-82d8-905128e31e92
 
-<sub>The main window with its three switches: Subtitles, Voice-over and Screen translation. While OverSub is reading dialogue aloud, the mascot in the middle moves its mouth. The text in the videos and screenshots on this page is Vietnamese, because the app was set to translate into Vietnamese.</sub>
+<sub>The main window with its three switches: Subtitles, Voice-over and Screen translation. While OverSub is reading dialogue aloud, the mascot in the middle moves its mouth. The videos and screenshots on this page use Vietnamese as the target language; OverSub translates into 12 languages.</sub>
 
 | Feature | What it does |
 |---|---|
