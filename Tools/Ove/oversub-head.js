@@ -529,7 +529,9 @@
   function Live(canvas, o) {
     o = o || {};
     this.canvas = canvas;
-    this.stage = new Stage(canvas, { frac: o.frac, backdrop: o.backdrop, shape: o.shape });
+    // headless: chỉ chạy bộ cử động để ghi tư thế (Clips.expression), không vẽ, không gắn chuột.
+    this.stage = o.headless ? { frac: o.frac || 0.6, render: function () {}, dispose: function () {} }
+                            : new Stage(canvas, { frac: o.frac, backdrop: o.backdrop, shape: o.shape });
     this.mood = o.mood || 'idle';
     this.dark = o.theme === 'dark';
     this.interactive = !!(o.interactive || o.follow);
@@ -562,6 +564,7 @@
     this.spin = 0;
     this.overSince = 0;
     this.lastTgYaw = 0;
+    if (o.headless) return;
     this.bind();
     this.loop();
   }
@@ -887,10 +890,644 @@
     this.stage.dispose();
   };
 
+  // ================================================================================================================
+  // Bản gốc của mọi đoạn chuyển động: app (Tools/Ove/export.html dựng thành tấm khung hình) và prototype (AppOve) cùng
+  // đọc từ đây. Mọi đoạn tính tư thế từng khung ở 24 khung mỗi giây; khung đầu và khung cuối trùng khít mặt đứng yên.
+  // ================================================================================================================
+  var FPS = 24;
+  function sm(a, b, t) { var x = clamp((t - a) / (b - a), 0, 1); return x * x * (3 - 2 * x); }
+  function bump(t, a, b, c, d) { return sm(a, b, t) * (1 - sm(c, d, t)); }
+  function blinkDip(x) { return x < 0 || x > 0.125 ? 0 : 1 - Math.abs(x - 0.0625) / 0.0625; }
+
+  // Mặt chờ (`idle`, giọng đọc bật mà chưa chạy) và mặt đang chạy (`live`): màu lõi, má hồng, độ dày kính.
+  var KIND = { idle: { face: FACE.idle, blush: 0.75, glass: 0.3 }, live: { face: FACE.live, blush: 0.9, glass: 0.58 } };
+  function pose(face, blush, glass, y, p, open) {
+    return { top: face[0], bot: face[1], blush: blush, glass: glass, yaw: y, pitch: p,
+      ex: clamp(y * 0.05, -0.035, 0.035), ey: clamp(-p * 0.045, -0.03, 0.03), open: open, awake: 1, t: 0 };
+  }
+  function standing(kind) { var k = KIND[kind]; return pose(k.face, k.blush, k.glass, 0, 0, 1); }
+
+  // Bộ quay đầu: các hướng nhìn quanh (nấc ngang 0,15 rad, dương là nhìn sang phải màn hình; nấc dọc 0,18 rad, âm là ngước
+  // lên). Mỗi hướng 7 khung đi từ nhìn thẳng tới hướng đó theo nhịp sin (chậm hai đầu), quay về thì chạy ngược. Nhảy từng
+  // nấc 9° thì Ove quay đầu khựng như hoạt hình rời (người dùng chê ở bản thử 1.1.77).
+  var LOOK = [[-2, 0], [2, 0], [0, -1], [0, 1], [2, 1], [2, -1], [-3, 0], [3, 0]], LOOK_STEPS = 7;
+  function lookPath(kind, d) {
+    var k = KIND[kind], fr = [];
+    for (var i = 1; i <= LOOK_STEPS; i++) {
+      var u = (1 - Math.cos(Math.PI * i / LOOK_STEPS)) / 2;
+      fr.push(pose(k.face, k.blush, k.glass, d[0] * 0.15 * u, d[1] * 0.18 * u, 1));
+    }
+    return fr;
+  }
+  // Tấm cho app: nhìn thẳng mở mắt, nhắm mắt; rồi mỗi hướng 7 khung đường đi và một khung nhắm mắt ở hướng đó.
+  function lookSheet(kind) {
+    var k = KIND[kind], fr = [standing(kind), pose(k.face, k.blush, k.glass, 0, 0, 0.12)];
+    LOOK.forEach(function (d) {
+      lookPath(kind, d).forEach(function (q) { fr.push(q); });
+      fr.push(pose(k.face, k.blush, k.glass, d[0] * 0.15, d[1] * 0.18, 0.12));
+    });
+    return fr;
+  }
+
+  // Vòng đọc 3 giây, khớp đầu khớp đuôi: miệng |sin(8πt/L)·cos(3πt/L)|. Đầu chỉ lắc khi miệng mở, nên khung miệng khép
+  // (`rest`) cũng là khung nhìn thẳng; kính dày mỏng chậm một nhịp mỗi vòng (đổi theo từng lần mở miệng thì nhấp nháy màu).
+  function speakLoop() {
+    var L = 3, n = L * FPS, fr = [], rest = [];
+    for (var i = 0; i < n; i++) {
+      var t = i / FPS, m = Math.abs(Math.sin(8 * Math.PI * t / L) * Math.cos(3 * Math.PI * t / L));
+      if (m < 0.06) rest.push(i);
+      var sway = sm(0.06, 0.35, m);
+      var yaw = 0.05 * sway * Math.sin(2 * Math.PI * t / L), pitch = 0.035 * sway * Math.sin(4 * Math.PI * t / L);
+      fr.push({ top: FACE.live[0], bot: FACE.live[1], blush: 1, glass: 0.7 + 0.05 * Math.sin(2 * Math.PI * t / L), yaw: yaw,
+        pitch: pitch, roll: 0.03 * sway * Math.sin(2 * Math.PI * t / L), ex: yaw * 0.04, ey: -pitch * 0.035, open: 0.9,
+        oval: 1, ovalW: 0.085 - 0.015 * m, ovalH: 0.04 + 0.04 * m, awake: 1, t: 0 });
+    }
+    return { frames: fr, rest: rest };
+  }
+
+  // Ngáp rồi ngủ, tỉnh dậy: màu đổi chậm, mắt không mở lại giữa chừng, tỉnh dậy không cười.
+  function sleepFace(dark) { return dark ? FACE.asleepDark : FACE.asleepLight; }
+  function yawnClip(dark) {
+    var L = 2.4, n = Math.round(L * FPS), fr = [], A = FACE.idle, B = sleepFace(dark);
+    for (var i = 0; i < n; i++) {
+      var t = i / FPS;
+      var o = Math.sin(Math.PI * clamp((t - 0.25) / 1.3, 0, 1));          // miệng ngáp
+      var c = sm(1.2, 2.3, t), droop = sm(1.3, 2.3, t);                    // tắt màu, gục đầu
+      var pitch = -0.12 * o + 0.3 * droop, roll = 0.1 * o + 0.08 * droop;
+      fr.push({ top: mix(A[0], B[0], c), bot: mix(A[1], B[1], c), blush: 0.75 - 0.45 * c, glass: 0.3 * (1 - sm(0.6, 2.2, t)),
+        yaw: 0, pitch: pitch, roll: roll, ex: 0, ey: clamp(-pitch * 0.045, -0.03, 0.03), open: 1, awake: 1 - c,
+        sleep: 0.9 * sm(0.15, 0.6, t) + 0.1 * sm(1.2, 1.8, t), oval: o, ovalW: 0.07 + 0.02 * o, ovalH: 0.04 + 0.07 * o,
+        dark: dark, t: 0 });
+    }
+    return fr;
+  }
+  function wakeClip(dark) {
+    var L = 2.0, n = Math.round(L * FPS), fr = [], A = FACE.idle, B = sleepFace(dark);
+    for (var i = 0; i < n; i++) {
+      var t = i / FPS;
+      var c = 1 - sm(0.1, 0.8, t), lift = sm(0.2, 1.0, t);                 // ấm màu, ngẩng đầu
+      var pitch = 0.3 * (1 - lift), roll = 0.08 * (1 - lift);
+      var stretch = Math.sin(Math.PI * clamp((t - 0.45) / 0.6, 0, 1));     // vươn vai
+      var blink = Math.max(blinkDip(t - 1.25), blinkDip(t - 1.5));         // chớp hai cái cho tỉnh
+      fr.push({ top: mix(A[0], B[0], c), bot: mix(A[1], B[1], c), blush: 0.75 - 0.45 * c, glass: 0.3 * sm(0.2, 1.2, t),
+        yaw: 0, pitch: pitch, roll: roll, ex: 0, ey: clamp(-pitch * 0.045, -0.03, 0.03), open: 1 - 0.88 * blink,
+        awake: 1 - c, sleep: 1 - sm(0.55, 0.95, t), scale: 1 + 0.035 * stretch, dark: dark, t: 0 });
+    }
+    return fr;
+  }
+
+  // Nét mặt lúc rảnh: mọi độ lệch đi qua một đường bao về 0 ở hai đầu.
+  var SHY = [[255, 166, 150], [246, 104, 104]];
+  function act(kind, L, fn) {
+    var k = KIND[kind], n = Math.round(L * FPS), fr = [];
+    for (var i = 0; i < n; i++) {
+      var t = i / FPS;
+      var q = { top: k.face[0].slice(), bot: k.face[1].slice(), blush: k.blush, glass: k.glass, yaw: 0, pitch: 0, roll: 0,
+        open: 1, awake: 1, scale: 1, t: 0 };
+      fn(q, t);
+      q.ex = clamp(q.yaw * 0.05, -0.035, 0.035);
+      q.ey = clamp(-q.pitch * 0.045, -0.03, 0.03);
+      fr.push(q);
+    }
+    return fr;
+  }
+  var FX = {
+    // Phấn khích ><: nheo mắt, há miệng, nảy hai cái.
+    excited: [1.7, function (q, t) {
+      var e = bump(t, 0, 0.18, 1.15, 1.6), hop = t > 0.15 && t < 1.05 ? Math.abs(Math.sin(Math.PI * (t - 0.15) / 0.45)) : 0;
+      q.squeeze = e; q.oval = e; q.ovalW = 0.085; q.ovalH = 0.075;
+      q.blush += 0.3 * e; q.glass += 0.4 * e; q.scale = 1 + 0.04 * e; q.bob = 0.03 * hop * e;
+    }],
+    // Nháy mắt: nghiêng đầu, nháy mắt phải, cười.
+    wink: [1.4, function (q, t) {
+      var e = bump(t, 0.05, 0.3, 0.85, 1.3);
+      q.roll = -0.09 * e; q.yaw = 0.1 * e; q.winkR = bump(t, 0.18, 0.32, 0.75, 0.95); q.smile = e;
+      q.blush += 0.15 * e; q.glass += 0.2 * e;
+    }],
+    // Ngân nga: nhắm mắt cười, miệng tròn nhỏ, lắc lư theo nhịp.
+    hum: [2.8, function (q, t) {
+      var e = bump(t, 0, 0.35, 2.3, 2.75);
+      q.happy = e; q.oval = e * (0.75 + 0.15 * Math.sin(4 * Math.PI * t)); q.ovalW = 0.045; q.ovalH = 0.05;
+      q.roll = 0.13 * e * Math.sin(2 * Math.PI * t / 1.1); q.pitch = 0.03 * e * Math.sin(4 * Math.PI * t / 1.1);
+      q.blush += 0.15 * e; q.glass += 0.2 * e;
+    }],
+    // Ngượng: đỏ mặt, nheo mắt ><, cúi xuống, ngúng nguẩy.
+    shy: [2.4, function (q, t) {
+      var e = bump(t, 0, 0.35, 1.8, 2.35);
+      q.squeeze = e; q.smile = 0.75 * e; q.top = mix(q.top, SHY[0], 0.35 * e); q.bot = mix(q.bot, SHY[1], 0.35 * e);
+      q.blush += 0.3 * e; q.pitch = 0.12 * e; q.roll = e * (0.07 + 0.03 * Math.sin(2 * Math.PI * t / 0.6)); q.glass += 0.25 * e;
+    }],
+    // Tò mò: nghiêng đầu, mắt to lên, chớp một cái.
+    curious: [2.2, function (q, t) {
+      var e = bump(t, 0.05, 0.45, 1.6, 2.1);
+      q.roll = 0.22 * e; q.yaw = 0.15 * e; q.eyeScale = 1 + 0.1 * e; q.oval = 0.6 * e; q.ovalW = 0.045; q.ovalH = 0.04;
+      q.open = 1 - 0.88 * blinkDip(t - 1.05); q.glass += 0.15 * e;
+    }],
+    // Hắt xì: hít vào (ngửa đầu, mắt híp), hắt mạnh ra trước, lắc đầu, chớp mắt.
+    sneeze: [2.0, function (q, t) {
+      var b = sm(0.05, 0.7, t) * (1 - sm(0.72, 0.76, t)), k = bump(t, 0.72, 0.78, 0.95, 1.4);
+      q.squeeze = 0.45 * sm(0.1, 0.6, t) * (1 - sm(0.72, 0.76, t)) + k;
+      q.pitch = -0.12 * b + 0.18 * k; q.scale = 1 + 0.03 * b - 0.04 * k;
+      q.oval = 0.4 * b + k; q.ovalW = 0.05 + 0.045 * k; q.ovalH = 0.04 + 0.05 * k;
+      q.blush += 0.3 * k; q.glass += 0.45 * k;
+      q.yaw = 0.06 * Math.sin(2 * Math.PI * (t - 1.0) / 0.3) * bump(t, 1.0, 1.05, 1.4, 1.8);
+      q.open = 1 - 0.88 * blinkDip(t - 1.6);
+    }],
+    // Ngủ gật: mắt díp dần, gục nhẹ, rồi giật mình mở to mắt, chớp hai cái.
+    doze: [3.0, function (q, t) {
+      var d = sm(0, 1.3, t) * (1 - sm(1.55, 1.65, t)), s = bump(t, 1.55, 1.65, 1.9, 2.4);
+      q.sleep = 0.42 * d; q.pitch = 0.16 * d - 0.05 * s; q.glass -= 0.12 * d; q.blush -= 0.15 * d;
+      q.eyeScale = 1 + 0.2 * s; q.brow = 0.8 * s; q.scale = 1 + 0.03 * s;
+      q.open = 1 - 0.88 * (blinkDip(t - 2.15) + blinkDip(t - 2.42));
+    }],
+    // Ngạc nhiên: mắt to, nhướn mày, miệng chữ o, nảy nhẹ.
+    surprised: [1.6, function (q, t) {
+      var e = bump(t, 0, 0.12, 0.8, 1.4);
+      q.eyeScale = 1 + 0.25 * e; q.brow = e; q.oval = e; q.ovalW = 0.05; q.ovalH = 0.065; q.pitch = -0.08 * e;
+      q.glass += 0.5 * e; q.scale = 1 + 0.04 * bump(t, 0, 0.08, 0.15, 0.4);
+    }]
+  };
+  function fx(name, kind) { return act(kind || 'idle', FX[name][0], FX[name][1]); }
+
+  // Bị cù (rê chuột vào): 8 khung vào, vòng cười khúc khích 12 khung (0,5 giây, lặp liền), 9 khung ra. Vòng lặp ở pha 0
+  // trùng khung cuối của đoạn vào và khung đầu của đoạn ra.
+  var TICKLE_PARTS = [8, 20];
+  function tickle(kind) {
+    function giggle(q, e, ph) {
+      q.squeeze = e; q.oval = 0.7 * e; q.ovalW = 0.07; q.ovalH = 0.055 + 0.015 * Math.sin(4 * Math.PI * ph) * e;
+      q.blush += 0.25 * e; q.glass += 0.3 * e; q.scale = 1 + e * (0.02 + 0.01 * Math.sin(4 * Math.PI * ph));
+      q.roll = 0.06 * e * Math.sin(2 * Math.PI * ph);
+    }
+    return act(kind, 8 / FPS, function (q, t) { giggle(q, sm(0, 7 / FPS, t), 0); })
+      .concat(act(kind, 12 / FPS, function (q, t) { giggle(q, 1, t / 0.5); }))
+      .concat(act(kind, 9 / FPS, function (q, t) { giggle(q, 1 - sm(0, 8 / FPS, t), 0); }));
+  }
+
+  // Biểu cảm theo sự kiện: chạy bộ cử động lò xo của động cơ cũ ở chế độ ghi, rồi hoà 6 khung đầu, 8 khung cuối về đúng mặt
+  // đứng yên. `hold` là khoảng giữ nét mặt (đỉnh biểu cảm, dùng khi hộp thoại giữ nét mặt).
+  var EXPRESSIONS = { happy: [2.3, [26, 37]], sad: [2.4, [16, 36]], angry: [3.0, [12, 54]], dizzy: [2.5, [16, 40]], cry: [4.0, [16, 76]] };
+  var POSE_DEFAULT = { open: 1, eyeScale: 1, scale: 1, awake: 1 };
+  function lerpPose(a, b, k) {
+    var out = {}, keys = {};
+    Object.keys(a).concat(Object.keys(b)).forEach(function (key) { keys[key] = 1; });
+    Object.keys(keys).forEach(function (key) {
+      var x = a[key], y = b[key];
+      if (Array.isArray(x) || Array.isArray(y)) { out[key] = mix(x || y, y || x, k); return; }
+      var dx = POSE_DEFAULT[key] != null ? POSE_DEFAULT[key] : 0;
+      if (typeof x === 'number' || typeof y === 'number') {
+        var xa = typeof x === 'number' ? x : dx, ya = typeof y === 'number' ? y : dx;
+        out[key] = xa + (ya - xa) * k;
+      } else out[key] = k < 0.5 ? x : y;
+    });
+    return out;
+  }
+  function anchored(frames, A) {
+    var n = frames.length, head = 6, tail = 8;
+    return frames.map(function (q, i) {
+      var r = Object.assign({}, q);
+      if (i < head) r = lerpPose(A, r, sm(0, head, i));
+      if (i >= n - tail) r = lerpPose(r, A, sm(n - tail - 1, n - 1, i));
+      r.t = q.t;
+      return r;
+    });
+  }
+  function record(mood, name, seconds) {
+    var saved = clock, simT = 1000;
+    clock = function () { return simT; };
+    try {
+      var live = new Live(null, { mood: mood, theme: 'light', frac: 0.6, still: true, front: true, interactive: true, headless: true });
+      var caps = [];
+      live.stage.render = function (q) { caps.push(Object.assign({}, q, { top: q.top.slice(), bot: q.bot.slice() })); };
+      var quiet = function () { live.nextBlink = Infinity; live.lookNext = Infinity; live.nextCue = Infinity; };
+      var dt = 1 / FPS;
+      quiet();
+      for (var i = 0; i < FPS; i++) { simT += dt; live.frame(simT, dt); }
+      caps.length = 0;
+      live.play(name);
+      quiet();
+      var n = Math.round(seconds * FPS);
+      for (var j = 0; j < n; j++) { simT += dt; live.frame(simT, dt); }
+      return caps;
+    } finally {
+      clock = saved;
+    }
+  }
+  function expression(name, kind) {
+    var e = EXPRESSIONS[name];
+    var fr = anchored(record(kind === 'idle' ? 'idle' : 'listening', name, e[0]), standing(kind));
+    fr.forEach(function (q) { q.dark = false; });
+    return fr;
+  }
+
+  // Cảnh lúc rảnh. Nhịp: `{look: [ngang, dọc], hold: giây}` (hướng phải có trong LOOK) hoặc `{fx: tên}`. App đọc danh sách
+  // này từ ove.json (export.html ghi vào), prototype đọc thẳng ở đây.
+  function L(y, p, h) { return { look: [y, p], hold: h }; }
+  function F(n) { return { fx: n }; }
+  var SCENES = {
+    // Cử động nhỏ, cứ 5 đến 9 giây một lần lúc rảnh.
+    small: [[L(-2, 0, 1.6)], [L(2, 0, 1.6)], [L(0, -1, 1.3)], [L(0, 1, 1.3)], [L(2, 1, 1.3)], [L(2, -1, 1.3)], [L(-3, 0, 1.2)],
+            [L(3, 0, 1.2)], [L(-2, 0, 0.7), L(2, 0, 0.7)], [F('wink')], [F('curious')]],
+    // Cảnh đời thường, cứ ba cử động một lần: Ove để ý những thứ quanh mình trên cửa sổ chính (nút Phụ đề bên trái, Dịch màn
+    // hình bên phải, nút Bắt đầu bên dưới, ống năng lượng) rồi quay ra nhìn người dùng.
+    scenes: [
+      [L(0, 1, 1.2), F('wink')],                       // ngó nút Bắt đầu rồi nháy mắt rủ bấm
+      [L(-3, 0, 1.0), F('curious')],                   // nhìn sang Phụ đề, tò mò
+      [L(3, 0, 0.8), F('surprised')],                  // nhìn sang Dịch màn hình, ngạc nhiên
+      [L(0, -1, 1.0), F('surprised')],                 // ngước lên như nghe tiếng gì
+      [L(-2, 0, 0.9), F('hum')],                       // dõi giọt sáng trong ống rồi ngân nga
+      [F('doze'), F('shy')],                           // ngủ gật, giật mình rồi ngượng
+      [F('sneeze'), F('shy')],                         // hắt xì rồi ngượng
+      [F('hum'), L(2, -1, 0.9)],                       // ngân nga rồi ngó lên
+      [L(-2, 0, 0.6), L(2, 0, 0.6), F('wink')],        // liếc quanh rồi nháy mắt
+      [F('excited')],                                  // nhìn người dùng mà phấn khích
+      [L(2, 1, 1.0), F('curious'), F('wink')]          // ngó xuống, nghĩ ngợi, nháy mắt
+    ],
+    sceneNames: ['Ngó nút Bắt đầu', 'Nhìn sang Phụ đề', 'Nhìn sang Dịch màn hình', 'Nghe tiếng gì', 'Dõi giọt sáng',
+                 'Ngủ gật', 'Hắt xì', 'Ngân nga', 'Liếc quanh', 'Phấn khích', 'Nghĩ ngợi'],
+    // Đang nhận phụ đề chỉ nhìn quanh (chín kiểu đầu của `small`), 30 đến 60 giây một lần.
+    looks: 9,
+    pace: { blink: [2.8, 6.2], small: [5, 9], sceneEvery: 3, listenLook: [30, 60], listenHappy: [200, 320] }
+  };
+
+  var Clips = {
+    FPS: FPS, KIND: KIND, LOOK: LOOK, LOOK_STEPS: LOOK_STEPS, EXPRESSIONS: EXPRESSIONS, TICKLE_PARTS: TICKLE_PARTS, SCENES: SCENES,
+    FX: Object.keys(FX), FX_LENGTH: Object.keys(FX).reduce(function (o, k) { o[k] = FX[k][0]; return o; }, {}),
+    standing: standing, lookPath: lookPath, lookSheet: lookSheet, speakLoop: speakLoop, yawnClip: yawnClip, wakeClip: wakeClip,
+    fx: fx, tickle: tickle, expression: expression, lerpPose: lerpPose, anchored: anchored
+  };
+
+  // ================================================================================================================
+  // AppOve: Ove chạy trực tiếp đúng như trong app (OverSub/Sources/PhuDe/Ove.swift), phát các đoạn của Clips theo thời gian
+  // thật. Prototype dùng bản này; động cơ lò xo (Live) chỉ còn để ghi biểu cảm theo sự kiện và cho các bản xem thử cũ.
+  // ================================================================================================================
+  function AppOve(canvas, o) {
+    o = o || {};
+    var self = this;
+    this.canvas = canvas;
+    this.stage = new Stage(canvas, { frac: o.frac, backdrop: o.backdrop, shape: o.shape });
+    this.mood = o.mood || 'idle';
+    this.dark = o.theme === 'dark';
+    this.life = o.life !== false;
+    this.maxFps = o.fps || 0;
+    this.onToggle = o.onToggle || null;
+    this.cache = {};
+    this.clip = null;          // { frames, t0, loop, step, kind, onEnd }
+    this.pose = this.mood === 'asleep' ? this.asleepPose() : standing(this.face());
+    this.angle = [0, 0];
+    this.acting = false; this.sceneId = 0; this.beatCount = 0; this.recent = { small: [], scenes: [] };
+    this.wait = null;          // { until, then } giữ ánh nhìn trong cảnh
+    this.queued = null; this.lastPlayed = {};
+    this.hover = false; this.tickling = false; this.hoverEnters = [];
+    this.busyUntil = 0; this.extraTaps = 0;
+    this.glow = 0; this.ripple = 0; this.bounceAt = -10; this.settleAt = -10;
+    var t = now();
+    this.nextBlink = t + rand(2.8, 6.2); this.blinkAt = -10; this.blink2At = -10;
+    this.nextAct = t + 1.2; this.greetPending = this.mood === 'idle';
+    this.orbit = { yaw: 0, pitch: 0, vy: 0, vp: 0, drag: false, released: -10 };
+    this.bind();
+    Live.prototype.loop.call(this);
+  }
+
+  AppOve.prototype.face = function () { return this.mood === 'idle' ? 'idle' : 'live'; };
+  AppOve.prototype.frames = function (key, make) { return this.cache[key] || (this.cache[key] = make()); };
+  AppOve.prototype.asleepPose = function () { var y = yawnClip(this.dark); return y[y.length - 1]; };
+  AppOve.prototype.resting = function () {
+    var awake = this.mood === 'idle' || this.mood === 'listening';
+    return awake && !this.clip && !this.acting && !this.tickling && this.angle[0] === 0 && this.angle[1] === 0;
+  };
+
+  // Chạy một đoạn; `step` > 1 là tua nhanh (tua ngược khi bị ngắt). Xong thì giữ khung cuối làm tư thế đứng.
+  AppOve.prototype.play = function (frames, opts) {
+    opts = opts || {};
+    this.clip = { frames: frames, t0: now(), loop: !!opts.loop, kind: opts.kind || 'clip', onEnd: opts.onEnd || null };
+  };
+  AppOve.prototype.clipIndex = function (t) {
+    var c = this.clip;
+    var i = Math.floor((t - c.t0) * FPS);
+    return c.loop ? i % c.frames.length : Math.min(i, c.frames.length - 1);
+  };
+  // Tua ngược đoạn đang chạy về khung đầu (mặt nhìn thẳng), nhiều nhất khoảng 12 khung. Mờ chồng thẳng sang mặt thường thì
+  // lộ hai mặt cùng lúc.
+  AppOve.prototype.rewind = function (then) {
+    var c = this.clip;
+    if (!c || c.kind === 'speak' || c.kind === 'sleep') { this.clip = null; then(); return; }
+    var i = this.clipIndex(now()), step = Math.max(1, Math.ceil(i / 12)), back = [];
+    for (var k = i; k > 0; k -= step) back.push(c.frames[k]);
+    back.push(c.kind === 'turn' ? standing(this.face()) : c.frames[0]);
+    var self = this;
+    this.play(back, { onEnd: function () { self.pose = back[back.length - 1]; self.angle = [0, 0]; then(); } });
+  };
+  // Quay về nhìn thẳng từ hướng đang giữ.
+  AppOve.prototype.toFront = function (then) {
+    if (this.angle[0] === 0 && this.angle[1] === 0) { then(); return; }
+    var self = this, path = lookPath(this.face(), this.angle).slice().reverse();
+    path.shift();
+    path.push(standing(this.face()));
+    this.play(path, { kind: 'turn', onEnd: function () { self.angle = [0, 0]; then(); } });
+  };
+  AppOve.prototype.interrupt = function (then) {
+    this.sceneId++; this.acting = false; this.wait = null;
+    var self = this;
+    if (this.clip && this.clip.kind !== 'speak' && this.clip.kind !== 'sleep') this.rewind(function () { self.toFront(then); });
+    else this.toFront(then);
+  };
+
+  // Cảnh: các nhịp nối nhau, xong thì nhìn thẳng lại.
+  AppOve.prototype.scene = function (beats) {
+    var id = ++this.sceneId, self = this;
+    this.acting = true;
+    var next = function (i) {
+      if (self.sceneId !== id) return;
+      var b = beats[i];
+      if (!b) { self.toFront(function () { if (self.sceneId === id) { self.acting = false; self.flush(); } }); return; }
+      if (b.look) {
+        var go = function () {
+          self.play(lookPath(self.face(), b.look), { kind: 'turn', onEnd: function () {
+            self.angle = b.look;
+            self.wait = { until: now() + b.hold * rand(0.8, 1.25), then: function () { next(i + 1); } };
+          } });
+        };
+        self.toFront(go);
+      } else if (b.fx) {
+        if (self.mood !== 'idle') { next(i + 1); return; }
+        self.toFront(function () {
+          var fr = self.frames('fx-' + b.fx, function () { return fx(b.fx, 'idle'); });
+          self.play(fr, { kind: 'fx', onEnd: function () { self.pose = standing('idle'); next(i + 1); } });
+        });
+      }
+    };
+    next(0);
+  };
+  AppOve.prototype.pick = function (list, key) {
+    var recent = this.recent[key], fresh = [];
+    for (var i = 0; i < list.length; i++) if (recent.indexOf(i) < 0) fresh.push(i);
+    var k = fresh[Math.floor(Math.random() * fresh.length)] || 0;
+    this.recent[key] = recent.concat([k]).slice(-2);
+    return list[k];
+  };
+
+  // Biểu cảm theo sự kiện của app: đang rảnh thì làm ngay, đang diễn cảnh thì ngắt cảnh, đang bận thì xếp chờ tối đa 8 giây.
+  var WEIGHT = { happy: 0, sad: 1, angry: 1, dizzy: 2, cry: 3 };
+  AppOve.prototype.react = function (name) {
+    var t = now();
+    if (this.lastPlayed[name] && t - this.lastPlayed[name] < 20) return;
+    var self = this;
+    if (this.acting && !this.tickling) { this.interrupt(function () { self.react(name); }); return; }
+    if (this.resting()) { this.express(name); return; }
+    if (this.queued && WEIGHT[this.queued.name] > WEIGHT[name] && t - this.queued.at < 8) return;
+    this.queued = { name: name, at: t };
+  };
+  AppOve.prototype.express = function (name) {
+    this.lastPlayed[name] = now();
+    var kind = this.face(), self = this;
+    var fr = this.frames('ex-' + name + '-' + kind, function () { return expression(name, kind); });
+    this.play(fr, { kind: 'fx', onEnd: function () { self.pose = standing(kind); self.flush(); } });
+  };
+  AppOve.prototype.flush = function () {
+    var q = this.queued;
+    if (!q || !this.resting()) return;
+    this.queued = null;
+    if (now() - q.at < 8) this.express(q.name);
+  };
+  // Diễn nét mặt lúc rảnh hay một cảnh theo yêu cầu (nút trên prototype, cửa sổ Ủng hộ), ngắt cảnh đang diễn.
+  AppOve.prototype.fx = function (name) { this.act([{ fx: name }]); };
+  AppOve.prototype.playScene = function (i) { this.act(SCENES.scenes[i]); };
+  AppOve.prototype.act = function (beats) {
+    if (this.mood === 'asleep' || this.mood === 'speaking' || this.tickling) return;
+    var self = this;
+    this.interrupt(function () { self.scene(beats); });
+  };
+  // Cửa sổ Ủng hộ: mức tiền càng cao Ove càng vui (cà phê nháy mắt, bữa sáng phấn khích, bữa trưa phấn khích rồi đỏ mặt);
+  // tuỳ bạn thì nhìn xuống mã QR. Không mức nào làm Ove buồn để khỏi giống nài.
+  AppOve.prototype.cheer = function (level) {
+    if (level <= 0) { this.act([{ look: [2, 1], hold: 1.8 }]); return; }
+    this.act(level === 1 ? [{ fx: 'wink' }] : level === 2 ? [{ fx: 'excited' }] : [{ fx: 'excited' }, { fx: 'shy' }]);
+  };
+
+  AppOve.prototype.setTheme = function (th) {
+    var dark = th === 'dark';
+    if (dark === this.dark) return;
+    this.dark = dark;
+    if (this.mood === 'asleep' && !this.clip) this.pose = this.asleepPose();
+  };
+  AppOve.prototype.setLife = function (on) { this.life = !!on; };
+  AppOve.prototype.setFollow = function () {};
+  AppOve.prototype.cue = function () { if (this.mood !== 'asleep') this.bounceAt = now(); };
+
+  // Đổi trạng thái: làm dở nét mặt thì tua ngược, đang nhìn đi chỗ khác thì quay về nhìn thẳng, rồi mới chuyển.
+  AppOve.prototype.setMood = function (m) {
+    if (m === this.mood) return;
+    var old = this.mood, self = this;
+    this.mood = m;
+    this.sceneId++; this.acting = false; this.wait = null; this.tickling = false;
+    var go = function () { self.enter(m, old); };
+    if (old === 'speaking') { this.finishSpeaking(go); return; }
+    if (this.clip && (this.clip.kind === 'fx' || this.clip.kind === 'tickle')) this.rewind(function () { self.toFront(go); });
+    else if (this.clip && this.clip.kind === 'turn') { this.clip = null; this.angle = [0, 0]; go(); }
+    else this.toFront(go);
+  };
+  AppOve.prototype.enter = function (m, old) {
+    var self = this, kind = this.face();
+    var blend = function (from, to, secs, then) {
+      var n = Math.max(2, Math.round(secs * FPS)), fr = [];
+      for (var i = 0; i < n; i++) fr.push(lerpPose(from, to, sm(0, n - 1, i)));
+      self.play(fr, { kind: 'blend', onEnd: then });
+    };
+    var settleFace = function () { self.pose = standing(kind); self.flush(); };
+    if (m === 'asleep') {
+      if (old === 'speaking') { blend(this.pose, this.asleepPose(), 0.4, function () { self.pose = self.asleepPose(); }); return; }
+      var y = this.frames('yawn-' + this.dark, function () { return yawnClip(self.dark); });
+      var from = old === 'listening' ? standing('live') : null;
+      var startYawn = function () { self.play(y, { kind: 'sleep', onEnd: function () { self.pose = self.asleepPose(); } }); };
+      if (from) blend(from, standing('idle'), 0.22, startYawn); else startYawn();
+    } else if (m === 'speaking') {
+      var sp = this.frames('speak', speakLoop);
+      var startSpeak = function () { self.play(sp.frames, { kind: 'speak', loop: true }); };
+      blend(this.pose, sp.frames[0], old === 'asleep' ? 0.4 : 0.22, startSpeak);
+    } else if (old === 'asleep') {
+      var w = this.frames('wake-' + this.dark, function () { return wakeClip(self.dark); });
+      this.play(w, { kind: 'sleep', onEnd: function () {
+        if (kind === 'live') blend(standing('idle'), standing('live'), 0.22, settleFace); else settleFace();
+      } });
+    } else if (old === 'speaking') {
+      blend(this.pose, standing(kind), 0.3, function () { settleFace(); self.settleAt = now(); });
+    } else {
+      blend(standing(old === 'idle' ? 'idle' : 'live'), standing(kind), 0.22, settleFace);
+    }
+  };
+  // Đọc xong: vòng đọc chạy tới khung miệng khép kế tiếp rồi mới chuyển; sóng lặn dần, quầng cam nhạt dần.
+  AppOve.prototype.finishSpeaking = function (then) {
+    var c = this.clip, sp = this.frames('speak', speakLoop);
+    if (!c || c.kind !== 'speak') { then(); return; }
+    var i = this.clipIndex(now()), stop = sp.rest.filter(function (r) { return r >= i; })[0];
+    if (stop == null) stop = sp.rest[0] + sp.frames.length;
+    var fr = [];
+    for (var k = i; k <= stop; k++) fr.push(sp.frames[k % sp.frames.length]);
+    var self = this;
+    this.play(fr, { kind: 'speak-end', onEnd: function () { self.pose = fr[fr.length - 1]; then(); } });
+  };
+
+  // Rê chuột vào thì như bị cù: nheo mắt >< cười khúc khích tới khi chuột rời đi; rê qua lại từ ba lần trong 8 giây thì lúc
+  // rời ra Ove đỏ mặt ngượng.
+  AppOve.prototype.setHover = function (on) {
+    if (on === this.hover) return;
+    this.hover = on;
+    var self = this, t = now();
+    if (on) {
+      this.hoverEnters = this.hoverEnters.filter(function (x) { return t - x < 8; }).concat([t]);
+      if (this.tickling) { this.bounceAt = t; return; }
+      if (!(this.mood === 'idle' || this.mood === 'listening')) return;
+      if (this.clip && this.clip.kind !== 'fx' && this.clip.kind !== 'turn') return;
+      this.interrupt(function () { self.startTickle(); });
+    } else if (this.tickling && this.clip && this.clip.kind === 'tickle-loop') {
+      this.endTickle();
+    }
+  };
+  AppOve.prototype.startTickle = function () {
+    var kind = this.face(), self = this, fr = this.frames('tickle-' + kind, function () { return tickle(kind); });
+    var P = TICKLE_PARTS;
+    this.tickling = true;
+    this.play(fr.slice(0, P[0]), { kind: 'tickle', onEnd: function () {
+      if (self.hover) self.play(fr.slice(P[0], P[1]), { kind: 'tickle-loop', loop: true });
+      else self.endTickle();
+    } });
+  };
+  AppOve.prototype.endTickle = function () {
+    var kind = this.face(), fr = this.frames('tickle-' + kind, function () { return tickle(kind); }), P = TICKLE_PARTS;
+    var rest = [];
+    if (this.clip && this.clip.kind === 'tickle-loop') {
+      var i = this.clipIndex(now());
+      rest = fr.slice(P[0] + i, P[1]);
+    }
+    var t = now(), self = this;
+    var shy = this.mood === 'idle' && this.hoverEnters.filter(function (x) { return t - x < 8; }).length >= 3;
+    this.play(rest.concat(fr.slice(P[1])), { kind: 'tickle', onEnd: function () {
+      self.tickling = false;
+      self.pose = standing(kind);
+      if (shy) { self.hoverEnters = []; self.scene([{ fx: 'shy' }]); } else self.flush();
+    } });
+  };
+
+  // Bấm: bật tắt giọng đọc như nút trong app; bấm dồn trong lúc đang ngáp hay tỉnh thì bỏ qua, dồn tới cú thứ hai thì Ove
+  // chóng mặt.
+  AppOve.prototype.onClick = function () {
+    var t = now();
+    if (t < this.busyUntil) {
+      this.extraTaps++;
+      if (this.extraTaps === 2) this.react('dizzy');
+      return;
+    }
+    this.extraTaps = 0;
+    this.busyUntil = t + 1.6;
+    var next = this.mood === 'asleep' ? 'idle' : 'asleep';
+    this.setMood(next);
+    if (this.onToggle) this.onToggle(next);
+  };
+
+  AppOve.prototype.bind = function () {
+    var self = this;
+    Live.prototype.bind.call(this);
+    // Thay phần rê chuột của động cơ cũ (nhìn theo, vuốt ve, rung) bằng hành vi của app: chỉ biết chuột có nằm trên đầu.
+    var move = this.onMove;
+    window.removeEventListener('pointermove', move);
+    this.ptr = { x: 0, y: 0, on: false, over: false, at: 0 };
+    this.scrub = { lastX: null };
+    this.onMove = function (e) {
+      self.interactive = false;
+      move(e);
+      self.setHover(self.ptr.over && !self.orbit.drag);
+    };
+    window.addEventListener('pointermove', this.onMove);
+    var leave = this.onLeave;
+    document.removeEventListener('pointerout', leave);
+    this.onLeave = function (e) { leave(e); if (!e.relatedTarget) self.setHover(false); };
+    document.addEventListener('pointerout', this.onLeave);
+  };
+
+  AppOve.prototype.frame = function (t, dt) {
+    var m = this.mood, awake = m !== 'asleep', O = this.orbit, self = this;
+    // Đoạn đang chạy.
+    var q;
+    if (this.clip) {
+      var c = this.clip, i = Math.floor((t - c.t0) * FPS);
+      if (!c.loop && i >= c.frames.length) {
+        q = c.frames[c.frames.length - 1];
+        this.clip = null;
+        if (c.kind === 'turn' || c.kind === 'blend' || c.kind === 'speak-end') this.pose = q;
+        if (c.onEnd) c.onEnd();
+        if (this.clip) q = this.clip.frames[0];
+      } else {
+        q = c.frames[c.loop ? i % c.frames.length : i];
+      }
+    } else {
+      q = this.pose;
+    }
+    if (!q) q = this.pose;
+    // Giữ ánh nhìn trong cảnh rồi sang nhịp tiếp.
+    if (this.wait && !this.clip && t >= this.wait.until) { var w = this.wait; this.wait = null; w.then(); }
+    // Chớp mắt lúc đứng yên (cả lúc đang giữ ánh nhìn).
+    if (awake && m !== 'speaking' && !this.clip && t >= this.nextBlink) {
+      this.nextBlink = t + rand(SCENES.pace.blink[0], SCENES.pace.blink[1]);
+      this.blinkAt = t; this.blink2At = Math.random() < 0.2 ? t + 0.23 : -10;
+    }
+    var blink = !this.clip ? Math.max(blinkCurve(t - this.blinkAt), blinkCurve(t - this.blink2At)) : 0;
+    // Nhịp sống: lúc rảnh cử động nhỏ, cứ ba lần một cảnh; đang nhận phụ đề thì thưa hẳn, chỉ nhìn quanh.
+    if (this.life && t >= this.nextAct) {
+      if (this.greetPending && this.resting()) {
+        this.greetPending = false;
+        this.scene([{ fx: Math.random() < 0.5 ? 'wink' : 'excited' }]);
+        this.nextAct = t + rand(SCENES.pace.small[0], SCENES.pace.small[1]);
+      } else if (m === 'idle') {
+        this.nextAct = t + rand(SCENES.pace.small[0], SCENES.pace.small[1]);
+        if (this.resting()) {
+          this.beatCount++;
+          this.scene(this.beatCount % SCENES.pace.sceneEvery === 0 ? this.pick(SCENES.scenes, 'scenes') : this.pick(SCENES.small, 'small'));
+        }
+      } else if (m === 'listening') {
+        this.nextAct = t + rand(SCENES.pace.listenLook[0], SCENES.pace.listenLook[1]);
+        if (this.resting()) this.scene(this.pick(SCENES.small.slice(0, SCENES.looks), 'small'));
+      } else {
+        this.nextAct = t + 2;
+      }
+    }
+    // Quầng cam theo trạng thái, sóng nước khi đọc (đọc xong thì lặn dần trong khoảng 1,6 giây).
+    var glowT = m === 'speaking' ? 0.55 : m === 'listening' ? 0.32 : m === 'idle' ? 0.14 : 0;
+    this.glow += (glowT - this.glow) * ease(m === 'speaking' ? 8 : 2.5, dt);
+    this.ripple += ((m === 'speaking' ? 1 : 0) - this.ripple) * ease(m === 'speaking' ? 8 : 1.8, dt);
+    // Nhún rất nhẹ khi thức, thở chậm khi ngủ, gật nhẹ khi đọc xong, nảy khi có câu mới.
+    var bob = awake ? 0.006 * Math.sin(t * 2 * Math.PI / 4.8) : 0;
+    var settle = t - this.settleAt < 0.7 ? -0.025 * Math.sin(Math.PI * (t - this.settleAt) / 0.7) : 0;
+    var breath = awake ? 1 : 1 + 0.012 * Math.sin(t * 2 * Math.PI / 3.7);
+    // Kéo để xoay xem (chỉ ở prototype), buông thì trôi theo quán tính rồi về lại góc nhìn thẳng.
+    if (!O.drag) {
+      if (Math.abs(O.vy) + Math.abs(O.vp) > 0.02) {
+        O.yaw += O.vy * dt; O.pitch = clamp(O.pitch + O.vp * dt, -1.2, 1.2);
+        var fr = Math.exp(-dt * 3.2);
+        O.vy *= fr; O.vp *= fr;
+      } else if (t - O.released > 1.4) {
+        O.vy = O.vp = 0;
+        var home = Math.round(O.yaw / (Math.PI * 2)) * Math.PI * 2, kk = ease(4, dt);
+        O.yaw += (home - O.yaw) * kk; O.pitch += (0 - O.pitch) * kk;
+      }
+    }
+    var r = Object.assign({}, q, {
+      t: t, dark: this.dark, orbitYaw: O.yaw, orbitPitch: O.pitch,
+      open: (q.open == null ? 1 : q.open) * (1 - 0.88 * blink),
+      scale: (q.scale || 1) * bounceCurve(t - this.bounceAt) * breath, bob: (q.bob || 0) + bob + settle,
+      glow: this.glow, ripple: this.ripple
+    });
+    this.stage.render(r);
+    void self;
+  };
+  AppOve.prototype.dispose = Live.prototype.dispose;
+
   window.OverSubHead = {
     Stage: Stage,
     setClock: function (fn) { clock = fn; },
     FACE: FACE,
-    create: function (canvas, opts) { return new Live(canvas, opts); }
+    create: function (canvas, opts) { return new Live(canvas, opts); },
+    // Ove đúng như trong app (prototype dùng bản này).
+    createApp: function (canvas, opts) { return new AppOve(canvas, opts); },
+    Clips: Clips
   };
 })();

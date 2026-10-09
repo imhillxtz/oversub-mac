@@ -115,6 +115,19 @@ final class OveLibrary {
         let fps: Int
         let sheets: [String: SheetInfo]
         let look: Look
+        let scenes: Scenes?
+    }
+
+    /// Cảnh lúc rảnh và nhịp, ghi trong ove.json từ bản gốc `OverSubHead.Clips.SCENES` (Tools/Ove/oversub-head.js).
+    struct Scenes: Decodable {
+        struct Beat: Decodable { let look: [Int]?; let hold: Double?; let fx: String? }
+        struct Pace: Decodable {
+            let blink: [Double]; let small: [Double]; let sceneEvery: Int; let listenLook: [Double]; let listenHappy: [Double]
+        }
+        let small: [[Beat]]
+        let scenes: [[Beat]]
+        let looks: Int
+        let pace: Pace
     }
 
     private lazy var meta: Meta? = {
@@ -138,6 +151,7 @@ final class OveLibrary {
     private var ripples: [String: CGImage] = [:]
 
     var available: Bool { meta != nil }
+    var scenes: Scenes? { meta?.scenes }
     var fps: Double { Double(meta?.fps ?? 24) }
     /// Tỉ lệ khung so với đường kính đầu (khung 280 px cho đầu 256 px).
     var frameRatio: CGFloat { CGFloat(meta?.frame ?? 280) / 256 }
@@ -760,38 +774,34 @@ final class OveLayerView: NSView {
         case fx(Fidget)
     }
 
-    /// Cử động nhỏ lúc rảnh: nhìn quanh, nháy mắt, nghiêng đầu. Hướng phải có trong bộ quay đầu (export.html, `LOOK`).
-    private static let small: [[Beat]] = [
-        [.look(OveAngle(yaw: -2, pitch: 0), 1.6)],
-        [.look(OveAngle(yaw: 2, pitch: 0), 1.6)],
-        [.look(OveAngle(yaw: 0, pitch: -1), 1.3)],
-        [.look(OveAngle(yaw: 0, pitch: 1), 1.3)],
-        [.look(OveAngle(yaw: 2, pitch: 1), 1.3)],
-        [.look(OveAngle(yaw: 2, pitch: -1), 1.3)],
-        [.look(OveAngle(yaw: -3, pitch: 0), 1.2)],
-        [.look(OveAngle(yaw: 3, pitch: 0), 1.2)],
-        [.look(OveAngle(yaw: -2, pitch: 0), 0.7), .look(OveAngle(yaw: 2, pitch: 0), 0.7)],
-        [.fx(.wink)],
-        [.fx(.curious)],
-    ]
-    /// Đang nhận phụ đề chỉ nhìn quanh (chín kiểu đầu của `small`).
-    private static let looks = Array(small.prefix(9))
+    /// Cảnh lúc rảnh đọc từ ove.json (bản gốc ở `OverSubHead.Clips.SCENES` trong Tools/Ove/oversub-head.js, cùng nguồn
+    /// với prototype trên Claude Design). Thiếu thì chỉ chớp mắt.
+    private static let script: (small: [[Beat]], scenes: [[Beat]], looks: [[Beat]], pace: OveLibrary.Scenes.Pace?) = {
+        guard let sc = OveLibrary.shared.scenes else {
+            DebugLog.write("Ove: ove.json không có danh sách cảnh lúc rảnh")
+            return ([], [], [], nil)
+        }
+        func beats(_ list: [[OveLibrary.Scenes.Beat]]) -> [[Beat]] {
+            list.map { row in
+                row.compactMap { b -> Beat? in
+                    if let l = b.look, l.count == 2 { return .look(OveAngle(yaw: l[0], pitch: l[1]), b.hold ?? 1) }
+                    if let f = b.fx.flatMap(Fidget.init(rawValue:)) { return .fx(f) }
+                    return nil
+                }
+            }.filter { !$0.isEmpty }
+        }
+        let small = beats(sc.small)
+        return (small, beats(sc.scenes), Array(small.prefix(sc.looks)), sc.pace)
+    }()
+    private static var small: [[Beat]] { script.small }
+    private static var scenes: [[Beat]] { script.scenes }
+    private static var looks: [[Beat]] { script.looks }
 
-    /// Cảnh đời thường: Ove để ý những thứ quanh mình trên cửa sổ chính (nút Phụ đề bên trái, Dịch màn hình bên phải, nút
-    /// Bắt đầu bên dưới, ống năng lượng) rồi quay ra nhìn người dùng.
-    private static let scenes: [[Beat]] = [
-        [.look(OveAngle(yaw: 0, pitch: 1), 1.2), .fx(.wink)],                                   // ngó nút Bắt đầu rồi nháy mắt rủ bấm
-        [.look(OveAngle(yaw: -3, pitch: 0), 1.0), .fx(.curious)],                               // nhìn sang Phụ đề, tò mò
-        [.look(OveAngle(yaw: 3, pitch: 0), 0.8), .fx(.surprised)],                              // nhìn sang Dịch màn hình, ngạc nhiên
-        [.look(OveAngle(yaw: 0, pitch: -1), 1.0), .fx(.surprised)],                             // ngước lên như nghe tiếng gì
-        [.look(OveAngle(yaw: -2, pitch: 0), 0.9), .fx(.hum)],                                   // dõi giọt sáng trong ống rồi ngân nga
-        [.fx(.doze), .fx(.shy)],                                                                // ngủ gật, giật mình rồi ngượng
-        [.fx(.sneeze), .fx(.shy)],                                                              // hắt xì rồi ngượng
-        [.fx(.hum), .look(OveAngle(yaw: 2, pitch: -1), 0.9)],                                   // ngân nga rồi ngó lên
-        [.look(OveAngle(yaw: -2, pitch: 0), 0.6), .look(OveAngle(yaw: 2, pitch: 0), 0.6), .fx(.wink)],   // liếc quanh rồi nháy mắt
-        [.fx(.excited)],                                                                        // nhìn người dùng mà phấn khích
-        [.look(OveAngle(yaw: 2, pitch: 1), 1.0), .fx(.curious), .fx(.wink)],                    // ngó xuống, nghĩ ngợi, nháy mắt
-    ]
+    /// Khoảng ngẫu nhiên lấy từ nhịp trong ove.json, thiếu thì dùng mặc định.
+    private static func span(_ key: KeyPath<OveLibrary.Scenes.Pace, [Double]>, _ fallback: ClosedRange<Double>) -> ClosedRange<Double> {
+        guard let r = script.pace?[keyPath: key], r.count == 2, r[0] <= r[1] else { return fallback }
+        return r[0]...r[1]
+    }
 
     private var acting = false
     private var sceneGen = 0
@@ -826,7 +836,7 @@ final class OveLayerView: NSView {
     }
 
     private func blinkLoop(_ gen: Int) {
-        after(Double.random(in: 2.8...6.2), alive: { [weak self] in self?.lifeGen == gen }) { [weak self] in
+        after(Double.random(in: Self.span(\.blink, 2.8...6.2)), alive: { [weak self] in self?.lifeGen == gen }) { [weak self] in
             self?.blink()
             self?.blinkLoop(gen)
         }
@@ -843,11 +853,11 @@ final class OveLayerView: NSView {
     }
 
     private func idleLoop(_ gen: Int) {
-        after(Double.random(in: 5...9) * debugScale, alive: { [weak self] in self?.lifeGen == gen }) { [weak self] in
-            guard let self else { return }
+        after(Double.random(in: Self.span(\.small, 5...9)) * debugScale, alive: { [weak self] in self?.lifeGen == gen }) { [weak self] in
+            guard let self, !Self.small.isEmpty else { return }
             if self.resting, self.sprite.animation(forKey: "frames") == nil {
                 self.beatCount += 1
-                if self.beatCount % 3 == 0 {
+                if self.beatCount % max(1, Self.script.pace?.sceneEvery ?? 3) == 0, !Self.scenes.isEmpty {
                     self.startScene(Self.pick(Self.scenes, recent: &self.recentScenes))
                 } else {
                     self.startScene(Self.pick(Self.small, recent: &self.recentSmall))
@@ -858,8 +868,8 @@ final class OveLayerView: NSView {
     }
 
     private func lookLoop(_ gen: Int) {
-        after(Double.random(in: 30...60) * debugScale, alive: { [weak self] in self?.lifeGen == gen }) { [weak self] in
-            guard let self else { return }
+        after(Double.random(in: Self.span(\.listenLook, 30...60)) * debugScale, alive: { [weak self] in self?.lifeGen == gen }) { [weak self] in
+            guard let self, !Self.looks.isEmpty else { return }
             if self.resting, self.sprite.animation(forKey: "frames") == nil {
                 self.startScene(Self.pick(Self.looks, recent: &self.recentSmall))
             }
@@ -868,7 +878,7 @@ final class OveLayerView: NSView {
     }
 
     private func happyLoop(_ gen: Int) {
-        after(Double.random(in: 200...320) * debugScale, alive: { [weak self] in self?.lifeGen == gen }) { [weak self] in
+        after(Double.random(in: Self.span(\.listenHappy, 200...320)) * debugScale, alive: { [weak self] in self?.lifeGen == gen }) { [weak self] in
             guard let self else { return }
             if self.resting { self.play(.happy) }
             self.happyLoop(gen)

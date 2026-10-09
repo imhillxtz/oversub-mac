@@ -296,9 +296,18 @@ Tay cầm (`GamepadControl`) dùng GameController, nhận nút cả khi game ở
 
 ## Ove (linh vật 3D)
 
-Ove là đầu kính mờ có lõi cam, dựng bằng three.js ở `Tools/Ove/oversub-head.js` (cùng bộ dựng của prototype trên Claude
-Design). App không chạy 3D: mọi trạng thái và biểu cảm được dựng sẵn thành tấm khung hình HEIC trong `Resources/Ove`,
-`Ove.swift` lật khung bằng `contentsRect` của Core Animation.
+Ove là đầu kính mờ có lõi cam, dựng bằng three.js ở `Tools/Ove/oversub-head.js`. App không chạy 3D: mọi trạng thái và
+biểu cảm được dựng sẵn thành tấm khung hình HEIC trong `Resources/Ove`, `Ove.swift` lật khung bằng `contentsRect` của Core
+Animation.
+
+**Bản gốc.** Mọi thứ về Ove bắt đầu từ `oversub-head.js`, cùng một tệp với prototype trên Claude Design (artifact "Ove,
+linh vật OverSub"):
+- `OverSubHead.Clips`: tư thế đứng, bộ quay đầu, vòng đọc, ngáp, tỉnh dậy, tám nét mặt lúc rảnh, bị cù, các biểu cảm theo
+  sự kiện (ghi từ động cơ lò xo `Live` ở chế độ không vẽ), danh sách cảnh lúc rảnh và nhịp (`SCENES`).
+- `OverSubHead.createApp`: Ove chạy trực tiếp đúng như app (prototype dùng bản này).
+- `export.html` chỉ dựng hình từ `Clips`; `ove.json` mang theo `scenes` để app đọc, Swift không giữ bản chép tay.
+Sửa hình hay nhịp của Ove: sửa `oversub-head.js`, thử trên prototype (tải tệp lên kho tài nguyên của artifact và trỏ thẻ
+`<script>` của `Main.dc.html` tới đó), rồi dựng lại khung cho app theo lệnh dưới đây.
 
 - Bộ quay đầu `look-idle` và `look-live`: khung nhìn thẳng (mở, nhắm mắt), rồi với mỗi hướng nhìn quanh (`look.targets`
   trong ove.json) 7 khung đi từ nhìn thẳng tới hướng đó theo nhịp sin và một khung nhắm mắt ở hướng đó để chớp; quay về
