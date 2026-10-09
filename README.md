@@ -46,7 +46,7 @@ OverSub dùng được với mọi game hiện trên màn hình Mac: game Mac, g
 
 Cửa sổ chính có ba nút bật tắt riêng: Phụ đề bên trái, linh vật OverSub ở giữa (giọng đọc; đang đọc thì linh vật mấp máy miệng), Dịch màn hình bên phải.
 
-https://github.com/user-attachments/assets/f00357b3-9779-464f-a85c-2f61f74f8cd4
+https://github.com/user-attachments/assets/db2bf69f-3bb9-4343-82d8-905128e31e92
 
 <sub>Cửa sổ chính với ba nút Phụ đề, Voice-over và Dịch màn hình. Khi OverSub đang đọc thoại, linh vật ở giữa mấp máy miệng.</sub>
 

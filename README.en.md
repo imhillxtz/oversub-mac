@@ -46,7 +46,7 @@ OverSub works with any game shown on your Mac's screen: Mac games, Windows games
 
 The main window has three switches: Subtitles on the left, the OverSub mascot in the middle (the voice; it moves its mouth while speaking) and Screen translation on the right.
 
-https://github.com/user-attachments/assets/f00357b3-9779-464f-a85c-2f61f74f8cd4
+https://github.com/user-attachments/assets/db2bf69f-3bb9-4343-82d8-905128e31e92
 
 <sub>The main window with its three switches: Subtitles, Voice-over and Screen translation. While OverSub is reading dialogue aloud, the mascot in the middle moves its mouth.</sub>
 
