@@ -19,10 +19,6 @@ OverSub reads the text in your game from the screen, translates it with AI and d
 
 </div>
 
-https://github.com/user-attachments/assets/e68b3fa4-5448-45bc-8e4d-ff01fdb6fd71
-
-<sub>The subtitle window in one-line mode, in the black bar under the game: the English dialogue appears letter by letter, the Vietnamese translation follows and is read aloud. The video has sound. The text in the videos and screenshots below is Vietnamese, because the app was set to translate into Vietnamese.</sub>
-
 ## Contents
 
 - [What OverSub does](#what-oversub-does)
@@ -48,7 +44,7 @@ The main window has three switches: Subtitles on the left, the OverSub mascot in
 
 https://github.com/user-attachments/assets/db2bf69f-3bb9-4343-82d8-905128e31e92
 
-<sub>The main window with its three switches: Subtitles, Voice-over and Screen translation. While OverSub is reading dialogue aloud, the mascot in the middle moves its mouth.</sub>
+<sub>The main window with its three switches: Subtitles, Voice-over and Screen translation. While OverSub is reading dialogue aloud, the mascot in the middle moves its mouth. The text in the videos and screenshots on this page is Vietnamese, because the app was set to translate into Vietnamese.</sub>
 
 | Feature | What it does |
 |---|---|

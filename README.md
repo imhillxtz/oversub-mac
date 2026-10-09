@@ -19,10 +19,6 @@ Tiếng Việt · [English](README.en.md)
 
 </div>
 
-https://github.com/user-attachments/assets/e68b3fa4-5448-45bc-8e4d-ff01fdb6fd71
-
-<sub>Cửa sổ phụ đề ở chế độ một dòng, nằm trong dải đen dưới game: câu thoại tiếng Anh hiện từng chữ, bản dịch tiếng Việt theo sau và được đọc thành tiếng. Video có tiếng.</sub>
-
 ## Mục lục
 
 - [OverSub làm được gì](#oversub-làm-được-gì)
