@@ -45,7 +45,7 @@ extension DebugSnapshot {
         play.debugOpenPattern(full: full, text: subtitle)
         await trace("mở cửa sổ", seconds: 1.5)
         guard let w = play.window else { DebugLog.write("Thử màn hình chơi: không mở được cửa sổ"); return }
-        try? await Task.sleep(for: .seconds(1.5))   // để bộ dò dải sáng kịp lấy mẫu
+        try? await Task.sleep(for: .seconds(2.5))   // bộ dò dải sáng bỏ qua 2 giây đầu, rồi cần ba lần lấy mẫu
 
         // Màu từng ô xám theo cách hiểu Tự động, rồi ép Giới hạn, ép Đầy đủ.
         await measurePatches("Tự động", full: full, window: w, dir: dir, shot: "play-pattern\(full ? "-full" : "")")

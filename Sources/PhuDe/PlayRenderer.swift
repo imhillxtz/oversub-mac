@@ -481,45 +481,92 @@ final class PlayRenderer: @unchecked Sendable {
 
 /// Dò dải sáng thật của tín hiệu từ số liệu độ sáng, vì card hay ghi sai: khung ghi "dải giới hạn" nhưng chứa cả giá trị dưới
 /// 16 (máy chơi game xuất dải đầy đủ, card chuyển thẳng) thì hình bị gắt, mất chi tiết vùng tối; khung ghi "dải đầy đủ" mà độ
-/// sáng chỉ nằm trong 16–235 thì hình nhạt, đen thành xám. Quyết định chỉ đổi một lần mỗi tín hiệu, có ghi nhật ký kèm số liệu.
+/// sáng chỉ nằm trong 16–235 thì hình nhạt, đen thành xám. Mỗi lần đổi cách hiểu đều ghi nhật ký kèm số liệu.
+///
+/// Đo trên card Hagibis với Switch 2 dải giới hạn (09/10/2026): khung đầu tiên card gửi là khung cũ dở dang (phần lớn độ sáng 0,
+/// phần còn lại là hình), rồi màn đen độ sáng 16 khoảng 7,5 giây, rồi lúc hình hiện lại có một mảng tối lấm tấm độ sáng 0–15
+/// trong khoảng 0,75 giây. Nên bằng chứng chỉ tính khi hình đã đứng 2 giây kể từ lúc mở và từ khung một màu gần nhất; hiểu là
+/// dải đầy đủ mà 20 giây liền không còn độ sáng ngoài 12–243 thì quay về dải giới hạn, kể cả khi khung ghi dải giới hạn.
 struct RangeDetector {
     var baselineFull = false
     /// nil: theo kiểu khung; true/false: đã dò ra dải đầy đủ hay giới hạn.
     private(set) var decision: Bool?
+    /// Đếm từ lần đổi cách hiểu gần nhất. `contrastFrames`: số mẫu đủ tương phản kể từ lần cuối thấy độ sáng ngoài 12–243.
     private var lowFrames = 0, highFrames = 0, contrastFrames = 0, sampled = 0
-    private var extreme = false
     // Số liệu cho nhật ký, xoá sau mỗi lần đọc.
     private var minSeen = 255, maxSeen = 0
-    private var started = Date()
+    private let started: Date
+    /// Lúc mở hoặc lúc gần nhất gặp khung một màu: hình hiện lại sau đó vài khung còn lẫn rác.
+    private var lastFlat: Date
+    /// Lúc đổi cách hiểu hoặc lúc gần nhất thấy độ sáng ngoài 12–243.
+    private var lastExtreme: Date
 
-    init(baselineFull: Bool = false) { self.baselineFull = baselineFull }
+    /// Hình phải đứng bấy nhiêu giây sau lúc mở hay sau khung một màu thì mẫu mới được tính.
+    static let settle: TimeInterval = 2
+    /// Đang hiểu dải đầy đủ mà bấy nhiêu giây không còn độ sáng ngoài 12–243 thì quay về dải giới hạn.
+    static let revert: TimeInterval = 20
 
-    mutating func feed(_ values: [UInt8]) {
+    init(baselineFull: Bool = false, now: Date = Date()) {
+        self.baselineFull = baselineFull
+        started = now; lastFlat = now; lastExtreme = now
+        #if DEVTOOLS
+        if let dir = ProcessInfo.processInfo.environment["OVERSUB_PLAY_RANGE_DUMP"] {
+            let url = URL(fileURLWithPath: dir).appendingPathComponent("range-\(Int(now.timeIntervalSince1970 * 1000)).bin")
+            FileManager.default.createFile(atPath: url.path, contents: nil)
+            dump = try? FileHandle(forWritingTo: url)
+        }
+        #endif
+    }
+
+    #if DEVTOOLS
+    /// Bản dev: OVERSUB_PLAY_RANGE_DUMP=<thư mục> ghi mọi mẫu độ sáng vào một tệp mỗi tín hiệu (mỗi mẫu: số giây kể từ lúc dò
+    /// lại kiểu Double, rồi 64×36 byte độ sáng), để thử luật dò trên số liệu card thật mà không phải mở card lại.
+    private var dump: FileHandle?
+    #endif
+
+    /// Cách hiểu đang dùng khi để Tự động.
+    var full: Bool { decision ?? baselineFull }
+
+    mutating func feed(_ values: [UInt8], now: Date = Date()) {
         guard !values.isEmpty else { return }
+        #if DEVTOOLS
+        if let dump {
+            var t = now.timeIntervalSince(started)
+            dump.write(Data(bytes: &t, count: 8) + Data(values))
+        }
+        #endif
         sampled += 1
         let sorted = values.sorted()
         let lo = Int(sorted[sorted.count / 100]), hi = Int(sorted[sorted.count * 99 / 100])
         minSeen = min(minSeen, lo); maxSeen = max(maxSeen, hi)
+        // Khung gần như một màu (card chưa có tín hiệu, màn hình đen lúc chuyển cảnh) không nói lên dải sáng: card hay tự phát
+        // khung đen độ sáng 0 khi máy chơi game tắt, tính vào thì hiểu nhầm thành dải đầy đủ.
+        guard hi - lo >= 40 else { lastFlat = now; return }
+        guard now.timeIntervalSince(lastFlat) >= Self.settle else { return }
         let n = Double(values.count)
         let under = Double(values.filter { $0 < 10 }.count) / n
         let over = Double(values.filter { $0 > 250 }.count) / n
-        if hi - lo >= 160 { contrastFrames += 1 }
-        // Khung gần như một màu (card chưa có tín hiệu, màn hình đen lúc chuyển cảnh) không nói lên dải sáng: card hay tự phát
-        // khung đen độ sáng 0 khi máy chơi game tắt, tính vào thì hiểu nhầm thành dải đầy đủ.
-        guard hi - lo >= 40 else { return }
-        if Double(values.filter { $0 < 12 || $0 > 243 }.count) / n >= 0.003 { extreme = true }
-        guard decision == nil else { return }
-        if !baselineFull {
+        if Double(values.filter { $0 < 12 || $0 > 243 }.count) / n >= 0.003 {
+            lastExtreme = now; contrastFrames = 0
+        } else if hi - lo >= 160 {
+            contrastFrames += 1
+        }
+        if !full {
             if under >= 0.003 { lowFrames += 1 }
             if over >= 0.003 { highFrames += 1 }
-            if lowFrames >= 3 || highFrames >= 3 {
-                decision = true
-                DebugLog.write("Màn hình chơi: khung ghi dải giới hạn nhưng có \(lowFrames) lần thấy độ sáng dưới 10, \(highFrames) lần trên 250: hiểu là dải đầy đủ")
-            }
-        } else if !extreme, contrastFrames >= 20, Date().timeIntervalSince(started) >= 20 {
-            decision = false
-            DebugLog.write("Màn hình chơi: khung ghi dải đầy đủ nhưng \(sampled) lần lấy mẫu độ sáng chỉ nằm trong 12–243: hiểu là dải giới hạn")
+            guard lowFrames >= 3 || highFrames >= 3 else { return }
+            DebugLog.write("Màn hình chơi: \(baselineFull ? "" : "khung ghi dải giới hạn nhưng ")có \(lowFrames) lần thấy độ sáng dưới 10, \(highFrames) lần trên 250: hiểu là dải đầy đủ")
+            switchTo(full: true, now: now)
+        } else if now.timeIntervalSince(lastExtreme) >= Self.revert, contrastFrames >= 20 {
+            DebugLog.write("Màn hình chơi: \(baselineFull ? "khung ghi dải đầy đủ nhưng " : "")\(Int(Self.revert)) giây liền (\(contrastFrames) lần lấy mẫu) độ sáng chỉ nằm trong 12–243: hiểu là dải giới hạn")
+            switchTo(full: false, now: now)
         }
+    }
+
+    private mutating func switchTo(full: Bool, now: Date) {
+        decision = full
+        lowFrames = 0; highFrames = 0; contrastFrames = 0
+        lastExtreme = now
     }
 
     /// Độ sáng thấp nhất và cao nhất (phân vị 1% và 99%) từ lần đọc trước, rồi xoá.
