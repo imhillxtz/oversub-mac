@@ -26,7 +26,7 @@ enum PresetIO {
         guard panel.runModal() == .OK, let url = panel.url else { return nil }
         do {
             let n = try settings.importPresets(Data(contentsOf: url))
-            return n == 0 ? L("Tệp không có hồ sơ nào.", "The file contains no profiles.") : L("Đã nhập \(n) hồ sơ.", "Imported \(n) profiles.")
+            return n == 0 ? L("Tệp không có hồ sơ nào.", "The file contains no profiles.") : L("Đã nhập \(n) hồ sơ.", "Imported \(n) \(n == 1 ? "profile" : "profiles").")
         } catch {
             return L("Tệp này không phải hồ sơ game của OverSub.", "This file isn't an OverSub game profile.")
         }
@@ -111,7 +111,7 @@ struct PresetDetailView: View {
             Section {
                 LabeledContent("Game", value: s.gameAppName ?? L("Chưa nhận diện", "Not detected"))
                 LabeledContent(L("Vùng phụ đề", "Subtitle region"), value: s.region.map { L("\(Int($0.w)) × \(Int($0.h)) tại (\(Int($0.x)), \(Int($0.y)))", "\(Int($0.w)) × \(Int($0.h)) at (\(Int($0.x)), \(Int($0.y)))") } ?? L("Chưa chọn", "Not set"))
-                LabeledContent(L("Dịch màn hình", "Screen translation"), value: { let n = (s.secondaryRegions ?? s.secondaryRegion.map { [$0] } ?? []).count; return n == 0 ? L("Không có vùng", "No regions") : L("\(n) vùng", "\(n) regions") }())
+                LabeledContent(L("Dịch màn hình", "Screen translation"), value: { let n = (s.secondaryRegions ?? s.secondaryRegion.map { [$0] } ?? []).count; return n == 0 ? L("Không có vùng", "No regions") : L("\(n) vùng", "\(n) \(n == 1 ? "region" : "regions")") }())
                 LabeledContent(L("Dịch", "Translation"), value: "\(SourceLanguage.find(s.sourceLanguage ?? f.sourceLanguage!).displayName) → \(TargetLanguage.find(s.targetLanguage ?? f.targetLanguage!).displayName)")
                 LabeledContent(L("Phụ đề đè lên game", "Subtitles over the game"), value: (s.overlayEnabled ?? true)
                                ? L("\(styleTitle), cỡ \(Int(s.overlayFontScale ?? 100))%", "\(styleTitle), size \(Int(s.overlayFontScale ?? 100))%") : L("Tắt", "Off"))

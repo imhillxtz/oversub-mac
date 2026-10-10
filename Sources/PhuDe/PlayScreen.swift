@@ -570,7 +570,7 @@ final class PlayScreen: NSObject, ObservableObject, NSWindowDelegate {
         // đang nhận hình từ card. Không ghi "Reactions đang bật": `reactionEffectsEnabled` chỉ nói app được phép dùng Reactions,
         // không phải người dùng đang bật (đã nhầm một lần).
         if capture != nil, device != nil, phase == .live {
-            m.addItem(PlayMenuItem(L("Hiệu ứng video của macOS…", "macOS Video Effects…")) { AVCaptureDevice.showSystemUserInterface(.videoEffects) })
+            m.addItem(PlayMenuItem(L("Hiệu ứng video của macOS…", "macOS video effects…")) { AVCaptureDevice.showSystemUserInterface(.videoEffects) })
             m.addItem(PlayMenuItem.note(L("Hình game bị làm mờ nền, chiếu sáng hay có hiệu ứng lạ thì tắt các hiệu ứng ở đây.", "If the game picture gets a blurred background, extra lighting or odd effects, turn them off here.")))
             m.addItem(.separator())
         }
@@ -860,9 +860,9 @@ private struct PlayStatusView: View {
             case .noPermission:
                 title("video.slash", L("OverSub chưa được dùng Camera", "OverSub can't use the camera yet"))
                 note(L("macOS xếp capture card vào nhóm camera. Hãy bật OverSub ở mục Camera trong Cài đặt hệ thống, rồi bấm Thử lại.",
-                       "macOS treats capture cards as cameras. Turn on OverSub under Camera in System Settings, then click Try Again."))
+                       "macOS treats capture cards as cameras. Turn on OverSub under Camera in System Settings, then click Try again."))
                 HStack(spacing: 8) {
-                    Button(L("Thử lại", "Try Again")) { screen.retry() }.buttonStyle(DialogButtonStyle())
+                    Button(L("Thử lại", "Try again")) { screen.retry() }.buttonStyle(DialogButtonStyle())
                     Button(L("Mở Cài đặt hệ thống", "Open System Settings")) { NSWorkspace.shared.open(PlayPermissionGuide.Kind.camera.url) }
                         .buttonStyle(DialogButtonStyle(prominent: true))
                 }
@@ -870,7 +870,7 @@ private struct PlayStatusView: View {
             case .failed(let message):
                 title("exclamationmark.triangle", L("Không mở được \(screen.deviceName)", "Couldn't open \(screen.deviceName)"))
                 note(message)
-                Button(L("Thử lại", "Try Again")) { screen.retry() }.buttonStyle(DialogButtonStyle()).padding(.top, 4)
+                Button(L("Thử lại", "Try again")) { screen.retry() }.buttonStyle(DialogButtonStyle()).padding(.top, 4)
             case .live, .closed:
                 EmptyView()
             }
@@ -950,7 +950,7 @@ private struct PlayPermissionView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             DialogStep(n: 1, text: L("Bấm Mở Cài đặt hệ thống.", "Click Open System Settings."))
                             DialogStep(n: 2, text: L("Ở mục Camera, bật OverSub.", "Under Camera, turn on OverSub."))
-                            DialogStep(n: 3, text: L("Quay lại màn hình chơi và bấm Thử lại.", "Return to the game screen and click Try Again."))
+                            DialogStep(n: 3, text: L("Quay lại màn hình chơi và bấm Thử lại.", "Return to the game screen and click Try again."))
                         }
                     } else {
                         DialogHeader(title: L("OverSub cần quyền Micrô để phát tiếng game", "OverSub needs microphone access for game sound"),
