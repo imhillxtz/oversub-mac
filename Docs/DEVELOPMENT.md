@@ -300,14 +300,16 @@ Ove là đầu kính mờ có lõi cam, dựng bằng three.js ở `Tools/Ove/ov
 biểu cảm được dựng sẵn thành tấm khung hình HEIC trong `Resources/Ove`, `Ove.swift` lật khung bằng `contentsRect` của Core
 Animation.
 
-**Bản gốc.** Mọi thứ về Ove bắt đầu từ `oversub-head.js`, cùng một tệp với prototype trên Claude Design (artifact "Ove,
-linh vật OverSub"):
-- `OverSubHead.Clips`: tư thế đứng, bộ quay đầu, vòng đọc, ngáp, tỉnh dậy, tám nét mặt lúc rảnh, bị cù, các biểu cảm theo
-  sự kiện (ghi từ động cơ lò xo `Live` ở chế độ không vẽ), danh sách cảnh lúc rảnh và nhịp (`SCENES`).
-- `OverSubHead.createApp`: Ove chạy trực tiếp đúng như app (prototype dùng bản này).
-- `export.html` chỉ dựng hình từ `Clips`; `ove.json` mang theo `scenes` để app đọc, Swift không giữ bản chép tay.
-Sửa hình hay nhịp của Ove: sửa `oversub-head.js`, thử trên prototype (tải tệp lên kho tài nguyên của artifact và trỏ thẻ
-`<script>` của `Main.dc.html` tới đó), rồi dựng lại khung cho app theo lệnh dưới đây.
+**Bản gốc.** Prototype trên Claude Design (artifact "Ove, linh vật OverSub") có hai khung, giữ cả hai:
+- `Main.dc.html`: bản đầy đủ nhất, động cơ lò xo `Live` với mọi tương tác chuột (nhìn theo, đặt chuột lên đầu thì vui, bỏ
+  đi thì buồn, rung chuột thì giận, xoay mạnh thì chóng mặt rồi khóc). App chưa làm được hết; khung này là kho để lấy dần.
+- `OveApp.dc.html`: Ove đúng như app hiện tại (`OverSubHead.createApp`), có nét mặt lúc rảnh, cảnh đời thường, bị cù, thái
+  độ ở cửa sổ Ủng hộ.
+Trong `oversub-head.js`, `OverSubHead.Clips` giữ mọi đoạn app dùng: tư thế đứng, bộ quay đầu, vòng đọc, ngáp, tỉnh dậy, tám
+nét mặt lúc rảnh, bị cù, các biểu cảm theo sự kiện (ghi từ `Live` ở chế độ không vẽ), danh sách cảnh lúc rảnh và nhịp
+(`SCENES`). `export.html` chỉ dựng hình từ `Clips`; `ove.json` mang `scenes` để app đọc, Swift không giữ bản chép tay.
+Sửa hình hay nhịp của Ove: sửa `oversub-head.js`, tải lên kho tài nguyên của artifact và trỏ thẻ `<script>` của khung cần
+dùng tới đó (khung cũ giữ động cơ cũ nếu không có lý do đổi), rồi dựng lại khung cho app theo lệnh dưới đây.
 
 - Bộ quay đầu `look-idle` và `look-live`: khung nhìn thẳng (mở, nhắm mắt), rồi với mỗi hướng nhìn quanh (`look.targets`
   trong ove.json) 7 khung đi từ nhìn thẳng tới hướng đó theo nhịp sin và một khung nhắm mắt ở hướng đó để chớp; quay về
