@@ -167,8 +167,22 @@ final class OveLibrary {
     }()
     private var cache: [String: Sheet] = [:]
     private var ripples: [String: CGImage] = [:]
+    /// Tấm có khai trong ove.json mà không đọc được (thiếu tệp hoặc hỏng). Không đọc lại: trước đây `showStill` chờ nạp
+    /// xong rồi gọi lại chính nó, tấm hỏng thì không bao giờ nạp xong, app lặp đọc tệp mãi ở hơn 100% CPU.
+    private var broken: Set<String> = []
 
-    var available: Bool { meta != nil }
+    /// Có bộ hình và đọc được các tấm luôn dùng; không thì dùng linh vật 2D. Chỉ đọc phần đầu tệp (dưới 2 ms mỗi tấm).
+    /// Tệp bị cắt cụt vẫn giải nén được thành ảnh thiếu phần nên không tính là hỏng; chỉ tệp mất hay hỏng phần đầu mới làm
+    /// `load` trả nil.
+    private(set) lazy var available: Bool = {
+        guard let meta else { return false }
+        let bad = Self.kept.filter { meta.sheets[$0] == nil || !Self.readable($0) }.sorted()
+        guard bad.isEmpty else {
+            DebugLog.write("Ove: thiếu hoặc hỏng tấm \(bad.joined(separator: ", ")), dùng linh vật 2D")
+            return false
+        }
+        return true
+    }()
     var scenes: Scenes? { meta?.scenes }
     var fps: Double { Double(meta?.fps ?? 24) }
     /// Tỉ lệ khung so với đường kính đầu (khung 280 px cho đầu 256 px).
@@ -176,38 +190,52 @@ final class OveLibrary {
 
     func sheet(_ name: String) -> Sheet? {
         if let s = cache[name] { return s }
+        guard !broken.contains(name) else { return nil }
         // Giải nén trên luồng chính mất 100 đến 350 ms, cả cửa sổ khựng theo: mọi lần đổi trạng thái phải nạp trước bằng
         // prefetch. Còn dòng này trong nhật ký là còn chỗ quên nạp trước.
         DebugLog.write("Ove: giải nén \(name) trên luồng chính")
         guard let image = Self.load(name) else {
-            DebugLog.write("Ove: không đọc được tấm \(name).heic")
+            markBroken(name)
             return nil
         }
         return store(name, image)
     }
 
+    private func markBroken(_ name: String) {
+        guard meta?.sheets[name] != nil, broken.insert(name).inserted else { return }
+        DebugLog.write("Ove: không đọc được tấm \(name).heic (thiếu hoặc hỏng), bỏ qua tấm này tới khi mở lại app")
+    }
+
     /// Giải nén trước một tấm ở luồng phụ (tấm biểu cảm giải nén mất vài chục mili giây, làm ở luồng chính thì Ove khựng),
     /// xong thì gọi `then` ở luồng chính.
     func prefetch(_ name: String, then: @escaping @MainActor () -> Void) {
-        guard cache[name] == nil, meta?.sheets[name] != nil else { then(); return }
+        guard cache[name] == nil, meta?.sheets[name] != nil, !broken.contains(name) else { then(); return }
         DispatchQueue.global(qos: .userInitiated).async {
             let image = OveLibrary.load(name)
             DispatchQueue.main.async {
                 MainActor.assumeIsolated {
                     let lib = OveLibrary.shared
-                    if lib.cache[name] == nil, let image { lib.store(name, image) }
+                    if let image {
+                        if lib.cache[name] == nil { lib.store(name, image) }
+                    } else {
+                        lib.markBroken(name)
+                    }
                     then()
                 }
             }
         }
     }
 
-    /// Các tấm đã nằm sẵn trong bộ nhớ chưa.
-    func has(_ names: [String]) -> Bool { names.allSatisfy { cache[$0] != nil || meta?.sheets[$0] == nil } }
+    /// Các tấm đã nằm sẵn trong bộ nhớ chưa. Tấm không có hay không đọc được thì coi như xong, khỏi chờ nạp.
+    func has(_ names: [String]) -> Bool { names.allSatisfy { !needsLoad($0) } }
+
+    private func needsLoad(_ name: String) -> Bool {
+        cache[name] == nil && meta?.sheets[name] != nil && !broken.contains(name)
+    }
 
     /// Nạp trước nhiều tấm ở luồng phụ, xong hết thì gọi `then` ở luồng chính.
     func prefetchAll(_ names: [String], then: @escaping @MainActor () -> Void) {
-        var left = names.filter { cache[$0] == nil && meta?.sheets[$0] != nil }
+        var left = names.filter(needsLoad)
         guard let first = left.popLast() else { then(); return }
         prefetch(first) { [weak self] in
             guard let self else { return }
@@ -268,6 +296,14 @@ final class OveLibrary {
         let image = Self.load(name)
         ripples[name] = image
         return image
+    }
+
+    /// Đọc được phần đầu tấm `name` (có ảnh, có cỡ), không giải nén.
+    private static func readable(_ name: String) -> Bool {
+        guard let url = Bundle.main.url(forResource: name, withExtension: "heic", subdirectory: "Ove"),
+              let src = CGImageSourceCreateWithURL(url as CFURL, nil), CGImageSourceGetCount(src) > 0,
+              let props = CGImageSourceCopyPropertiesAtIndex(src, 0, nil) as? [CFString: Any] else { return false }
+        return props[kCGImagePropertyPixelWidth] != nil
     }
 
     nonisolated private static func load(_ name: String) -> CGImage? {
