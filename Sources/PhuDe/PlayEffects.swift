@@ -142,7 +142,7 @@ final class PlayEffects {
                 }
             case .anime3D where !plain, .animeCel where !plain:
                 if let d = anime(cb, cur, cel: o.upscaler == .animeCel) {
-                    stages.append(o.upscaler == .animeCel ? "Anime4K hoạt hình" : "Anime4K 3D")
+                    stages.append(o.upscaler == .animeCel ? L("Anime4K hoạt hình", "Anime4K cartoon") : "Anime4K 3D")
                     if d.width == vp.w, d.height == vp.h {
                         out = d
                     } else if let r = texture("resample", vp.w, vp.h), dispatch(cb, "fx_resample", [d, r], size: r) {
