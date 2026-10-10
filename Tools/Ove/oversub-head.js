@@ -1413,23 +1413,28 @@
   };
 
   // Rê chuột vào nút Phụ đề, Dịch màn hình hay Bắt đầu thì Ove quay đầu nhìn theo (`d` là hướng trong LOOK), rời ra thì
-  // nhìn thẳng lại sau 0,35 giây. Đang đọc, đang ngủ, đang bị cù hay đang làm biểu cảm theo sự kiện thì không quay.
+  // nhìn thẳng lại. Đang đọc, đang ngủ, đang bị cù hay đang làm biểu cảm theo sự kiện thì không quay. Chuột phải dừng trên
+  // nút 0,3 giây Ove mới quay (lướt ngang qua thì thôi), đang nhìn nút này sang nút khác chờ 0,15 giây, rời ra 0,4 giây mới
+  // nhìn thẳng lại: giống app từ 1.1.82.
   AppOve.prototype.setGaze = function (d) {
     this.gaze = d || null;
-    var self = this;
+    var self = this, mine = this.gazeGen = (this.gazeGen || 0) + 1;
     if (d) {
-      if (!(this.mood === 'idle' || this.mood === 'listening') || this.tickling) return;
-      if (this.clip && this.clip.kind !== 'fx' && this.clip.kind !== 'turn') return;
-      this.interrupt(function () {
-        if (self.gaze !== d) return;
-        self.gazing = true;
-        self.play(lookPath(self.face(), d), { kind: 'turn', onEnd: function () { self.angle = d; } });
-      });
+      setTimeout(function () {
+        if (self.gazeGen !== mine) return;
+        if (!(self.mood === 'idle' || self.mood === 'listening') || self.tickling) return;
+        if (self.clip && self.clip.kind !== 'fx' && self.clip.kind !== 'turn') return;
+        self.interrupt(function () {
+          if (self.gazeGen !== mine) return;
+          self.gazing = true;
+          self.play(lookPath(self.face(), d), { kind: 'turn', onEnd: function () { self.angle = d; } });
+        });
+      }, this.gazing ? 150 : 300);
     } else if (this.gazing) {
       setTimeout(function () {
-        if (self.gaze || !self.gazing) return;
+        if (self.gazeGen !== mine || !self.gazing) return;
         self.toFront(function () { self.gazing = false; self.flush(); });
-      }, 350);
+      }, 400);
     }
   };
 

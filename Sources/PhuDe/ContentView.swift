@@ -390,16 +390,16 @@ struct VoiceOverStage: View {
                 }
                 ScreenTranslateButton()
             }
-            // Vùng dưới hàng nút cao cố định tối thiểu: nút Bắt đầu, dòng chờ và bong bóng thoại đổi chỗ cho nhau trong vùng này,
-            // hàng nút và Ove không bị đẩy lên kéo xuống mỗi lần đổi trạng thái. Đổi nội dung thì mờ dần, đổi cỡ thì trượt mượt.
             lineArea
                 .frame(maxWidth: 660)
                 .padding(.horizontal, 24)
-                .frame(minHeight: 190, alignment: .top)
-                .animation(.smooth(duration: 0.35), value: hasLine)
-                .animation(.smooth(duration: 0.35), value: guidanceKey)
             Spacer(minLength: 8)
         }
+        // Cụm co giãn theo nội dung và luôn nằm giữa. Nút Bắt đầu, dòng chờ, bong bóng thoại cao thấp khác nhau, nên mỗi lần
+        // đổi trạng thái (hay sang câu dài ngắn khác) cả cụm trượt mượt về chỗ mới, nội dung cũ mờ đi, không nhảy bật.
+        .animation(.smooth(duration: 0.4), value: hasLine)
+        .animation(.smooth(duration: 0.4), value: guidanceKey)
+        .animation(.smooth(duration: 0.4), value: engine.lastTranslation)
     }
 
     private var hasLine: Bool { !engine.lastTranslation.isEmpty || !engine.lastSource.isEmpty }

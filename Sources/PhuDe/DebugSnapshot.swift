@@ -963,7 +963,7 @@ enum DebugSnapshot {
                 await shoot("ove-\(name)", dir: dir, window: mainWindow())
             }
             func pause(_ seconds: Double) async { try? await Task.sleep(for: .seconds(seconds)) }
-            // OVERSUB_OVE_PARTS=fx,tickle,gaze,scene,rest: chỉ chạy các phần này (mặc định chạy hết).
+            // OVERSUB_OVE_PARTS=fx,tickle,gaze,scene,start,stage,rest: chỉ chạy các phần này (mặc định chạy hết).
             let parts = env["OVERSUB_OVE_PARTS"].map { Set($0.split(separator: ",").map(String.init)) }
             func want(_ part: String) -> Bool { parts?.contains(part) ?? true }
             engine.settings.speakEnabled = true
@@ -995,6 +995,15 @@ enum DebugSnapshot {
             // Cảnh lúc rảnh: rút nhịp còn khoảng 2 đến 3,6 giây một lần để xem nhiều cảnh trong 20 giây.
             // Rê chuột vào các nút quanh Ove: Ove nhìn theo, rời ra thì nhìn thẳng lại.
             if want("gaze") {
+                // Lướt chuột ngang qua ba nút (mỗi nút 0,12 giây): Ove không quay, vẫn nhìn thẳng.
+                for (yaw, pitch) in [(-3, 0), (0, 1), (3, 0)] {
+                    OveGaze.shared.target = OveAngle(yaw: yaw, pitch: pitch)
+                    await pause(0.12)
+                    OveGaze.shared.target = nil
+                    await pause(0.05)
+                }
+                await shot("gaze-sweep", after: 0.3)
+                await pause(0.6)
                 for (name, yaw, pitch) in [("sub", -3, 0), ("screen", 3, 0), ("start", 0, 1)] {
                     OveGaze.shared.target = OveAngle(yaw: yaw, pitch: pitch)
                     await shot("gaze-\(name)", after: 1.2)
@@ -1010,6 +1019,35 @@ enum DebugSnapshot {
                 OveLayerView.debugLifeScale = 1
                 NotificationCenter.default.post(name: .oveDebugLife, object: nil)
                 await pause(3.0)
+            }
+            // Rê chuột vào nút Bắt đầu (Ove nhìn xuống) rồi bấm: nút biến mất (hết nhìn theo) cùng lúc phiên chạy.
+            if want("start") {
+                OveGaze.shared.target = OveAngle(yaw: 0, pitch: 1)
+                await shot("start-gaze", after: 1.5)
+                DebugLog.write("Thử Ove: bấm Bắt đầu")
+                engine.running = true
+                OveGaze.shared.target = nil
+                await shot("start-running", after: 2.0)
+                engine.running = wasRunning
+                await shot("start-stopped", after: 2.0)
+            }
+            // Các trạng thái của cửa sổ chính nối nhau (quay màn hình để xem cụm nút trượt mượt): Bắt đầu, chờ câu, câu ngắn,
+            // câu dài, hết câu, Dừng. Không phát tiếng.
+            if want("stage") {
+                let lines = ["Đi thôi!",
+                             "Đấy có phải là những bông hoa rực rỡ nhất mà cậu từng thấy không? Đất của Azuria tràn ngập dưỡng chất, hoàn hảo để trồng hoa đấy!"]
+                engine.running = true
+                await shot("stage-waiting", after: 1.5)
+                for (i, text) in lines.enumerated() {
+                    (engine.lastSpeaker, engine.lastSource, engine.lastTranslation) = ("Expert Farmer", text, text)
+                    await shot("stage-line-\(i)", after: 1.5)
+                }
+                (engine.lastSource, engine.lastTranslation, engine.lastSpeaker) = ("", "", nil)
+                await shot("stage-cleared", after: 1.5)
+                engine.running = false
+                await shot("stage-stopped", after: 1.5)
+                (engine.lastSource, engine.lastTranslation, engine.lastSpeaker) = saved
+                engine.running = wasRunning
             }
             guard want("rest") else {
                 engine.settings.speakEnabled = savedSpeak

@@ -713,14 +713,30 @@ final class OveLayerView: NSView {
     /// Đổi sang tấm `name`, hiện khung `frame`. Gỡ hoạt ảnh lật khung cũ, đặt hình và ô cắt trong cùng một lần cập nhật:
     /// tách làm hai lần thì có lúc hệ thống vẽ hình mới với ô cắt (hay hoạt ảnh) của tấm cũ, lộ một khung có nhiều mặt hoặc
     /// mặt bị kéo dãn (hay gặp khi đổi tấm ngay sau một hoạt ảnh vừa xong).
+    ///
+    /// Mờ chuyển: ảnh cũ mà CATransition chụp là giá trị gốc của lớp hình trong lần cập nhật trước, không tính hoạt ảnh lật
+    /// khung. Lúc một đoạn đang chạy hay vừa chạy xong trong cùng lượt (quay đầu về rồi sang mặt đang chạy, đọc xong rồi về
+    /// mặt thường, tỉnh dậy), giá trị gốc là khung đầu của đoạn đó, nên Ove lóe lại tư thế cũ rồi mờ chồng lên tư thế mới,
+    /// lộ hai cặp mắt (1.1.81, bấm Bắt đầu lúc Ove đang nhìn xuống nút). Vì vậy chốt khung đang hiện làm giá trị gốc và đẩy
+    /// lần cập nhật đó đi trước, rồi mới mờ.
     @discardableResult
     private func setSheet(_ name: String, fade: Bool, duration: Double = 0.22,
                           at frame: (OveLibrary.Sheet) -> Int = { _ in 0 }) -> OveLibrary.Sheet? {
         guard let s = lib.sheet(name) else { return nil }
         if sheetName != name {
+            let fading = fade && live
+            if fading {
+                let shown = sprite.presentation()?.contentsRect ?? sprite.contentsRect
+                CATransaction.begin()
+                CATransaction.setDisableActions(true)
+                sprite.removeAnimation(forKey: "frames")
+                sprite.contentsRect = shown
+                CATransaction.commit()
+                CATransaction.flush()
+            }
             CATransaction.begin()
             CATransaction.setDisableActions(true)
-            if fade && live {
+            if fading {
                 let t = CATransition()
                 t.type = .fade
                 t.duration = duration
@@ -1146,27 +1162,38 @@ final class OveLayerView: NSView {
     /// Đang nhìn theo nút người dùng rê chuột vào.
     private var gazing = false
     private var gaze: OveAngle?
+    /// Tăng mỗi lần chuột vào, ra một nút: lượt hẹn của lần trước tự bỏ.
+    private var gazeGen = 0
 
     /// Rê chuột vào nút Phụ đề, Dịch màn hình hay Bắt đầu thì Ove quay đầu nhìn theo (ngắt cảnh lúc rảnh), giữ ánh nhìn và
-    /// vẫn chớp mắt; rời ra thì nhìn thẳng lại sau 0,35 giây (lia chuột từ nút này sang nút khác thì quay thẳng sang). Đang
-    /// đọc, đang ngủ, đang bị cù, đang giữ nét mặt hay đang làm biểu cảm theo sự kiện thì không quay.
+    /// vẫn chớp mắt; rời ra thì nhìn thẳng lại. Đang đọc, đang ngủ, đang bị cù, đang giữ nét mặt hay đang làm biểu cảm theo
+    /// sự kiện thì không quay.
+    ///
+    /// Chuột phải dừng trên nút một nhịp (0,3 giây) Ove mới quay: lướt chuột ngang qua thì quay nửa chừng rồi quay về, trông
+    /// giật (người dùng nhận xét ở 1.1.81). Đang nhìn một nút mà chuyển sang nút khác thì chờ ngắn hơn (0,15 giây); rời khỏi
+    /// nút 0,4 giây mới nhìn thẳng lại, để lia từ nút này sang nút kia không quay về giữa rồi lại quay đi.
     private func gazeChanged() {
+        gazeGen += 1
+        let gen = moodGen, mine = gazeGen
+        let alive: @MainActor () -> Bool = { [weak self] in self?.moodGen == gen && self?.gazeGen == mine }
         if let g = gaze {
-            guard live, awake, held == nil, !tickling, resting || acting || gazing else { return }
-            let gen = moodGen
-            if gazing {
-                turn(to: g) {}
-            } else {
-                interrupt { [weak self] in
-                    guard let self, self.moodGen == gen, self.gaze == g else { return }
-                    self.gazing = true
+            after(gazing ? 0.15 : 0.3, alive: alive) { [weak self] in
+                guard let self, self.live, self.awake, self.held == nil, !self.tickling,
+                      self.resting || self.acting || self.gazing else { return }
+                if self.gazing {
                     self.turn(to: g) {}
+                } else {
+                    self.interrupt { [weak self] in
+                        guard let self, alive() else { return }
+                        self.gazing = true
+                        self.turn(to: g) {}
+                    }
                 }
             }
         } else if gazing {
-            let gen = moodGen
-            after(0.35, alive: { [weak self] in self?.moodGen == gen && self?.gaze == nil && self?.gazing == true }) { [weak self] in
-                self?.turn(to: .front) { [weak self] in
+            after(0.4, alive: alive) { [weak self] in
+                guard let self, self.gazing else { return }
+                self.turn(to: .front) { [weak self] in
                     guard let self, self.gaze == nil else { return }
                     self.gazing = false
                     self.flushSoon()

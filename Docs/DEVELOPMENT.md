@@ -342,7 +342,8 @@ dùng tới đó (khung cũ giữ động cơ cũ nếu không có lý do đổi
   thì giận (bộ đoán cảm xúc `Emotion` của giọng lồng tiếng), nhiều nhất một lần mỗi phút.
 - Chuột: bấm là bật tắt giọng đọc (ngáp rồi ngủ, tỉnh dậy); bấm dồn trong 1,6 giây bị bỏ qua, dồn tới cú thứ hai thì Ove
   chóng mặt. Rê chuột vào nút Phụ đề, Dịch màn hình hay Bắt đầu (`.oveLooks(yaw:pitch:)`, `OveGaze`) thì Ove quay đầu
-  nhìn theo, rời ra thì nhìn thẳng lại sau 0,35 giây. Rê chuột vào Ove thì như bị cù (nheo mắt >< cười khúc khích, lắc lư); rê qua lại từ ba lần trong 8 giây thì
+  nhìn theo khi chuột dừng trên nút 0,3 giây (lướt ngang qua thì không quay), đang nhìn nút này sang nút khác chờ 0,15
+  giây, rời ra 0,4 giây thì nhìn thẳng lại. Rê chuột vào Ove thì như bị cù (nheo mắt >< cười khúc khích, lắc lư); rê qua lại từ ba lần trong 8 giây thì
   lúc rời ra Ove đỏ mặt ngượng. Bản thử đầu dùng lại đoạn vui của mặt đang chạy nên đổi màu, lộ mặt kép, đã bỏ.
 - Hộp thoại có Ove (`OveFigure`): báo khởi động lại (chóng mặt), Vision vẫn treo (buồn), hộp thoại cập nhật và gửi báo lỗi
   (Ove thay biểu tượng app: có bản mới thì vui, lỗi thì buồn và giữ nét mặt), cửa sổ Ủng hộ (vui khi mở; mức cà phê cười
@@ -353,14 +354,21 @@ dùng tới đó (khung cũ giữ động cơ cũ nếu không có lý do đổi
 - Đổi tấm phải gỡ hoạt ảnh cũ, đặt hình và ô cắt trong cùng một lần cập nhật; lật khung thì giá trị gốc đặt bằng khung đầu,
   hoạt ảnh giữ khung cuối (`fillMode` forwards) rồi mới chốt. Làm khác đi thì có khung lẻ bị bóp dẹt, nhiều mặt, hay khung
   cuối lóe lên trước. Dò bằng cách quay màn hình và tìm khung khác hẳn cả hai khung kề (1.1.78: 15 khung lỗi còn 0).
+- Mờ chuyển bằng CATransition: ảnh cũ nó chụp là giá trị gốc của lớp hình ở lần cập nhật trước, không tính hoạt ảnh lật
+  khung. Đổi tấm ngay khi một đoạn vừa chạy xong (quay đầu về rồi sang mặt đang chạy) thì ảnh cũ là khung đầu của đoạn,
+  Ove lóe lại tư thế cũ rồi mờ chồng, lộ hai cặp mắt (1.1.81, bấm Bắt đầu lúc Ove nhìn xuống nút). `setSheet` chốt khung
+  đang hiện làm giá trị gốc, `CATransaction.flush()`, rồi mới mờ. Đã thử lớp chép khung cũ đè lên rồi mờ dần: hết lóe
+  nhưng viền kính trong suốt cộng hai lớp nên sáng bật lên ở khung đầu, bỏ. Đo bằng cách dò vị trí mắt theo từng khung
+  video (mắt nhảy vài chục điểm ảnh trong một khung mà hàng nút không trượt là lỗi).
 - Đang phát tiếng thì Ove đọc và nền rực theo, kể cả khi nghe thử giọng lúc giọng đọc đang tắt; đi giữa ngủ và đọc thì mờ
   chuyển nhanh, ngáp và tỉnh dậy chỉ chạy khi bấm tắt, bật giọng đọc.
 - Đo trên M1 Pro (Ove 128 điểm, cửa sổ hiện): đang đọc 0,3% một nhân, chờ khoảng 0,4%, bị che 0%.
 - Giải nén một tấm mất 100 đến 350 ms: không bao giờ làm trên luồng chính (cả cửa sổ khựng, bấm Bắt đầu từng khựng vì
   thế). Mọi lần đổi trạng thái nạp trước ở luồng phụ (`prefetchAll`); hai mặt và vòng đọc giữ sẵn trong bộ nhớ (khoảng
   63 MB), tấm biểu cảm nạp ngay trước khi dùng rồi thả ra. Nhật ký có dòng "giải nén ... trên luồng chính" là còn chỗ sót.
-- Cửa sổ chính: vùng dưới hàng nút cao tối thiểu 190 điểm, nút Bắt đầu, dòng chờ và bong bóng thoại đổi chỗ trong vùng đó
-  (mờ dần), hàng nút và Ove không bị đẩy lên kéo xuống khi đổi trạng thái.
+- Cửa sổ chính: cụm hàng nút và vùng dưới co giãn theo nội dung, luôn nằm giữa (1.1.81 thử giữ vùng dưới cao cố định 190
+  điểm thì cửa sổ thấp bị đẩy hàng nút lên sát thanh công cụ và mất dải chip dưới đáy, người dùng bác). Đổi trạng thái hay sang câu dài ngắn khác thì
+  cả cụm trượt mượt về chỗ mới (`.animation` trên cả cụm theo `hasLine`, `guidanceKey`, câu đang hiện).
 
 Dựng lại bộ hình sau khi sửa `oversub-head.js` hay `export.html`:
 
@@ -396,7 +404,7 @@ Các móc thử chỉ có trong bản dựng `OVERSUB_DEV=1 ./build.sh` (`DebugS
 | `OVERSUB_LOG_ROTATE_TEST=<số dòng>` kèm `OVERSUB_LOG_ROTATE_BYTES=<byte>`, `OVERSUB_LOG_DIR=<thư mục>` | Ghi liền từng ấy dòng đánh số với ngưỡng xoay nhỏ, vào thư mục tạm để không đụng nhật ký thật (xoay ngay trên nhật ký thật sẽ đè mất `debug.1.log` của các buổi chơi trước). Đạt khi `debug.1.log` không vượt ngưỡng quá một dòng và số dòng ở cuối `debug.1.log` nối liền đầu `debug.log`. Thêm `OVERSUB_REPORT_TEST=1` để xem gói báo lỗi có kèm `debug.1.log`. `OVERSUB_LOG_ROTATE_BYTES` và `OVERSUB_LOG_DIR` dùng được với mọi bài thử khác. |
 | `OVERSUB_UPDATE_PROMPT_TEST=1` | Như bấm Kiểm tra cập nhật… ở menu, dùng `OVERSUB_UPDATE_FEED` (và `OVERSUB_UPDATE_LIST` dạng danh sách bản phát hành); chụp hộp thoại vào `OVERSUB_SHOT_DIR`. |
 | `OVERSUB_SHOT_DIR=<thư mục>` | Nơi các móc thử mới lưu ảnh chụp, không kéo theo lượt chụp toàn bộ giao diện như `OVERSUB_SNAPSHOT_DIR`. |
-| `OVERSUB_OVE_TEST=1` (kèm `OVERSUB_SHOT_DIR`, có thể kèm `OVERSUB_OVE_PARTS=fx,tickle,gaze,scene,rest`) | Thử Ove: chờ, nhìn quanh (nhịp rút ngắn), tắt giọng đọc (ngáp rồi ngủ), nghe thử giọng lúc ngủ, bật lại (tỉnh dậy), nghe, đọc một câu có tiếng cười rồi đọc xong (sóng lặn, Ove vui), buồn, giận, khóc theo sự kiện, và chóng mặt xếp chờ lúc đang đọc; mỗi bước chụp cửa sổ chính, xong trả công tắc giọng đọc như cũ. `OVERSUB_OVE_HOLD=<giây>` giữ trạng thái chờ và đang đọc lâu hơn để đo CPU. Cửa sổ phải lộ ra: bị che thì Ove dừng hoạt ảnh (đúng thiết kế) và ảnh biểu cảm sẽ đứng yên. |
+| `OVERSUB_OVE_TEST=1` (kèm `OVERSUB_SHOT_DIR`, có thể kèm `OVERSUB_OVE_PARTS=fx,tickle,gaze,scene,start,stage,rest`) | Thử Ove: chờ, nhìn quanh (nhịp rút ngắn), tắt giọng đọc (ngáp rồi ngủ), nghe thử giọng lúc ngủ, bật lại (tỉnh dậy), nghe, đọc một câu có tiếng cười rồi đọc xong (sóng lặn, Ove vui), buồn, giận, khóc theo sự kiện, và chóng mặt xếp chờ lúc đang đọc; phần `gaze` có lượt lướt chuột nhanh qua ba nút (Ove không được quay); phần `start` cho Ove nhìn xuống nút Bắt đầu rồi bấm; phần `stage` nối các trạng thái cửa sổ chính (Bắt đầu, chờ câu, câu ngắn, câu dài, hết câu, Dừng) để quay xem cụm nút trượt; mỗi bước chụp cửa sổ chính, xong trả công tắc giọng đọc như cũ. `OVERSUB_OVE_HOLD=<giây>` giữ trạng thái chờ và đang đọc lâu hơn để đo CPU. Cửa sổ phải lộ ra: bị che thì Ove dừng hoạt ảnh (đúng thiết kế) và ảnh biểu cảm sẽ đứng yên. |
 | `OVERSUB_DONATE_OVE_TEST=1` (kèm `OVERSUB_SHOT_DIR`, có thể kèm `OVERSUB_DONATE_OVE_DELAY=<giây>`) | Mở cửa sổ Ủng hộ, chọn lần lượt mức cà phê, bữa trưa, tuỳ bạn, bữa sáng để xem Ove đổi thái độ; mỗi bước chụp cửa sổ. |
 | `OVERSUB_REGION_STATE=<phụ đề>,<số vùng dịch>` | Đổi tên các nút vùng như khi có hoặc chưa có vùng (ví dụ `0,0`, `1,2`, `1,3`) để chụp, không đụng vùng thật. |
 | `OVERSUB_DUB_TEST=1`, `voiceover`, `gemini` | Thử ba đường phát giọng, một câu Voice-over, một câu Gemini (tốn một lượt). |
