@@ -963,7 +963,7 @@ enum DebugSnapshot {
                 await shoot("ove-\(name)", dir: dir, window: mainWindow())
             }
             func pause(_ seconds: Double) async { try? await Task.sleep(for: .seconds(seconds)) }
-            // OVERSUB_OVE_PARTS=fx,tickle,scene,rest: chỉ chạy các phần này (mặc định chạy hết).
+            // OVERSUB_OVE_PARTS=fx,tickle,gaze,scene,rest: chỉ chạy các phần này (mặc định chạy hết).
             let parts = env["OVERSUB_OVE_PARTS"].map { Set($0.split(separator: ",").map(String.init)) }
             func want(_ part: String) -> Bool { parts?.contains(part) ?? true }
             engine.settings.speakEnabled = true
@@ -993,6 +993,16 @@ enum DebugSnapshot {
             await pause(2.6)
             }
             // Cảnh lúc rảnh: rút nhịp còn khoảng 2 đến 3,6 giây một lần để xem nhiều cảnh trong 20 giây.
+            // Rê chuột vào các nút quanh Ove: Ove nhìn theo, rời ra thì nhìn thẳng lại.
+            if want("gaze") {
+                for (name, yaw, pitch) in [("sub", -3, 0), ("screen", 3, 0), ("start", 0, 1)] {
+                    OveGaze.shared.target = OveAngle(yaw: yaw, pitch: pitch)
+                    await shot("gaze-\(name)", after: 1.2)
+                }
+                OveGaze.shared.target = nil
+                await shot("gaze-off", after: 1.2)
+                await pause(1.0)
+            }
             if want("scene") {
                 OveLayerView.debugLifeScale = 0.4
                 NotificationCenter.default.post(name: .oveDebugLife, object: nil)

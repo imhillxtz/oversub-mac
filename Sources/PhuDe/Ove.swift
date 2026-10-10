@@ -69,6 +69,24 @@ extension Notification.Name {
     #endif
 }
 
+/// Nút đang được rê chuột quanh Ove trên cửa sổ chính (Phụ đề, Dịch màn hình, Bắt đầu): Ove quay đầu nhìn theo.
+@MainActor
+final class OveGaze: ObservableObject {
+    static let shared = OveGaze()
+    @Published var target: OveAngle?
+}
+
+extension View {
+    /// Rê chuột vào thì Ove nhìn về phía view này (`yaw`, `pitch` theo nấc của bộ quay đầu); rời ra hay view biến mất thì thôi.
+    func oveLooks(yaw: Int, pitch: Int) -> some View {
+        let a = OveAngle(yaw: yaw, pitch: pitch)
+        return onHover { on in
+            if on { OveGaze.shared.target = a } else if OveGaze.shared.target == a { OveGaze.shared.target = nil }
+        }
+        .onDisappear { if OveGaze.shared.target == a { OveGaze.shared.target = nil } }
+    }
+}
+
 /// Hướng đầu: `yaw` theo nấc 0,15 rad (khoảng 9°; dương là nhìn sang phải màn hình), `pitch` theo nấc 0,18 rad (âm là ngước
 /// lên). Chỉ các hướng có trong bộ quay đầu (`look` trong ove.json) mới dùng được.
 struct OveAngle: Equatable {
@@ -250,6 +268,8 @@ struct OveView: NSViewRepresentable {
     var appEvents = false
     /// Chuột đang nằm trên Ove: Ove như bị cù.
     var hovered = false
+    /// Chuột đang nằm trên một nút quanh Ove: Ove nhìn về phía đó.
+    var gaze: OveAngle? = nil
     var poke: OvePoke? = nil
     @Environment(\.colorScheme) private var scheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -258,7 +278,7 @@ struct OveView: NSViewRepresentable {
     func makeNSView(context: Context) -> OveLayerView { OveLayerView(size: size) }
     func updateNSView(_ view: OveLayerView, context: Context) {
         view.configure(.init(mood: mood, dark: scheme == .dark, animating: animating, still: reduceMotion, cue: cue,
-                             story: story, appEvents: appEvents, hovered: hovered, poke: poke))
+                             story: story, appEvents: appEvents, hovered: hovered, gaze: gaze, poke: poke))
     }
 }
 
@@ -291,6 +311,7 @@ final class OveLayerView: NSView {
         var story: OveReaction?
         var appEvents: Bool
         var hovered: Bool
+        var gaze: OveAngle?
         var poke: OvePoke?
     }
 
@@ -473,6 +494,10 @@ final class OveLayerView: NSView {
             hovered = input.hovered
             hoverChanged()
         }
+        if input.gaze != gaze {
+            gaze = input.gaze
+            gazeChanged()
+        }
         if first {
             after(1.2, alive: { true }) { [weak self] in self?.greet() }
         }
@@ -491,7 +516,7 @@ final class OveLayerView: NSView {
     private var awake: Bool { mood == .idle || mood == .listening }
     /// Đứng chờ ở bộ quay đầu, không bận đoạn nào: được chớp mắt, nhìn quanh, làm nét mặt.
     private var resting: Bool {
-        guard live, awake, !inClip, held == nil, !acting else { return false }
+        guard live, awake, !inClip, held == nil, !acting, !gazing else { return false }
         if case .face = showing { return true }
         return false
     }
@@ -514,6 +539,11 @@ final class OveLayerView: NSView {
         moodGen += 1
         lifeGen += 1
         cancelScene()
+        gazing = false
+        let gen = moodGen
+        after(0.8, alive: { [weak self] in self?.moodGen == gen }) { [weak self] in
+            if self?.gaze != nil { self?.gazeChanged() }
+        }
         tickling = false
         tickleLooping = false
         // Đang làm dở nét mặt thì tua ngược về mặt thường, đang nghiêng đầu nhìn quanh thì quay về nhìn thẳng, rồi mới chuyển:
@@ -951,6 +981,7 @@ final class OveLayerView: NSView {
     /// về mặt thường, đang nhìn đi chỗ khác thì quay về nhìn thẳng rồi mới làm `then`.
     private func interrupt(_ then: @escaping () -> Void) {
         cancelScene()
+        gazing = false
         if inClip, showing == .clip, rewindable {
             rewind { [weak self] in self?.toFront(then) }
         } else {
@@ -1007,7 +1038,7 @@ final class OveLayerView: NSView {
         if hovered {
             hoverEnters = hoverEnters.filter { Date().timeIntervalSince($0) < 8 } + [Date()]
             if tickling { bounce(); return }
-            guard live, awake, held == nil, resting || acting else { return }
+            guard live, awake, held == nil, resting || acting || gazing else { return }
             interrupt { [weak self] in self?.startTickle() }
         } else if tickleLooping {
             endTickle()
@@ -1064,6 +1095,40 @@ final class OveLayerView: NSView {
                 self.startScene([.fx(.shy)])
             } else {
                 self.flushSoon()
+            }
+        }
+    }
+
+    // MARK: Nhìn theo nút
+
+    /// Đang nhìn theo nút người dùng rê chuột vào.
+    private var gazing = false
+    private var gaze: OveAngle?
+
+    /// Rê chuột vào nút Phụ đề, Dịch màn hình hay Bắt đầu thì Ove quay đầu nhìn theo (ngắt cảnh lúc rảnh), giữ ánh nhìn và
+    /// vẫn chớp mắt; rời ra thì nhìn thẳng lại sau 0,35 giây (lia chuột từ nút này sang nút khác thì quay thẳng sang). Đang
+    /// đọc, đang ngủ, đang bị cù, đang giữ nét mặt hay đang làm biểu cảm theo sự kiện thì không quay.
+    private func gazeChanged() {
+        if let g = gaze {
+            guard live, awake, held == nil, !tickling, resting || acting || gazing else { return }
+            let gen = moodGen
+            if gazing {
+                turn(to: g) {}
+            } else {
+                interrupt { [weak self] in
+                    guard let self, self.moodGen == gen, self.gaze == g else { return }
+                    self.gazing = true
+                    self.turn(to: g) {}
+                }
+            }
+        } else if gazing {
+            let gen = moodGen
+            after(0.35, alive: { [weak self] in self?.moodGen == gen && self?.gaze == nil && self?.gazing == true }) { [weak self] in
+                self?.turn(to: .front) { [weak self] in
+                    guard let self, self.gaze == nil else { return }
+                    self.gazing = false
+                    self.flushSoon()
+                }
             }
         }
     }

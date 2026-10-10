@@ -196,6 +196,7 @@ struct MascotButton: View {
     @State private var extraTaps = 0
     @State private var ove: OvePoke?
     @State private var hovering = false
+    @ObservedObject private var gaze = OveGaze.shared
 
     var body: some View {
         let on = settings.speakEnabled
@@ -213,7 +214,7 @@ struct MascotButton: View {
                 if OveLibrary.shared.available {
                     let last = engine.transcript.last
                     OveView(mood: mood, size: orbRowHeight, cue: last?.id, story: last.flatMap { OveReaction.story($0.source) },
-                            appEvents: true, hovered: hovering, poke: ove)
+                            appEvents: true, hovered: hovering, gaze: gaze.target, poke: ove)
                         .frame(width: orbRowHeight, height: orbRowHeight)
                 } else {
                     Mascot(mood: mood, size: orbRowHeight, cue: engine.transcript.last?.id)

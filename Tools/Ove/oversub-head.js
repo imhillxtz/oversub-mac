@@ -1193,7 +1193,7 @@
   AppOve.prototype.asleepPose = function () { var y = yawnClip(this.dark); return y[y.length - 1]; };
   AppOve.prototype.resting = function () {
     var awake = this.mood === 'idle' || this.mood === 'listening';
-    return awake && !this.clip && !this.acting && !this.tickling && this.angle[0] === 0 && this.angle[1] === 0;
+    return awake && !this.clip && !this.acting && !this.tickling && !this.gazing && this.angle[0] === 0 && this.angle[1] === 0;
   };
 
   // Chạy một đoạn; `step` > 1 là tua nhanh (tua ngược khi bị ngắt). Xong thì giữ khung cuối làm tư thế đứng.
@@ -1226,7 +1226,7 @@
     this.play(path, { kind: 'turn', onEnd: function () { self.angle = [0, 0]; then(); } });
   };
   AppOve.prototype.interrupt = function (then) {
-    this.sceneId++; this.acting = false; this.wait = null;
+    this.sceneId++; this.acting = false; this.wait = null; this.gazing = false;
     var self = this;
     if (this.clip && this.clip.kind !== 'speak' && this.clip.kind !== 'sleep') this.rewind(function () { self.toFront(then); });
     else this.toFront(then);
@@ -1377,6 +1377,7 @@
       this.hoverEnters = this.hoverEnters.filter(function (x) { return t - x < 8; }).concat([t]);
       if (this.tickling) { this.bounceAt = t; return; }
       if (!(this.mood === 'idle' || this.mood === 'listening')) return;
+      this.gaze = null;
       if (this.clip && this.clip.kind !== 'fx' && this.clip.kind !== 'turn') return;
       this.interrupt(function () { self.startTickle(); });
     } else if (this.tickling && this.clip && this.clip.kind === 'tickle-loop') {
@@ -1406,6 +1407,27 @@
       self.pose = standing(kind);
       if (shy) { self.hoverEnters = []; self.scene([{ fx: 'shy' }]); } else self.flush();
     } });
+  };
+
+  // Rê chuột vào nút Phụ đề, Dịch màn hình hay Bắt đầu thì Ove quay đầu nhìn theo (`d` là hướng trong LOOK), rời ra thì
+  // nhìn thẳng lại sau 0,35 giây. Đang đọc, đang ngủ, đang bị cù hay đang làm biểu cảm theo sự kiện thì không quay.
+  AppOve.prototype.setGaze = function (d) {
+    this.gaze = d || null;
+    var self = this;
+    if (d) {
+      if (!(this.mood === 'idle' || this.mood === 'listening') || this.tickling) return;
+      if (this.clip && this.clip.kind !== 'fx' && this.clip.kind !== 'turn') return;
+      this.interrupt(function () {
+        if (self.gaze !== d) return;
+        self.gazing = true;
+        self.play(lookPath(self.face(), d), { kind: 'turn', onEnd: function () { self.angle = d; } });
+      });
+    } else if (this.gazing) {
+      setTimeout(function () {
+        if (self.gaze || !self.gazing) return;
+        self.toFront(function () { self.gazing = false; self.flush(); });
+      }, 350);
+    }
   };
 
   // Bấm: bật tắt giọng đọc như nút trong app; bấm dồn trong lúc đang ngáp hay tỉnh thì bỏ qua, dồn tới cú thứ hai thì Ove

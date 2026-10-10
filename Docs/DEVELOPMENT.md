@@ -341,7 +341,8 @@ dùng tới đó (khung cũ giữ động cơ cũ nếu không có lý do đổi
 - Phản ứng theo câu thoại: đọc xong một câu mà 1,2 giây không có câu nối tiếp, câu cười thì vui, câu buồn thì buồn, câu hét
   thì giận (bộ đoán cảm xúc `Emotion` của giọng lồng tiếng), nhiều nhất một lần mỗi phút.
 - Chuột: bấm là bật tắt giọng đọc (ngáp rồi ngủ, tỉnh dậy); bấm dồn trong 1,6 giây bị bỏ qua, dồn tới cú thứ hai thì Ove
-  chóng mặt. Rê chuột vào thì Ove như bị cù (nheo mắt >< cười khúc khích, lắc lư); rê qua lại từ ba lần trong 8 giây thì
+  chóng mặt. Rê chuột vào nút Phụ đề, Dịch màn hình hay Bắt đầu (`.oveLooks(yaw:pitch:)`, `OveGaze`) thì Ove quay đầu
+  nhìn theo, rời ra thì nhìn thẳng lại sau 0,35 giây. Rê chuột vào Ove thì như bị cù (nheo mắt >< cười khúc khích, lắc lư); rê qua lại từ ba lần trong 8 giây thì
   lúc rời ra Ove đỏ mặt ngượng. Bản thử đầu dùng lại đoạn vui của mặt đang chạy nên đổi màu, lộ mặt kép, đã bỏ.
 - Hộp thoại có Ove (`OveFigure`): báo khởi động lại (chóng mặt), Vision vẫn treo (buồn), hộp thoại cập nhật và gửi báo lỗi
   (Ove thay biểu tượng app: có bản mới thì vui, lỗi thì buồn và giữ nét mặt), cửa sổ Ủng hộ (vui khi mở; mức cà phê cười
@@ -391,7 +392,7 @@ Các móc thử chỉ có trong bản dựng `OVERSUB_DEV=1 ./build.sh` (`DebugS
 | `OVERSUB_LOG_ROTATE_TEST=<số dòng>` kèm `OVERSUB_LOG_ROTATE_BYTES=<byte>`, `OVERSUB_LOG_DIR=<thư mục>` | Ghi liền từng ấy dòng đánh số với ngưỡng xoay nhỏ, vào thư mục tạm để không đụng nhật ký thật (xoay ngay trên nhật ký thật sẽ đè mất `debug.1.log` của các buổi chơi trước). Đạt khi `debug.1.log` không vượt ngưỡng quá một dòng và số dòng ở cuối `debug.1.log` nối liền đầu `debug.log`. Thêm `OVERSUB_REPORT_TEST=1` để xem gói báo lỗi có kèm `debug.1.log`. `OVERSUB_LOG_ROTATE_BYTES` và `OVERSUB_LOG_DIR` dùng được với mọi bài thử khác. |
 | `OVERSUB_UPDATE_PROMPT_TEST=1` | Như bấm Kiểm tra cập nhật… ở menu, dùng `OVERSUB_UPDATE_FEED` (và `OVERSUB_UPDATE_LIST` dạng danh sách bản phát hành); chụp hộp thoại vào `OVERSUB_SHOT_DIR`. |
 | `OVERSUB_SHOT_DIR=<thư mục>` | Nơi các móc thử mới lưu ảnh chụp, không kéo theo lượt chụp toàn bộ giao diện như `OVERSUB_SNAPSHOT_DIR`. |
-| `OVERSUB_OVE_TEST=1` (kèm `OVERSUB_SHOT_DIR`) | Thử Ove: chờ, nhìn quanh (nhịp rút ngắn), tắt giọng đọc (ngáp rồi ngủ), nghe thử giọng lúc ngủ, bật lại (tỉnh dậy), nghe, đọc một câu có tiếng cười rồi đọc xong (sóng lặn, Ove vui), buồn, giận, khóc theo sự kiện, và chóng mặt xếp chờ lúc đang đọc; mỗi bước chụp cửa sổ chính, xong trả công tắc giọng đọc như cũ. `OVERSUB_OVE_HOLD=<giây>` giữ trạng thái chờ và đang đọc lâu hơn để đo CPU. Cửa sổ phải lộ ra: bị che thì Ove dừng hoạt ảnh (đúng thiết kế) và ảnh biểu cảm sẽ đứng yên. |
+| `OVERSUB_OVE_TEST=1` (kèm `OVERSUB_SHOT_DIR`, có thể kèm `OVERSUB_OVE_PARTS=fx,tickle,gaze,scene,rest`) | Thử Ove: chờ, nhìn quanh (nhịp rút ngắn), tắt giọng đọc (ngáp rồi ngủ), nghe thử giọng lúc ngủ, bật lại (tỉnh dậy), nghe, đọc một câu có tiếng cười rồi đọc xong (sóng lặn, Ove vui), buồn, giận, khóc theo sự kiện, và chóng mặt xếp chờ lúc đang đọc; mỗi bước chụp cửa sổ chính, xong trả công tắc giọng đọc như cũ. `OVERSUB_OVE_HOLD=<giây>` giữ trạng thái chờ và đang đọc lâu hơn để đo CPU. Cửa sổ phải lộ ra: bị che thì Ove dừng hoạt ảnh (đúng thiết kế) và ảnh biểu cảm sẽ đứng yên. |
 | `OVERSUB_DONATE_OVE_TEST=1` (kèm `OVERSUB_SHOT_DIR`, có thể kèm `OVERSUB_DONATE_OVE_DELAY=<giây>`) | Mở cửa sổ Ủng hộ, chọn lần lượt mức cà phê, bữa trưa, tuỳ bạn, bữa sáng để xem Ove đổi thái độ; mỗi bước chụp cửa sổ. |
 | `OVERSUB_REGION_STATE=<phụ đề>,<số vùng dịch>` | Đổi tên các nút vùng như khi có hoặc chưa có vùng (ví dụ `0,0`, `1,2`, `1,3`) để chụp, không đụng vùng thật. |
 | `OVERSUB_DUB_TEST=1`, `voiceover`, `gemini` | Thử ba đường phát giọng, một câu Voice-over, một câu Gemini (tốn một lượt). |

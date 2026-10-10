@@ -456,10 +456,12 @@ struct VoiceOverStage: View {
                     Label(L("Thêm vùng phụ đề", "Add subtitle region"), systemImage: "viewfinder")
                 }
                 .buttonStyle(SecondaryCTAStyle())
+                .oveLooks(yaw: 0, pitch: 1)
                 Text(L("Kéo quanh chỗ phụ đề hiện ra trong game · \(HotkeyCenter.Action.selectRegion.display)", "Drag around where subtitles appear in the game · \(HotkeyCenter.Action.selectRegion.display)")).font(.caption).foregroundStyle(.secondary)
             } else if !engine.anyRunning {
                 Button { engine.startAll() } label: { Label(L("Bắt đầu", "Start"), systemImage: "play.fill") }
                     .buttonStyle(CTAButtonStyle())
+                    .oveLooks(yaw: 0, pitch: 1)
                 Text(L("⌘R · hoặc \(HotkeyCenter.Action.toggleRunning.display) ngay trong game", "⌘R · or \(HotkeyCenter.Action.toggleRunning.display) right in the game")).font(.caption).foregroundStyle(.secondary)
             } else if !engine.gameInFront {
                 Label(L("Đang chờ \(settings.gameAppName ?? "game") trở lại phía trước", "Waiting for \(settings.gameAppName ?? "game") to come back to the front"), systemImage: "pause.circle")
@@ -491,6 +493,7 @@ struct SubButton: View {
                     .contentTransition(.symbolEffect(.replace))
             }
             .buttonStyle(GlassOrbStyle(on: on, active: engine.running))
+            .oveLooks(yaw: -3, pitch: 0)
             .frame(height: orbRowHeight)
             VStack(spacing: 2) {
                 Text(L("Phụ đề", "Subtitles")).font(.headline)
@@ -524,6 +527,7 @@ struct ScreenTranslateButton: View {
                     .shadow(color: .black.opacity(on ? 0.18 : 0), radius: 2, y: 1)
             }
             .buttonStyle(GlassOrbStyle(on: on, active: engine.screenTranslateOn))
+            .oveLooks(yaw: 3, pitch: 0)
             .frame(height: orbRowHeight)
             VStack(spacing: 2) {
                 Text(L("Dịch màn hình", "Screen translation")).font(.headline)
