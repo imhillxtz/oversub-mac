@@ -71,7 +71,7 @@ private struct UpdatePromptView: View {
     /// Nét mặt của Ove theo trạng thái: có bản mới hay đã là bản mới nhất thì vui, cập nhật lỗi thì buồn và giữ nét mặt.
     private var oveAction: OvePoke.Action {
         switch u.state {
-        case .failed: return .hold(.sad)
+        case .failed: return AppPaths.isBeta ? .calm : .hold(.sad)
         case .upToDate, .available, .downloading, .ready, .installing: return .express(.happy)
         case .idle, .checking: return .calm
         }
@@ -99,6 +99,20 @@ private struct UpdatePromptView: View {
                     .buttonStyle(DialogButtonStyle())
                     .keyboardShortcut(.cancelAction)
             }
+        case .failed where AppPaths.isBeta:
+            DialogHeader(title: L("Bản Beta cập nhật bằng tay", "The Beta updates manually"),
+                         message: L("Bạn đang dùng bản Beta \(Updater.currentVersion). Bản Beta không tự cập nhật: tải bản Beta mới ở trang phát hành rồi cài đè lên.",
+                                    "You're on Beta \(Updater.currentVersion). The Beta doesn't update itself: download the new Beta from the Releases page and install it over this one."))
+            HStack(spacing: 8) {
+                Link(L("Mở trang phát hành", "Open Releases Page"),
+                     destination: URL(string: "https://github.com/\(Updater.repo)/releases")!)
+                    .font(.callout)
+                Spacer(minLength: 8)
+                Button(L("Đóng", "Close"), action: close)
+                    .buttonStyle(DialogButtonStyle())
+                    .keyboardShortcut(.cancelAction)
+            }
+            .padding(.top, 4)
         case .failed(let detail):
             DialogHeader(title: L("Chưa cập nhật được", "Couldn't update"),
                          message: L("Vui lòng kiểm tra kết nối mạng rồi bấm Thử lại, hoặc tải bản mới ở trang phát hành.",

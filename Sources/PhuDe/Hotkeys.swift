@@ -113,14 +113,41 @@ final class HotkeyCenter {
     private var refs: [EventHotKeyRef] = []
     private var handlers: [UInt32: () -> Void] = [:]
     private var installed = false
+    /// Chỉ dùng ở bản Beta: bản chính đang chạy thì bản Beta không giữ phím tắt nào.
+    private var mainAppRunning = false
+    private var watchingMainApp = false
 
     func register(_ action: Action, handler: @escaping () -> Void) {
         installHandlerIfNeeded()
+        watchMainAppIfNeeded()
         handlers[action.rawValue] = handler
         bind(action)
     }
 
+    /// macOS giao một tổ hợp phím cho mọi app đã đăng ký nó, nên bản Beta chạy cạnh bản chính thì một lần bấm làm cả hai
+    /// cùng bắt đầu / dừng. Bản Beta nhường phím tắt khi bản chính đang mở và nhận lại khi bản chính tắt.
+    private func watchMainAppIfNeeded() {
+        guard AppPaths.isBeta, !watchingMainApp else { return }
+        watchingMainApp = true
+        mainAppRunning = !NSRunningApplication.runningApplications(withBundleIdentifier: AppPaths.mainBundleID).isEmpty
+        if mainAppRunning { DebugLog.write("Phím tắt: bản chính đang chạy, bản Beta nhường phím tắt") }
+        let nc = NSWorkspace.shared.notificationCenter
+        for (name, launched) in [(NSWorkspace.didLaunchApplicationNotification, true), (NSWorkspace.didTerminateApplicationNotification, false)] {
+            nc.addObserver(forName: name, object: nil, queue: .main) { note in
+                let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+                guard app?.bundleIdentifier == AppPaths.mainBundleID else { return }
+                MainActor.assumeIsolated {
+                    DebugLog.write(launched ? "Phím tắt: bản chính vừa mở, bản Beta nhường phím tắt"
+                                            : "Phím tắt: bản chính đã tắt, bản Beta nhận lại phím tắt")
+                    HotkeyCenter.shared.mainAppRunning = launched
+                    HotkeyCenter.shared.rebind()
+                }
+            }
+        }
+    }
+
     private func bind(_ action: Action) {
+        guard !mainAppRunning else { return }
         var ref: EventHotKeyRef?
         let id = EventHotKeyID(signature: OSType(0x4F565342), id: action.rawValue)   // 'OVSB'
         let combo = action.combo

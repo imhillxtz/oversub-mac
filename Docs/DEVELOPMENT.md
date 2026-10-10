@@ -25,7 +25,7 @@ Bundle id vẫn là `vn.imhillxtz.phude`, tên từ thời app còn gọi là Ph
 
 Nhánh `beta` dùng để làm tính năng mới; ổn định thì gộp vào `main` rồi mới phát hành. `OVERSUB_BETA=1` dựng app tên "OverSub Beta" với mã định danh `vn.imhillxtz.phude.beta`, chỉ đổi trong bản dựng, `Info.plist` của kho giữ nguyên. Nhờ vậy bản Beta cài cạnh bản chính mà không đụng nhau: cài đặt, dữ liệu (`~/Library/Application Support/OverSub Beta`), nhật ký (`~/Library/Logs/OverSub Beta`) và quyền Ghi màn hình đều riêng. Lần mở đầu, bản Beta chép cài đặt và dữ liệu của bản chính sang (`AppPaths.seedBetaDefaults`), bản chính không bị đổi gì.
 
-Bản Beta không tự cập nhật, vì bản phát hành chính có mã định danh khác và cài đè sẽ thay mất bản Beta. Phát hành bản Beta trên GitHub thì dùng `gh release create … --prerelease`: app bản chính bỏ qua pre-release. Phím tắt toàn cục chỉ đăng ký được ở một app, nên khi bản chính đang chạy thì phím tắt của bản Beta không có tác dụng.
+Bản Beta không tự cập nhật, vì bản phát hành chính có mã định danh khác và cài đè sẽ thay mất bản Beta. Phát hành bản Beta trên GitHub thì dùng `gh release create … --prerelease`: app bản chính bỏ qua pre-release. macOS giao một phím tắt toàn cục cho mọi app đã đăng ký nó, nên bản Beta nhường phím tắt khi bản chính đang mở và tự nhận lại khi bản chính tắt (`HotkeyCenter.watchMainAppIfNeeded`). Hộp thoại "Kiểm tra cập nhật" của bản Beta chỉ đường tới trang phát hành.
 
 Mỗi bản giao cho người dùng đều phải tăng số phiên bản (`package.sh` tự tăng số cuối và số build trong `Info.plist`).
 
