@@ -13,11 +13,19 @@ App dịch sang 12 ngôn ngữ: tiếng Việt (mặc định), English, 简体�
 OVERSUB_DEV=1 ./build.sh            # kèm công cụ tự kiểm tra (DebugSnapshot)
 ./package.sh                        # tăng phiên bản, dựng, đóng .dmg, ký → dist/
 ./package.sh 1.2.0                  # chỉ định phiên bản
+OVERSUB_BETA=1 ./build.sh           # bản Beta cài song song: "OverSub Beta.app"
+OVERSUB_BETA=1 ./package.sh 1.2.0   # đóng gói bản Beta → dist/OverSub-Beta-<ver>.dmg
 ```
 
 SwiftPM với Command Line Tools là đủ để dựng. Nếu máy có Xcode ở `/Applications/Xcode.app`, `build.sh` dùng `actool` của Xcode để biên dịch icon kính; không có thì app dùng icon phẳng. Không đổi `xcode-select`, script tự trỏ `DEVELOPER_DIR`.
 
 Bundle id vẫn là `vn.imhillxtz.phude`, tên từ thời app còn gọi là Phụ Đề Dịch. Giữ nguyên để người dùng cũ không mất quyền Ghi màn hình và cài đặt. App được ký tạm theo định danh cố định (`designated => identifier "vn.imhillxtz.phude"`), nên mỗi lần dựng lại macOS không coi là app mới và quyền Ghi màn hình còn nguyên.
+
+### Bản Beta
+
+Nhánh `beta` dùng để làm tính năng mới; ổn định thì gộp vào `main` rồi mới phát hành. `OVERSUB_BETA=1` dựng app tên "OverSub Beta" với mã định danh `vn.imhillxtz.phude.beta`, chỉ đổi trong bản dựng, `Info.plist` của kho giữ nguyên. Nhờ vậy bản Beta cài cạnh bản chính mà không đụng nhau: cài đặt, dữ liệu (`~/Library/Application Support/OverSub Beta`), nhật ký (`~/Library/Logs/OverSub Beta`) và quyền Ghi màn hình đều riêng. Lần mở đầu, bản Beta chép cài đặt và dữ liệu của bản chính sang (`AppPaths.seedBetaDefaults`), bản chính không bị đổi gì.
+
+Bản Beta không tự cập nhật, vì bản phát hành chính có mã định danh khác và cài đè sẽ thay mất bản Beta. Phát hành bản Beta trên GitHub thì dùng `gh release create … --prerelease`: app bản chính bỏ qua pre-release. Phím tắt toàn cục chỉ đăng ký được ở một app, nên khi bản chính đang chạy thì phím tắt của bản Beta không có tác dụng.
 
 Mỗi bản giao cho người dùng đều phải tăng số phiên bản (`package.sh` tự tăng số cuối và số build trong `Info.plist`).
 

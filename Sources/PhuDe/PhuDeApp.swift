@@ -6,11 +6,13 @@ import Combine
 @MainActor
 final class AppModel {
     static let shared = AppModel()
-    let settings = AppSettings.shared
+    let settings: AppSettings
     let hub: TranslationHub
     let engine: Engine
 
     private init() {
+        AppPaths.seedBetaDefaults()
+        settings = AppSettings.shared
         Speaker.setProcessLanguage(settings.target.base)
         hub = TranslationHub(settings: settings)
         engine = Engine(settings: settings, hub: hub)

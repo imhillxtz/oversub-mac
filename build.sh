@@ -6,11 +6,19 @@ cd "$(dirname "$0")"
 FLAGS=()
 [[ -n "$OVERSUB_DEV" ]] && FLAGS=(-Xswiftc -DDEVTOOLS)
 swift build -c release $FLAGS
+# OVERSUB_BETA=1 ./build.sh: dựng "OverSub Beta.app" với mã định danh riêng, cài song song với bản chính
+# (cài đặt, dữ liệu, nhật ký, quyền Ghi màn hình đều tách riêng; không tự cập nhật). Info.plist trong kho không đổi.
+BUNDLE_ID=vn.imhillxtz.phude
 APP=OverSub.app
+if [[ -n "$OVERSUB_BETA" ]]; then BUNDLE_ID=$BUNDLE_ID.beta; APP="OverSub Beta.app"; fi
 rm -rf "$APP" PhuDeDich.app
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$(swift build -c release $FLAGS --show-bin-path)/OverSub" "$APP/Contents/MacOS/OverSub"
 cp Info.plist "$APP/Contents/Info.plist"
+if [[ -n "$OVERSUB_BETA" ]]; then
+  /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID" -c "Set :CFBundleName OverSub Beta" \
+    -c "Set :CFBundleDisplayName OverSub Beta" "$APP/Contents/Info.plist"
+fi
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 # Ove: các tấm khung hình dựng sẵn (Tools/Ove tạo ra) và bảng mô tả của chúng.
 cp -R Resources/Ove "$APP/Contents/Resources/Ove"
@@ -29,5 +37,5 @@ else
   echo "Không thấy Xcode: dùng icon phẳng (không có hiệu ứng kính)."
 fi
 # Yêu cầu định danh cố định theo bundle id để macOS không coi mỗi lần build là một app mới (mất quyền Ghi màn hình).
-codesign --force --deep --sign - -r='designated => identifier "vn.imhillxtz.phude"' "$APP"
+codesign --force --deep --sign - -r="designated => identifier \"$BUNDLE_ID\"" "$APP"
 echo "Xong: $PWD/$APP"

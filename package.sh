@@ -13,9 +13,11 @@ BUILD=$(( $($PB -c "Print :CFBundleVersion" Info.plist) + 1 ))
 $PB -c "Set :CFBundleShortVersionString $VERSION" -c "Set :CFBundleVersion $BUILD" Info.plist
 ./build.sh
 mkdir -p dist
-DMG="dist/OverSub-$VERSION.dmg"
+# OVERSUB_BETA=1 ./package.sh 1.2.0: đóng gói bản Beta (xem build.sh) thành dist/OverSub-Beta-<ver>.dmg.
+if [[ -n "$OVERSUB_BETA" ]]; then APP="OverSub Beta.app"; DMG="dist/OverSub-Beta-$VERSION.dmg"
+else APP=OverSub.app; DMG="dist/OverSub-$VERSION.dmg"; fi
 # Cửa sổ cài đặt: hình nền có hướng dẫn kéo vào Applications và cách mở lần đầu (thay cho file "Đọc trước" cũ).
-Tools/make_dmg.sh "$VERSION" "$DMG" 2> >(grep -v "is deprecated" >&2)
+APP="$APP" Tools/make_dmg.sh "$VERSION" "$DMG" 2> >(grep -v "is deprecated" >&2)
 # Ký file cài để app tự cập nhật nhận ra bản chính chủ (khoá bí mật chỉ nằm trên máy tác giả, ngoài kho mã).
 SIGNER=$(mktemp -d)/sign_update
 if swiftc -O -o "$SIGNER" Tools/sign_update.swift 2>/dev/null && "$SIGNER" "$DMG" > "$DMG.sig"; then

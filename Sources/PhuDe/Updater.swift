@@ -81,7 +81,7 @@ final class Updater: ObservableObject {
 
     /// Lúc mở app: kiểm tra sau ít giây (không tranh mạng với lúc khởi động), rồi mỗi 12 giờ một lần nếu bật tự kiểm tra.
     func start() {
-        guard autoCheck else { return }
+        guard autoCheck, !AppPaths.isBeta else { return }
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(8))
             if let last = lastChecked, Date().timeIntervalSince(last) < 6 * 3600 { return }
@@ -97,6 +97,13 @@ final class Updater: ObservableObject {
         case .checking, .downloading, .installing: return
         case .ready: if !manual { return }
         default: break
+        }
+        // Bản Beta cài tay: bản phát hành chính có mã định danh khác, cài đè lên sẽ thay mất bản Beta.
+        if AppPaths.isBeta {
+            state = manual ? .failed(L("Bản Beta không tự cập nhật. Tải bản Beta mới trên GitHub rồi cài tay.",
+                                       "The Beta doesn't update itself. Download the new Beta from GitHub and install it manually.")) : .idle
+            DebugLog.write("Cập nhật: bỏ qua vì đang chạy bản Beta \(Self.currentVersion)")
+            return
         }
         state = .checking
         do {

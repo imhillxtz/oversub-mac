@@ -6,7 +6,9 @@
 set -e
 cd "$(dirname "$0")/.."
 VERSION="$1"; OUT="$2"
-VOL="OverSub $VERSION"
+# Bản Beta: APP="OverSub Beta.app" (package.sh đặt sẵn).
+APP="${APP:-OverSub.app}"
+VOL="${APP%.app} $VERSION"
 # Đang có ổ trùng tên thì macOS gắn bản mới thành "… 1" và hình nền trỏ sai ổ: dừng lại để tháo ổ cũ trước.
 if [[ -d "/Volumes/$VOL" ]]; then
   echo "Đang mở ổ \"$VOL\": tháo (Eject) ổ đó rồi chạy lại."
@@ -16,7 +18,7 @@ WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 STAGE="$WORK/stage"
 mkdir -p "$STAGE/.background"
-cp -R OverSub.app "$STAGE/OverSub.app"
+cp -R "$APP" "$STAGE/$APP"
 ln -s /Applications "$STAGE/Applications"
 # Hình nền @1x + @2x gộp một file TIFF cho màn hình Retina; script in ra toạ độ tâm hai icon.
 read LX RX IY <<< "$(swift Tools/dmg_background.swift "$WORK/bg.png" "$WORK/bg@2x.png")"
@@ -43,7 +45,7 @@ tell application "Finder"
     set icon size of opts to 128
     set text size of opts to 13
     set background picture of opts to file ".background:background.tiff"
-    set position of item "OverSub.app" of container window to {$LX, $IY}
+    set position of item "$APP" of container window to {$LX, $IY}
     set position of item "Applications" of container window to {$RX, $IY}
     close
     open
