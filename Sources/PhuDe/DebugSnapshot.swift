@@ -963,7 +963,7 @@ enum DebugSnapshot {
                 await shoot("ove-\(name)", dir: dir, window: mainWindow())
             }
             func pause(_ seconds: Double) async { try? await Task.sleep(for: .seconds(seconds)) }
-            // OVERSUB_OVE_PARTS=fx,tickle,gaze,scene,start,stage,rest: chỉ chạy các phần này (mặc định chạy hết).
+            // OVERSUB_OVE_PARTS=fx,tickle,gaze,scene,click,start,stage,rest: chỉ chạy các phần này (mặc định chạy hết).
             let parts = env["OVERSUB_OVE_PARTS"].map { Set($0.split(separator: ",").map(String.init)) }
             func want(_ part: String) -> Bool { parts?.contains(part) ?? true }
             engine.settings.speakEnabled = true
@@ -1021,6 +1021,46 @@ enum DebugSnapshot {
                 await pause(3.0)
             }
             // Rê chuột vào nút Bắt đầu (Ove nhìn xuống) rồi bấm: nút biến mất (hết nhìn theo) cùng lúc phiên chạy.
+            // Mọi lối đi có mờ chuyển, nối nhau để quay màn hình một lượt (dòng nhật ký "Thử Ove: click-…" đánh dấu thời điểm
+            // đổi): bấm cho ngủ lúc đang bị cù (vừa rê vào, đang cười, vừa rời ra), lúc đang nhìn theo nút, lúc đang diễn nét
+            // mặt; tỉnh dậy; đang nghe mà bị cù thì có câu tới; đọc xong.
+            if want("click") {
+                func mark(_ name: String) { DebugLog.write("Thử Ove: click-\(name)") }
+                func hover(_ on: Bool) { NotificationCenter.default.post(name: .oveDebugHover, object: on) }
+                @MainActor func sleepAndWake(_ name: String) async {
+                    mark("\(name)-sleep")
+                    engine.toggleDub()
+                    await pause(2.6)
+                    hover(false)
+                    mark("\(name)-wake")
+                    engine.toggleDub()
+                    await pause(2.6)
+                }
+                hover(true); await pause(1.2)
+                await sleepAndWake("tickle-loop")
+                hover(true); await pause(0.2)
+                await sleepAndWake("tickle-enter")
+                hover(true); await pause(1.2); hover(false); await pause(0.15)
+                await sleepAndWake("tickle-exit")
+                OveGaze.shared.target = OveAngle(yaw: -3, pitch: 0); await pause(1.0)
+                OveGaze.shared.target = nil
+                await sleepAndWake("gaze")
+                NotificationCenter.default.post(name: .oveDebugFidget, object: "hum"); await pause(0.8)
+                await sleepAndWake("fx")
+                engine.running = true
+                await pause(1.5)
+                hover(true); await pause(1.2)
+                mark("listen-tickle-speak")
+                engine.speaker.debugSetSpeaking("")
+                await pause(2.0)
+                mark("listen-finish")
+                engine.speaker.debugSetSpeaking(nil)
+                await pause(1.5)
+                hover(false)
+                engine.running = wasRunning
+                await pause(1.5)
+                mark("done")
+            }
             if want("start") {
                 OveGaze.shared.target = OveAngle(yaw: 0, pitch: 1)
                 await shot("start-gaze", after: 1.5)

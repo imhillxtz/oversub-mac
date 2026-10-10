@@ -690,12 +690,13 @@ final class OveLayerView: NSView {
         run((cur...stop).map { $0 % s.count }, sheet: s, done: next)
     }
 
-    /// Mặt chờ hoặc mặt đang chạy, nhìn thẳng, mở mắt.
-    private func showFace(fade: Bool, duration: Double = 0.22) {
+    /// Mặt chờ hoặc mặt đang chạy (theo trạng thái hiện tại, hoặc `name` nếu có), nhìn thẳng, mở mắt.
+    private func showFace(fade: Bool, duration: Double = 0.22, name: String? = nil) {
+        let name = name ?? face
         inClip = false
-        showing = .face(face)
+        showing = .face(name)
         angle = .front
-        guard let s = setSheet(face, fade: fade, duration: duration, at: { [lib] _ in lib.lookFrame(.front) }) else { return }
+        guard let s = setSheet(name, fade: fade, duration: duration, at: { [lib] _ in lib.lookFrame(.front) }) else { return }
         sprite.removeAnimation(forKey: "frames")
         sprite.contentsRect = s.rect(lib.lookFrame(.front))
     }
@@ -717,8 +718,8 @@ final class OveLayerView: NSView {
     /// Mờ chuyển: ảnh cũ mà CATransition chụp là giá trị gốc của lớp hình trong lần cập nhật trước, không tính hoạt ảnh lật
     /// khung. Lúc một đoạn đang chạy hay vừa chạy xong trong cùng lượt (quay đầu về rồi sang mặt đang chạy, đọc xong rồi về
     /// mặt thường, tỉnh dậy), giá trị gốc là khung đầu của đoạn đó, nên Ove lóe lại tư thế cũ rồi mờ chồng lên tư thế mới,
-    /// lộ hai cặp mắt (1.1.81, bấm Bắt đầu lúc Ove đang nhìn xuống nút). Vì vậy chốt khung đang hiện làm giá trị gốc và đẩy
-    /// lần cập nhật đó đi trước, rồi mới mờ.
+    /// lộ hai cặp mắt (1.1.81, bấm Bắt đầu lúc Ove đang nhìn xuống nút). Vì vậy chốt khung đang hiện (`shownRect`) làm giá
+    /// trị gốc và đẩy lần cập nhật đó đi trước, rồi mới mờ.
     @discardableResult
     private func setSheet(_ name: String, fade: Bool, duration: Double = 0.22,
                           at frame: (OveLibrary.Sheet) -> Int = { _ in 0 }) -> OveLibrary.Sheet? {
@@ -726,7 +727,7 @@ final class OveLayerView: NSView {
         if sheetName != name {
             let fading = fade && live
             if fading {
-                let shown = sprite.presentation()?.contentsRect ?? sprite.contentsRect
+                let shown = shownRect()
                 CATransaction.begin()
                 CATransaction.setDisableActions(true)
                 sprite.removeAnimation(forKey: "frames")
@@ -751,6 +752,20 @@ final class OveLayerView: NSView {
             sheetName = name
         }
         return s
+    }
+
+    /// Ô cắt của khung đang hiện thật. Đang lật khung thì tính theo thời gian của lần lật (lúc đó giá trị gốc là khung đầu),
+    /// không thì là giá trị gốc. Không đọc `presentation()`: nó giữ trạng thái của lần vẽ trước, nên vừa đổi tấm trong cùng
+    /// lượt (tua nét bị cù về mặt thường rồi ngáp ngay) thì ô cắt của tấm cũ bị đặt lên tấm mới, lộ một khung nhiều mặt rồi
+    /// mờ dần như bóng ma (1.1.82, rê chuột vào Ove rồi bấm cho ngủ).
+    private func shownRect() -> CGRect {
+        if sprite.animation(forKey: "frames") != nil, let r = lastRun, !r.frames.isEmpty,
+           let s = sheetName.flatMap({ lib.sheet($0) }) {
+            var i = Int((CACurrentMediaTime() - r.start) * lib.fps)
+            i = r.repeating ? i % r.frames.count : min(max(0, i), r.frames.count - 1)
+            return s.rect(r.frames[i])
+        }
+        return sprite.contentsRect
     }
 
     /// Lật các khung `frames` của tấm hiện tại theo nhịp của bộ hình; xong thì gọi `done` (bị ngắt thì không gọi).
@@ -1055,9 +1070,14 @@ final class OveLayerView: NSView {
 
     /// Tua ngược nhanh đoạn đang làm dở về khung đầu (mặt nhìn thẳng), nhiều nhất khoảng 12 khung, rồi về bộ quay đầu.
     /// Mờ chồng thẳng sang mặt thường thì lộ hai mặt cùng lúc.
+    ///
+    /// Về đúng mặt mà đoạn được dựng từ đó, không theo trạng thái hiện tại: đổi trạng thái giữa chừng (đang bị cù thì bấm
+    /// cho ngủ) thì trạng thái đã đổi trước khi tua, lấy mặt theo trạng thái là nhảy sang mặt đang chạy đỏ đậm rồi mới mờ
+    /// sang ngáp.
     private func rewind(_ done: @escaping () -> Void) {
+        let back = sheetName.map(Self.standingFace(of:)) ?? face
         guard let r = lastRun, !r.frames.isEmpty, let s = sheetName.flatMap({ lib.sheet($0) }) else {
-            showFace(fade: false)
+            showFace(fade: false, name: back)
             done()
             return
         }
@@ -1068,9 +1088,15 @@ final class OveLayerView: NSView {
         let frames = Array(stride(from: from, to: 0, by: -step)) + [0]
         inClip = true
         run(frames, sheet: s) { [weak self] in
-            self?.showFace(fade: false)
+            self?.showFace(fade: false, name: back)
             done()
         }
+    }
+
+    /// Mặt đứng yên mà đoạn `name` được dựng từ đó: nét mặt lúc rảnh (`fx-…`) và các đoạn `…-idle` từ mặt chờ, còn lại từ mặt
+    /// đang chạy.
+    private static func standingFace(of name: String) -> String {
+        name.hasPrefix("fx-") || name.hasSuffix("-idle") ? "look-idle" : "look-live"
     }
 
     /// Chào người dùng: lúc mở app hay lúc quay lại cửa sổ sau một lúc vắng.
