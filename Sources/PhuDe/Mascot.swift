@@ -226,6 +226,7 @@ struct MascotButton: View {
             VStack(spacing: 2) {
                 Text(settings.dubCharacters ? "Dub" : "Voice-over").font(.headline)
                 Text(detail).font(.caption).foregroundStyle(.secondary).contentTransition(.opacity)
+                    .animation(.smooth(duration: 0.3), value: detail)
             }
         }
         .frame(width: orbColumn)

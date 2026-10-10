@@ -929,17 +929,20 @@
     return fr;
   }
 
-  // Vòng đọc 3 giây, khớp đầu khớp đuôi: miệng |sin(8πt/L)·cos(3πt/L)|. Đầu chỉ lắc khi miệng mở, nên khung miệng khép
-  // (`rest`) cũng là khung nhìn thẳng; kính dày mỏng chậm một nhịp mỗi vòng (đổi theo từng lần mở miệng thì nhấp nháy màu).
+  // Vòng đọc 3 giây, khớp đầu khớp đuôi: miệng |sin(8πt/L)·cos(3πt/L)|, đầu lắc êm liên tục (ngang chu kỳ 1,5 giây, gật
+  // chu kỳ 0,75 giây), nên cứ 0,75 giây đầu lại đi qua đúng tư thế nhìn thẳng đúng lúc miệng khép: các khung đó là `rest`,
+  // đọc xong thì dừng ở đó rồi chuyển về mặt thường mà không lộ mặt kép. Bản 1.1.78 cho đầu chỉ lắc khi miệng mở thì đầu
+  // giật về giữa theo từng tiếng, người dùng thấy "khựng khựng như bị virus". Kính dày mỏng chậm một nhịp mỗi vòng (đổi theo
+  // từng lần mở miệng thì nhấp nháy màu).
   function speakLoop() {
     var L = 3, n = L * FPS, fr = [], rest = [];
     for (var i = 0; i < n; i++) {
       var t = i / FPS, m = Math.abs(Math.sin(8 * Math.PI * t / L) * Math.cos(3 * Math.PI * t / L));
-      if (m < 0.06) rest.push(i);
-      var sway = sm(0.06, 0.35, m);
-      var yaw = 0.05 * sway * Math.sin(2 * Math.PI * t / L), pitch = 0.035 * sway * Math.sin(4 * Math.PI * t / L);
+      var yaw = 0.04 * Math.sin(2 * Math.PI * t / 1.5), pitch = 0.03 * Math.sin(2 * Math.PI * t / 0.75);
+      var roll = 0.025 * Math.sin(2 * Math.PI * t / 1.5);
+      if (m < 0.06 && Math.abs(yaw) < 0.004 && Math.abs(pitch) < 0.004) rest.push(i);
       fr.push({ top: FACE.live[0], bot: FACE.live[1], blush: 1, glass: 0.7 + 0.05 * Math.sin(2 * Math.PI * t / L), yaw: yaw,
-        pitch: pitch, roll: 0.03 * sway * Math.sin(2 * Math.PI * t / L), ex: yaw * 0.04, ey: -pitch * 0.035, open: 0.9,
+        pitch: pitch, roll: roll, ex: yaw * 0.04, ey: -pitch * 0.035, open: 0.9,
         oval: 1, ovalW: 0.085 - 0.015 * m, ovalH: 0.04 + 0.04 * m, awake: 1, t: 0 });
     }
     return { frames: fr, rest: rest };

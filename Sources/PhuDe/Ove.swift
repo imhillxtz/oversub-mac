@@ -176,6 +176,9 @@ final class OveLibrary {
 
     func sheet(_ name: String) -> Sheet? {
         if let s = cache[name] { return s }
+        // Giải nén trên luồng chính mất 100 đến 350 ms, cả cửa sổ khựng theo: mọi lần đổi trạng thái phải nạp trước bằng
+        // prefetch. Còn dòng này trong nhật ký là còn chỗ quên nạp trước.
+        DebugLog.write("Ove: giải nén \(name) trên luồng chính")
         guard let image = Self.load(name) else {
             DebugLog.write("Ove: không đọc được tấm \(name).heic")
             return nil
@@ -196,6 +199,19 @@ final class OveLibrary {
                     then()
                 }
             }
+        }
+    }
+
+    /// Các tấm đã nằm sẵn trong bộ nhớ chưa.
+    func has(_ names: [String]) -> Bool { names.allSatisfy { cache[$0] != nil || meta?.sheets[$0] == nil } }
+
+    /// Nạp trước nhiều tấm ở luồng phụ, xong hết thì gọi `then` ở luồng chính.
+    func prefetchAll(_ names: [String], then: @escaping @MainActor () -> Void) {
+        var left = names.filter { cache[$0] == nil && meta?.sheets[$0] != nil }
+        guard let first = left.popLast() else { then(); return }
+        prefetch(first) { [weak self] in
+            guard let self else { return }
+            self.prefetchAll(left, then: then)
         }
     }
 
@@ -238,8 +254,13 @@ final class OveLibrary {
     /// Thả tấm không còn dùng: mỗi tấm giải nén khoảng 20 đến 30 MB, giữ hết thì app nặng thêm hơn 100 MB. Đọc lại một
     /// tấm HEIC chỉ mất vài chục mili giây.
     func release(_ name: String) {
+        guard !Self.kept.contains(name) else { return }
         cache[name] = nil
     }
+
+    /// Giữ sẵn trong bộ nhớ (khoảng 63 MB): hai mặt và vòng đọc, dùng liên tục khi đang chơi. Thả vòng đọc sau mỗi câu như
+    /// trước thì câu sau phải giải nén lại, cửa sổ khựng mỗi lần Ove bắt đầu đọc.
+    private static let kept: Set<String> = ["look-idle", "look-live", "speak"]
 
     func ripple(dark: Bool) -> CGImage? {
         let name = dark ? "ripple-dark" : "ripple-light"
@@ -468,7 +489,8 @@ final class OveLayerView: NSView {
         if darkChanged {
             for r in ripples { r.contents = lib.ripple(dark: dark) }
             drop.shadowOpacity = dark ? 0.35 : 0.12
-            if showing == .asleep && !inClip { showAsleep() }
+            // Lần đầu thì để enter() nạp trước rồi mới hiện.
+            if !first, showing == .asleep && !inClip { showAsleep() }
         }
         if first {
             mood = input.mood
@@ -544,6 +566,26 @@ final class OveLayerView: NSView {
         after(0.8, alive: { [weak self] in self?.moodGen == gen }) { [weak self] in
             if self?.gaze != nil { self?.gazeChanged() }
         }
+        // Nạp trước ở luồng phụ các tấm lần chuyển này cần, rồi mới chuyển: giải nén ngay trên luồng chính thì cả cửa sổ
+        // khựng (bấm Bắt đầu đổi sang mặt đang chạy mất khoảng 340 ms).
+        var need = [new == .idle ? "look-idle" : "look-live"]
+        if new == .speaking { need.append("speak") }
+        if new == .asleep, old != nil, old != .asleep { need.append(dark ? "yawn-dark" : "yawn-light") }
+        if new == .asleep, old == nil || old == .speaking { need.append(dark ? "yawn-dark" : "yawn-light") }
+        if old == .asleep, new != .asleep, new != .speaking { need.append(dark ? "wake-dark" : "wake-light") }
+        // Lần đầu: hiện ngay mặt hiện tại, các tấm giữ sẵn còn lại nạp dần ở luồng phụ.
+        if old == nil { after(1.5, alive: { true }) { [weak self] in self?.lib.prefetchAll(["look-idle", "look-live", "speak"]) {} } }
+        guard lib.has(need) else {
+            lib.prefetchAll(Array(Set(need))) { [weak self] in
+                guard let self, self.moodGen == gen else { return }
+                self.enterLoaded(new, from: old)
+            }
+            return
+        }
+        enterLoaded(new, from: old)
+    }
+
+    private func enterLoaded(_ new: Mascot.Mood, from old: Mascot.Mood?) {
         tickling = false
         tickleLooping = false
         // Đang làm dở nét mặt thì tua ngược về mặt thường, đang nghiêng đầu nhìn quanh thì quay về nhìn thẳng, rồi mới chuyển:
@@ -1438,6 +1480,17 @@ final class OveLayerView: NSView {
     }
 
     private func showStill() {
+        // Tấm cần hiện chưa nạp (vừa mở app, cửa sổ bị che ngay): nạp ở luồng phụ rồi mới hiện.
+        let need = held.map { mood == .idle ? $0.rawValue + "-idle" : $0.rawValue }
+            ?? (mood == .asleep ? (dark ? "yawn-dark" : "yawn-light") : mood == .speaking ? "speak" : face)
+        guard lib.has([need]) else {
+            let gen = moodGen
+            lib.prefetchAll([need]) { [weak self] in
+                guard let self, self.moodGen == gen else { return }
+                self.showStill()
+            }
+            return
+        }
         if let held { showHeld(held); return }
         switch mood {
         case .asleep: showAsleep()

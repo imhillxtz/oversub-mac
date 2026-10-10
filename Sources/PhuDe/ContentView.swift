@@ -390,14 +390,26 @@ struct VoiceOverStage: View {
                 }
                 ScreenTranslateButton()
             }
+            // Vùng dưới hàng nút cao cố định tối thiểu: nút Bắt đầu, dòng chờ và bong bóng thoại đổi chỗ cho nhau trong vùng này,
+            // hàng nút và Ove không bị đẩy lên kéo xuống mỗi lần đổi trạng thái. Đổi nội dung thì mờ dần, đổi cỡ thì trượt mượt.
             lineArea
                 .frame(maxWidth: 660)
                 .padding(.horizontal, 24)
+                .frame(minHeight: 190, alignment: .top)
+                .animation(.smooth(duration: 0.35), value: hasLine)
+                .animation(.smooth(duration: 0.35), value: guidanceKey)
             Spacer(minLength: 8)
         }
     }
 
     private var hasLine: Bool { !engine.lastTranslation.isEmpty || !engine.lastSource.isEmpty }
+    /// Trạng thái của vùng hướng dẫn (chưa có vùng, chưa chạy, chờ game, chờ câu), để đổi qua lại có hoạt ảnh.
+    private var guidanceKey: Int {
+        if engine.screenTranslateOn && !engine.running { return 1 }
+        if settings.region == nil && settings.secondaryRegions.isEmpty { return 2 }
+        if !engine.anyRunning { return 3 }
+        return engine.gameInFront ? 5 : 4
+    }
 
     @ViewBuilder
     private var lineArea: some View {
@@ -502,6 +514,7 @@ struct SubButton: View {
         }
         .frame(width: orbColumn)
         .animation(.smooth(duration: 0.3), value: on)
+        .animation(.smooth(duration: 0.4), value: engine.running)
         .help(on ? L("Ẩn phụ đề đè lên game (\(HotkeyCenter.Action.toggleOverlay.display))", "Hide the subtitle overlay (\(HotkeyCenter.Action.toggleOverlay.display))") : L("Hiện phụ đề đè lên game (\(HotkeyCenter.Action.toggleOverlay.display))", "Show subtitles over the game (\(HotkeyCenter.Action.toggleOverlay.display))"))
     }
 }
@@ -537,6 +550,7 @@ struct ScreenTranslateButton: View {
         }
         .frame(width: orbColumn)
         .animation(.smooth(duration: 0.3), value: on)
+        .animation(.smooth(duration: 0.4), value: engine.screenTranslateOn)
         .help(n == 0 ? L("Thêm vùng quanh menu, bảng nhiệm vụ để dịch ngay tại chỗ (\(HotkeyCenter.Action.screenTranslate.display))", "Add a region around menus or quest logs to translate them in place (\(HotkeyCenter.Action.screenTranslate.display))")
               : on ? L("Tắt dịch màn hình (\(HotkeyCenter.Action.screenTranslate.display))", "Turn off screen translation (\(HotkeyCenter.Action.screenTranslate.display))") : L("Bật dịch màn hình: dịch tại chỗ menu, bảng nhiệm vụ, mô tả vật phẩm (\(HotkeyCenter.Action.screenTranslate.display))", "Turn on screen translation: menus, quest logs and item descriptions translated in place (\(HotkeyCenter.Action.screenTranslate.display))"))
     }

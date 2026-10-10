@@ -314,8 +314,8 @@ dùng tới đó (khung cũ giữ động cơ cũ nếu không có lý do đổi
 - Bộ quay đầu `look-idle` và `look-live`: khung nhìn thẳng (mở, nhắm mắt), rồi với mỗi hướng nhìn quanh (`look.targets`
   trong ove.json) 7 khung đi từ nhìn thẳng tới hướng đó theo nhịp sin và một khung nhắm mắt ở hướng đó để chớp; quay về
   thì chạy ngược. Bản thử đầu nhảy từng nấc 9° của bộ góc 9 × 5 hướng cũ nên Ove quay đầu khựng; bộ góc đó đã bỏ.
-- Vòng đọc `speak` (3 giây, khớp đầu đuôi; đầu chỉ lắc khi miệng mở, nên các khung `rest` miệng khép cũng là khung nhìn
-  thẳng), các đoạn `happy`, `sad`, `angry`, `dizzy`, `cry` ghi lại từ prototype (mỗi đoạn có `hold`: khoảng giữ nét mặt; hai
+- Vòng đọc `speak` (3 giây, khớp đầu đuôi; đầu lắc êm liên tục và cứ 0,75 giây đi qua đúng tư thế nhìn thẳng lúc miệng
+  khép: các khung `rest` 0, 18, 36, 54; bản cho đầu chỉ lắc khi miệng mở thì đầu giật theo từng tiếng), các đoạn `happy`, `sad`, `angry`, `dizzy`, `cry` ghi lại từ prototype (mỗi đoạn có `hold`: khoảng giữ nét mặt; hai
   bản: mặt đang chạy và `-idle` cho mặt chờ; 6 khung đầu, 8 khung cuối được hoà về đúng mặt đứng yên), và `yawn`, `wake` riêng cho nền sáng, nền tối (mặt lúc
   ngủ xám khác nhau). Ngáp và tỉnh dậy tính tư thế từng khung (không ghi lại prototype) để khung đầu, khung cuối trùng
   khít mặt đứng yên: màu đổi chậm, mắt không mở lại giữa chừng, tỉnh dậy không cười. Gợn sóng là một vòng ảnh `ripple-light`, `ripple-dark` được phóng và làm mờ bằng Core Animation.
@@ -355,8 +355,12 @@ dùng tới đó (khung cũ giữ động cơ cũ nếu không có lý do đổi
   cuối lóe lên trước. Dò bằng cách quay màn hình và tìm khung khác hẳn cả hai khung kề (1.1.78: 15 khung lỗi còn 0).
 - Đang phát tiếng thì Ove đọc và nền rực theo, kể cả khi nghe thử giọng lúc giọng đọc đang tắt; đi giữa ngủ và đọc thì mờ
   chuyển nhanh, ngáp và tỉnh dậy chỉ chạy khi bấm tắt, bật giọng đọc.
-- Đo trên M1 Pro (Ove 128 điểm, cửa sổ hiện): đang đọc 0,3% một nhân, chờ khoảng 0,4%, bị che 0%. App chỉ giữ tấm đang
-  chiếu và bộ góc đầu của mặt hiện tại; tấm biểu cảm giải nén ở luồng phụ ngay trước khi dùng rồi thả ra.
+- Đo trên M1 Pro (Ove 128 điểm, cửa sổ hiện): đang đọc 0,3% một nhân, chờ khoảng 0,4%, bị che 0%.
+- Giải nén một tấm mất 100 đến 350 ms: không bao giờ làm trên luồng chính (cả cửa sổ khựng, bấm Bắt đầu từng khựng vì
+  thế). Mọi lần đổi trạng thái nạp trước ở luồng phụ (`prefetchAll`); hai mặt và vòng đọc giữ sẵn trong bộ nhớ (khoảng
+  63 MB), tấm biểu cảm nạp ngay trước khi dùng rồi thả ra. Nhật ký có dòng "giải nén ... trên luồng chính" là còn chỗ sót.
+- Cửa sổ chính: vùng dưới hàng nút cao tối thiểu 190 điểm, nút Bắt đầu, dòng chờ và bong bóng thoại đổi chỗ trong vùng đó
+  (mờ dần), hàng nút và Ove không bị đẩy lên kéo xuống khi đổi trạng thái.
 
 Dựng lại bộ hình sau khi sửa `oversub-head.js` hay `export.html`:
 
