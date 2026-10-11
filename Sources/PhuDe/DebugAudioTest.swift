@@ -112,6 +112,7 @@ extension DebugSnapshot {
                                   mode, saved.0, saved.1 ? "bật" : "tắt", saved.2))
             switch mode {
             case "voice": await voiceTest(engine)
+            case "queue": await queueTest(engine)
             case "duck-play": await duckPlayTest(engine)
             case "duck-app": await duckAppTest(engine, bundle: env["OVERSUB_AUDIO_TEST_APP"] ?? "")
             default: DebugLog.write("Thử âm lượng: không biết kiểu thử \(mode)")
@@ -217,6 +218,33 @@ extension DebugSnapshot {
         reference = await run("Dub nhân vật cao độ +3, 100% (mốc)", volume: 1, plan: dub)
         _ = await run("Dub nhân vật cao độ +3, 50%", volume: 0.5, plan: dub)
         meter.stop()
+    }
+
+    /// Ba câu dài (mỗi câu dựng thành nhiều đoạn) xếp liền nhau ở âm lượng 50%: hai câu dựng giọng Siri cùng lúc. Trước bản 1.1.84
+    /// hai lượt dựng chen nhau trên cùng bộ đọc, một lượt treo mãi và cả hàng đợi kẹt (người dùng gặp 12/10/2026 lúc 02:49:23).
+    private static func queueTest(_ engine: Engine) async {
+        let sp = engine.speaker, s = engine.settings
+        s.speechVolume = 0.5
+        try? await Task.sleep(for: .seconds(0.5))
+        let lines = [
+            "Con bé ấy lúc nào cũng bỏ đi vì một sai lầm ngớ ngẩn hay chuyện gì đó, dù ta có mắng nhiếc bao nhiêu đi nữa.",
+            "Một khi nó đã nảy ra ý tưởng trong đầu, thì chẳng ai nói cho nó bỏ ý định được, kể cả bà nội của nó.",
+            "Giờ thì, nghe đây. Không nhiều đâu, nhưng ta muốn đề nghị ngươi một mức giảm giá đối với hàng hóa của ta.",
+        ]
+        let t0 = Date()
+        for (i, text) in lines.enumerated() {
+            sp.speak(DubLine(text: text, language: s.target.speech, speaker: "Thử \(i + 1)"), plan: VoicePlan(route: .siri))
+            try? await Task.sleep(for: .seconds(0.3))
+        }
+        var last = -1
+        while Date().timeIntervalSince(t0) < 45 {
+            let n = sp.pendingCount
+            if n != last { DebugLog.write(String(format: "Thử hàng đợi: %.1fs còn %d câu chờ hoặc đang đọc", Date().timeIntervalSince(t0), n)); last = n }
+            if n == 0 { break }
+            try? await Task.sleep(for: .seconds(0.2))
+        }
+        let left = sp.pendingCount
+        DebugLog.write(String(format: "Thử hàng đợi: %@ sau %.1f giây", left == 0 ? "đọc hết 3 câu" : "KẸT, còn \(left) câu", Date().timeIntervalSince(t0)))
     }
 
     // MARK: Giảm tiếng game
