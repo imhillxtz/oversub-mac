@@ -652,7 +652,10 @@ struct AudioPanel: View {
                 .contentTransition(.symbolEffect(.replace))
             SlimSlider(value: $settings.speechVolume)
                 .frame(width: 120)
-                .help(L("Âm lượng giọng đọc: \(Int(settings.speechVolume * 100))%", "Voice volume: \(Int(settings.speechVolume * 100))%"))
+                .help(settings.speechVolume < 0.995
+                      ? L("Âm lượng giọng đọc: \(Int(settings.speechVolume * 100))%. Dưới 100% thì câu đầu sau lúc im lặng chậm hơn khoảng 0,4 giây.",
+                          "Voice volume: \(Int(settings.speechVolume * 100))%. Below 100%, the first line after a pause starts about 0.4 seconds later.")
+                      : L("Âm lượng giọng đọc: \(Int(settings.speechVolume * 100))%", "Voice volume: \(Int(settings.speechVolume * 100))%"))
             Divider().frame(height: 14)
             Button { engine.previewVoice() } label: { Image(systemName: "play.fill").font(.system(size: 11)) }
                 .buttonStyle(.borderless)
@@ -727,8 +730,8 @@ private struct AudioOptions: View {
                             }
                         }
                     }
-                    .help(L("Thử nghiệm: giảm tiếng của app đang hiện game\(settings.gameAppName.map { " (\($0))" } ?? "") trong lúc đang đọc. Lần đầu macOS hỏi quyền ghi âm thanh hệ thống.",
-                            "Experimental: lowers the audio of the app showing the game\(settings.gameAppName.map { " (\($0))" } ?? "") while a line is spoken. The first time, macOS asks for permission to record system audio."))
+                    .help(L("Thử nghiệm: giảm tiếng của app đang hiện game ở vùng phụ đề (hoặc Màn hình chơi game) trong lúc đang đọc. Lần đầu macOS hỏi quyền ghi âm thanh hệ thống.",
+                            "Experimental: lowers the audio of the app showing the game in the subtitle region (or the Game screen) while a line is spoken. The first time, macOS asks for permission to record system audio."))
                 }
             }
             .font(.callout)

@@ -54,7 +54,7 @@ enum AudioDevices {
     }
     static func uid(of id: AudioObjectID) -> String? { string(id, kAudioDevicePropertyDeviceUID) }
 
-    /// Đối tượng âm thanh của một tiến trình (game); 0 nếu tiến trình đó chưa phát tiếng.
+    /// Đối tượng âm thanh của một tiến trình; 0 nếu tiến trình đó chưa từng phát tiếng.
     static func processObject(pid: pid_t) -> AudioObjectID {
         var addr = AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyTranslatePIDToProcessObject,
                                               mScope: kAudioObjectPropertyScopeGlobal, mElement: kAudioObjectPropertyElementMain)
@@ -63,6 +63,45 @@ enum AudioDevices {
         var size = UInt32(MemoryLayout<AudioObjectID>.size)
         let st = AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &addr, UInt32(MemoryLayout<pid_t>.size), &pid, &size, &obj)
         return st == noErr ? obj : 0
+    }
+
+    struct AudioProcess: Hashable { let id: AudioObjectID; let pid: pid_t; let name: String; let playing: Bool }
+
+    /// Mọi tiến trình có tiếng của một app: tiến trình chính và các tiến trình con phát tiếng thay nó. Trình duyệt nhân Chromium
+    /// (Comet, Chrome, Edge) phát tiếng từ tiến trình "Helper" chứ không phải tiến trình chính, nên chỉ tap tiến trình chính thì
+    /// không chặn được gì. Tiến trình con nhận ra qua mã định danh bắt đầu bằng mã của app, hoặc tiến trình cha là app.
+    static func processes(of app: NSRunningApplication) -> [AudioProcess] {
+        var addr = AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyProcessObjectList, mScope: kAudioObjectPropertyScopeGlobal,
+                                              mElement: kAudioObjectPropertyElementMain)
+        var size: UInt32 = 0
+        guard AudioObjectGetPropertyDataSize(AudioObjectID(kAudioObjectSystemObject), &addr, 0, nil, &size) == noErr else { return [] }
+        var ids = [AudioObjectID](repeating: 0, count: Int(size) / MemoryLayout<AudioObjectID>.size)
+        guard AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &addr, 0, nil, &size, &ids) == noErr else { return [] }
+        let main = app.processIdentifier
+        let prefix = app.bundleIdentifier.map { $0 + "." }
+        return ids.compactMap { obj in
+            var pid: pid_t = 0
+            guard property(obj, kAudioProcessPropertyPID, &pid) else { return nil }
+            let bundle = string(obj, kAudioProcessPropertyBundleID) ?? ""
+            guard pid == main || (prefix.map { bundle.hasPrefix($0) } ?? false) || parentPID(pid) == main else { return nil }
+            var running: UInt32 = 0
+            _ = property(obj, kAudioProcessPropertyIsRunningOutput, &running)
+            return AudioProcess(id: obj, pid: pid, name: processName(pid), playing: running != 0)
+        }
+    }
+
+    static func parentPID(_ pid: pid_t) -> pid_t {
+        var info = kinfo_proc()
+        var size = MemoryLayout<kinfo_proc>.stride
+        var mib: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_PID, pid]
+        guard sysctl(&mib, 4, &info, &size, nil, 0) == 0 else { return 0 }
+        return info.kp_eproc.e_ppid
+    }
+
+    static func processName(_ pid: pid_t) -> String {
+        if let n = NSRunningApplication(processIdentifier: pid)?.localizedName { return n }
+        var buf = [CChar](repeating: 0, count: 256)
+        return proc_name(pid, &buf, 256) > 0 ? String(cString: buf) : "pid \(pid)"
     }
 }
 
@@ -74,28 +113,35 @@ final class AudioDucker: @unchecked Sendable {
     private var aggregateID = AudioObjectID(0)
     private var procID: AudioDeviceIOProcID?
     private var tappedPID: pid_t = 0
+    private var tappedObjects: Set<AudioObjectID> = []
     private let queue = DispatchQueue(label: "oversub.duck", qos: .userInteractive)
 
     // Đọc trong luồng âm thanh, ghi từ luồng chính; một số Float, sai lệch một khung cũng không sao.
     nonisolated(unsafe) private var target: Float = 1
     nonisolated(unsafe) private var gain: Float = 1
+    // Tổng bình phương mẫu đã phát ra (sau khi giảm) để bài thử đo mức tiếng thật; luồng âm thanh cộng, luồng chính đọc rồi đặt lại.
+    nonisolated(unsafe) private var outSquares: Double = 0
+    nonisolated(unsafe) private var outSamples: Int = 0
 
     private(set) var lastError: String?
+    private(set) var tappedName: String?
     var isActive: Bool { procID != nil }
+    /// Mức đang áp cho tiếng game (đã làm mượt), 1 là bình thường.
+    var currentGain: Float { gain }
 
-    /// Bắt đầu chặn tiếng của game (nếu chưa). Trả về false nếu chưa làm được (game chưa phát tiếng, chưa có quyền...).
+    /// Bắt đầu chặn tiếng của app đang hiện game (nếu chưa), gồm cả tiến trình con phát tiếng thay nó. Gắn lại khi app có thêm
+    /// tiến trình phát tiếng. Trả về false nếu chưa làm được (app chưa phát tiếng, chưa có quyền...).
     @discardableResult
-    func attach(bundleID: String?) -> Bool {
-        guard let bundleID, let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first else {
-            lastError = L("Chưa nhận diện được game", "Game not detected yet"); return false
-        }
-        if isActive, tappedPID == app.processIdentifier { return true }
+    func attach(to app: NSRunningApplication) -> Bool {
+        let name = app.localizedName ?? app.bundleIdentifier ?? "pid \(app.processIdentifier)"
+        let procs = AudioDevices.processes(of: app)
+        let ids = Set(procs.map(\.id))
+        if isActive, tappedPID == app.processIdentifier, ids == tappedObjects { return true }
         detach()
-        let proc = AudioDevices.processObject(pid: app.processIdentifier)
-        guard proc != 0 else { lastError = L("Game chưa phát âm thanh", "The game isn't playing audio yet"); return false }
+        guard !procs.isEmpty else { lastError = L("\(name) chưa phát âm thanh", "\(name) isn't playing audio yet"); return false }
         guard let out = AudioDevices.defaultOutput(), let outUID = AudioDevices.uid(of: out) else { lastError = L("Không thấy loa", "No audio output found"); return false }
 
-        let desc = CATapDescription(stereoMixdownOfProcesses: [proc])
+        let desc = CATapDescription(stereoMixdownOfProcesses: procs.map(\.id))
         desc.uuid = UUID()
         desc.muteBehavior = .mutedWhenTapped     // tiếng gốc của game tắt khi app đang đọc tap, app tự phát lại
         desc.isPrivate = true
@@ -129,8 +175,11 @@ final class AudioDucker: @unchecked Sendable {
         st = AudioDeviceStart(aggID, proc2)
         guard st == noErr else { lastError = L("Không chạy được luồng âm thanh (mã \(st))", "Couldn't start the audio stream (code \(st))"); detach(); return false }
         tappedPID = app.processIdentifier
+        tappedObjects = ids
+        tappedName = name
         lastError = nil
-        DebugLog.write("Giảm tiếng game: đã gắn vào \(app.localizedName ?? bundleID)")
+        let list = procs.map { $0.name + ($0.playing ? " (đang phát)" : "") }.joined(separator: ", ")
+        DebugLog.write("Giảm tiếng game: đã gắn vào \(name), \(procs.count) tiến trình có tiếng: \(list)")
         return true
     }
 
@@ -143,6 +192,8 @@ final class AudioDucker: @unchecked Sendable {
         if aggregateID != 0 { AudioHardwareDestroyAggregateDevice(aggregateID); aggregateID = 0 }
         if tapID != 0 { AudioHardwareDestroyProcessTap(tapID); tapID = 0 }
         tappedPID = 0
+        tappedObjects = []
+        tappedName = nil
         target = 1; gain = 1
     }
 
@@ -161,6 +212,7 @@ final class AudioDucker: @unchecked Sendable {
         let k: Float = 1.0 / 4800   // làm mượt theo từng mẫu, khoảng 0,1 giây ở 48 kHz
         let t = target
         var g = gain
+        var sq = 0.0, count = 0
         for (bi, b) in outs.enumerated() {
             guard let d = b.mData?.assumingMemoryBound(to: Float.self) else { continue }
             let ch = max(1, Int(b.mNumberChannels))
@@ -171,14 +223,27 @@ final class AudioDucker: @unchecked Sendable {
                 for c in 0..<ch {
                     // Đầu ra nhiều buffer một kênh (không xen kẽ): buffer thứ bi ứng với kênh bi.
                     let sc = outs.count > 1 ? min(bi, srcCh - 1) : min(c, srcCh - 1)
-                    d[f * ch + c] = srcData[f * srcCh + sc] * g
+                    let v = srcData[f * srcCh + sc] * g
+                    d[f * ch + c] = v
+                    sq += Double(v * v)
                 }
             }
+            count += frames * ch
             if frames * ch * 4 < Int(b.mDataByteSize) {
                 memset(d.advanced(by: frames * ch), 0, Int(b.mDataByteSize) - frames * ch * 4)
             }
         }
         gain = g
+        outSquares += sq
+        outSamples += count
+    }
+
+    /// Mức tiếng game đã phát ra từ lần gọi trước (dBFS, sau khi giảm); nil nếu chưa phát mẫu nào. Cho bài thử đo.
+    func takeOutputLevel() -> Double? {
+        let sq = outSquares, n = outSamples
+        outSquares = 0; outSamples = 0
+        guard n > 0 else { return nil }
+        return 10 * log10(max(sq / Double(n), 1e-12))
     }
 
     deinit { detach() }

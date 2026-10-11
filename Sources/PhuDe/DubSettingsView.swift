@@ -51,6 +51,10 @@ private struct DubSettingsContent: View {
             Section {
                 SliderRow(title: L("Âm lượng", "Volume"), value: Binding(get: { settings.speechVolume * 100 }, set: { settings.speechVolume = $0 / 100 }),
                           range: 0...100, step: 5, format: "%.0f%%")
+                if settings.speechVolume < 0.995 {
+                    Note(L("Dưới 100%, giọng Siri phải dựng trước rồi mới phát nhỏ được, nên câu đầu sau lúc im lặng chậm hơn khoảng 0,4 giây.",
+                           "Below 100%, the Siri voice has to be rendered before it can play quieter, so the first line after a pause starts about 0.4 seconds later."))
+                }
                 Toggle(L("Tự cân tốc độ theo nhịp thoại", "Match speed to dialogue pace"), isOn: $settings.autoSpeechRate)
                 if !settings.autoSpeechRate {
                     SliderRow(title: L("Tốc độ", "Speed"), value: $settings.speechRate, range: 0.35...0.65, step: 0.01, format: "%.2f")
@@ -74,10 +78,9 @@ private struct DubSettingsContent: View {
                 if settings.duckEnabled {
                     SliderRow(title: L("Tiếng game còn", "Game audio level"), value: Binding(get: { settings.duckLevel * 100 }, set: { settings.duckLevel = $0 / 100 }),
                               range: 0...80, step: 5, format: "%.0f%%")
-                    let gameName = settings.gameAppName.map { " (\($0))" } ?? ""
                     let duckError = speaker.ducker.lastError.map { L(" Lần gần nhất: \($0).", " Last error: \($0).") } ?? ""
-                    Note(L("Chỉ giảm tiếng của app đang hiện game\(gameName) trong lúc đang đọc, các app khác giữ nguyên. Lần đầu macOS hỏi quyền ghi âm thanh hệ thống.\(duckError)",
-                           "Only lowers the app showing the game\(gameName) while a line is being read; other apps are unaffected. The first time, macOS asks for permission to record system audio.\(duckError)"))
+                    Note(L("Chỉ giảm tiếng của app đang hiện game ở vùng phụ đề (hoặc Màn hình chơi game) trong lúc đang đọc, các app khác giữ nguyên. Lần đầu macOS hỏi quyền ghi âm thanh hệ thống.\(duckError)",
+                           "Only lowers the app showing the game in the subtitle region (or the Game screen) while a line is being read; other apps are unaffected. The first time, macOS asks for permission to record system audio.\(duckError)"))
                 }
             } header: { Text(L("Âm thanh", "Audio")) }
 

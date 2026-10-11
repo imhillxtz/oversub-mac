@@ -260,6 +260,9 @@ final class PlayScreen: NSObject, ObservableObject, NSWindowDelegate {
         return settings.volume * duckLevel
     }
 
+    /// Âm lượng phát thật của tiếng card lúc này (đọc lại từ đầu ra tiếng); nil khi không có tiếng.
+    var appliedVolume: Float? { capture?.appliedVolume }
+
     /// Giảm tiếng game khi giọng đọc đang đọc (Speaker gọi); 1 là trả về bình thường.
     func duck(_ level: Double) {
         guard abs(level - duckLevel) > 0.001 else { return }

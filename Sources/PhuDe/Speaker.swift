@@ -1,6 +1,7 @@
 import AVFoundation
 import AppKit
 import AudioToolbox
+import Combine
 
 /// Một câu cần lồng tiếng.
 struct DubLine {
@@ -11,6 +12,22 @@ struct DubLine {
     var created = Date()
     var force = false             // Đọc lại, Nghe thử: phát ngay, không bỏ vì cũ
     var group: ObjectIdentifier?  // các cụm của cùng một câu thoại (chữ chạy): đang chờ thì gộp lại đọc một lần cho liền mạch
+}
+
+/// Chỗ giảm tiếng game khi đang đọc: cửa sổ Màn hình chơi game của OverSub (giảm thẳng âm lượng phát của nó), một app khác
+/// (chặn tiếng bằng tap), hoặc không giảm. `reason` ghi vào nhật ký mỗi khi lựa chọn đổi.
+struct DuckDecision {
+    enum Target { case playScreen, app(NSRunningApplication), none }
+    var target: Target
+    var reason: String
+
+    var label: String {
+        switch target {
+        case .playScreen: return "Màn hình chơi game"
+        case .app(let a): return a.localizedName ?? a.bundleIdentifier ?? "pid \(a.processIdentifier)"
+        case .none: return "không giảm"
+        }
+    }
 }
 
 /// Lồng tiếng theo hàng đợi: câu mới xếp sau câu đang đọc chứ không cắt ngang; câu kế tiếp được dựng sẵn trong lúc câu trước đang đọc.
@@ -87,6 +104,11 @@ final class Speaker: NSObject, ObservableObject, NSSpeechSynthesizerDelegate {
     private let settings: AppSettings
     private let tts: GeminiTTS
     let ducker = AudioDucker()
+    /// Engine đặt: chọn app hay cửa sổ đang hiện game để giảm tiếng (theo vùng phụ đề).
+    var duckDecider: (() -> DuckDecision)?
+    private var lastDuckChoice: String?
+    private var duckNote = ""                       // mức tiếng game của câu đang đọc, ghi kèm dòng "đọc"
+    private var bag = Set<AnyCancellable>()
     private var queue: [Job] = []
     private var current: Job?
     private var live: NSSpeechSynthesizer?          // phát thẳng giọng Siri
@@ -116,6 +138,10 @@ final class Speaker: NSObject, ObservableObject, NSSpeechSynthesizerDelegate {
         engine.attach(timePitch)
         engine.connect(player, to: timePitch, format: format)
         engine.connect(timePitch, to: engine.mainMixerNode, format: format)
+        // Kéo thanh âm lượng: câu đang đọc qua AVAudioEngine đổi ngay; câu chờ được xếp lại đúng đường phát (xem isLiveable).
+        settings.$speechVolume.dropFirst().removeDuplicates().sink { [weak self] v in self?.volumeChanged(v) }.store(in: &bag)
+        settings.$speechVolume.dropFirst().debounce(for: .milliseconds(500), scheduler: RunLoop.main)
+            .sink { [weak self] v in self?.logVolume(v) }.store(in: &bag)
     }
 
     // MARK: API
@@ -368,6 +394,7 @@ final class Speaker: NSObject, ObservableObject, NSSpeechSynthesizerDelegate {
         isEngineJobPlaying = false
         setSpeaking(job.line.speaker ?? "")
         duck(true)
+        if job.live, !isLiveable(job.plan) { job.live = false }   // âm lượng vừa bị kéo xuống dưới 100% khi câu đang chờ
         if job.live {
             playLive(job)
             return
@@ -378,10 +405,41 @@ final class Speaker: NSObject, ObservableObject, NSSpeechSynthesizerDelegate {
         prefetch()
     }
 
-    /// Giọng Siri phát thẳng khi không cần đổi cao độ và không chọn loa riêng: nhanh hơn dựng ra tệp.
-    private func isLiveable(_ plan: VoicePlan) -> Bool {
+    /// Giọng Siri phát thẳng khi không cần đổi cao độ, không chọn loa riêng và âm lượng để 100%: nhanh hơn dựng ra tệp.
+    /// Giọng Siri bỏ qua mọi cách chỉnh âm lượng của bộ đọc (đo 12/10/2026, giọng gryphon-neural vi-VN: `volume` 1,0 / 0,5 / 0,2
+    /// đều ra −18 dBFS; `setObject(forProperty:)` và lệnh `[[volm]]` cũng vậy; giọng thường như Samantha thì nhỏ đi đúng mức).
+    /// Nên âm lượng dưới 100% phải đi qua AVAudioEngine, nơi player.volume có tác dụng. Âm lượng riêng của cảm xúc (câu buồn,
+    /// ngập ngừng nhỏ hơn chút) không tính ở đây, để âm lượng 100% vẫn giữ đường đọc thẳng nhanh nhất.
+    private func isLiveable(_ plan: VoicePlan, volume: Double? = nil) -> Bool {
         guard case .siri = plan.route else { return false }
-        return abs(plan.pitch) < 0.25 && settings.dubDeviceUID.isEmpty
+        #if DEVTOOLS
+        if debugForceLive { return abs(plan.pitch) < 0.25 && settings.dubDeviceUID.isEmpty }
+        #endif
+        return abs(plan.pitch) < 0.25 && settings.dubDeviceUID.isEmpty && (volume ?? settings.speechVolume) >= 0.995
+    }
+
+    /// Âm lượng thực của một câu khi phát qua AVAudioEngine: âm lượng chung nhân với âm lượng của câu (cảm xúc).
+    private func gain(for plan: VoicePlan, volume: Double? = nil) -> Float {
+        Float(max(0, min(1, (volume ?? settings.speechVolume) * plan.volume)))
+    }
+
+    /// `v` là giá trị mới: @Published báo trước khi gán, lúc này settings.speechVolume vẫn là giá trị cũ.
+    private func volumeChanged(_ v: Double) {
+        if let job = current, isEngineJobPlaying { player.volume = gain(for: job.plan, volume: v) }
+        // Câu chờ chưa dựng: xếp lại đường phát theo âm lượng mới, rồi dựng sẵn những câu giờ phải đi qua AVAudioEngine.
+        for job in queue where job.task == nil && !job.rendered { job.live = isLiveable(job.plan, volume: v) }
+        DispatchQueue.main.async { [weak self] in self?.prefetch() }
+    }
+
+    private func logVolume(_ v: Double) {
+        let now: String
+        if let job = current {
+            now = isEngineJobPlaying ? String(format: "câu đang đọc: player %.2f", player.volume)
+                : job.live ? "câu đang đọc thẳng bằng Siri không đổi được, áp dụng từ câu sau" : "câu đang dựng"
+        } else {
+            now = "không có câu đang đọc"
+        }
+        DebugLog.write(String(format: "Giọng đọc: âm lượng %.0f%%, %@ (%@)", v * 100, v >= 0.995 ? "Siri đọc thẳng" : "Siri dựng trước, qua AVAudioEngine", now))
     }
 
     private func playLive(_ job: Job) {
@@ -394,7 +452,7 @@ final class Speaker: NSObject, ObservableObject, NSSpeechSynthesizerDelegate {
         if let id = siriVoiceID(for: job.line.language) { s.setVoice(NSSpeechSynthesizer.VoiceName(rawValue: id)) }
         let rate = settings.autoSpeechRate ? 1 : settings.speechRate / 0.5
         s.rate = liveBaseRate * Float(rate * job.plan.rate * job.line.boost)
-        s.volume = Float(min(1, settings.speechVolume * job.plan.volume))
+        s.volume = gain(for: job.plan)   // giọng Siri bỏ qua (xem isLiveable); giọng thường khi thiếu giọng Siri thì có tác dụng
         lastRoute = "Siri"
         currentText = job.line.text
         spokenEnd = 0
@@ -439,7 +497,7 @@ final class Speaker: NSObject, ObservableObject, NSSpeechSynthesizerDelegate {
         let rate = settings.autoSpeechRate ? 1 : settings.speechRate / 0.5
         timePitch.rate = Float(max(0.5, min(2.2, rate * job.plan.rate * job.line.boost)))
         timePitch.pitch = Float(job.plan.pitch * 100)
-        player.volume = Float(min(1, settings.speechVolume * job.plan.volume))
+        player.volume = gain(for: job.plan)
         isEngineJobPlaying = true
         switch job.plan.route {
         case .siri: lastRoute = job.plan.pitch == 0 ? "Siri" : String(format: "Siri %+.0f", job.plan.pitch)
@@ -495,9 +553,11 @@ final class Speaker: NSObject, ObservableObject, NSSpeechSynthesizerDelegate {
     func debugScaleLiveRate(_ k: Float) { if let s = live { s.rate = s.rate * k } }
 
     private func logStart(_ job: Job) {
-        // Ghi cả hệ số tốc độ (cảm xúc × đuổi kịp) để nhật ký cho thấy câu nào bị đọc chậm hay nhanh hơn bình thường.
-        DebugLog.write(String(format: "Lồng tiếng: đọc [%@ ×%.2f] sau %.0f ms: %@", lastRoute, job.plan.rate * job.line.boost,
-                              Date().timeIntervalSince(job.line.created) * 1000, String(job.line.text.prefix(50))))
+        // Ghi cả hệ số tốc độ (cảm xúc × đuổi kịp) để nhật ký cho thấy câu nào bị đọc chậm hay nhanh hơn bình thường; âm lượng thực
+        // đặt cho giọng (đọc thẳng thì giọng Siri luôn ở 1,00) và mức tiếng game lúc đó, để lần sau thấy ngay khi chúng không ăn.
+        let volume = job.live ? "âm lượng 1.00 đọc thẳng" : String(format: "âm lượng %.2f", player.volume)
+        DebugLog.write(String(format: "Lồng tiếng: đọc [%@ ×%.2f] sau %.0f ms · %@%@: %@", lastRoute, job.plan.rate * job.line.boost,
+                              Date().timeIntervalSince(job.line.created) * 1000, volume, duckNote, String(job.line.text.prefix(50))))
     }
 
     private func finishCurrent() {
@@ -550,18 +610,52 @@ final class Speaker: NSObject, ObservableObject, NSSpeechSynthesizerDelegate {
     #if DEVTOOLS
     /// Chỉ để chụp giao diện lúc đang đọc mà không phát tiếng thật.
     func debugSetSpeaking(_ name: String?) { setSpeaking(name) }
+    /// Bài thử âm lượng: đường phát của câu đang đọc và âm lượng thực của player.
+    var debugCurrentPath: String? { current.map { $0.live ? "đọc thẳng" : "AVAudioEngine" } }
+    var debugPlayerVolume: Float { player.volume }
+    /// Tái hiện lỗi cũ: giọng Siri đọc thẳng ở mọi âm lượng (như trước 12/10/2026).
+    var debugForceLive = false
     #endif
 
     // MARK: Giảm tiếng game
 
+    /// Giảm tiếng game khi một câu bắt đầu đọc. Chọn chỗ giảm mỗi câu (Engine xét app nào đang hiện ở vùng phụ đề), không dựa
+    /// vào game ghi trong hồ sơ: hồ sơ có thể gắn nhầm app (nhật ký 10–12/10/2026: hồ sơ ghi Comet, trình duyệt, trong khi game
+    /// chạy trong Màn hình chơi game).
     private func duck(_ on: Bool) {
         releaseTask?.cancel()
-        guard settings.duckEnabled else { if ducker.isActive { ducker.detach() }; return }
-        if on {
+        guard settings.duckEnabled else {
+            if ducker.isActive { ducker.detach() }
+            duckNote = ""
+            lastDuckChoice = nil
+            return
+        }
+        guard on else { return }
+        let level = settings.duckLevel
+        let d = duckDecider?() ?? DuckDecision(target: PlayScreen.shared.isOpen ? .playScreen : .none, reason: "chưa có bộ chọn")
+        switch d.target {
+        case .playScreen:
             // Tiếng của màn hình chơi game do chính OverSub phát: giảm thẳng âm lượng của nó, không chặn tiếng bằng tap.
-            PlayScreen.shared.duck(settings.duckLevel)
-            guard settings.gameBundleID != PlayScreen.gameID else { return }
-            if ducker.attach(bundleID: settings.gameBundleID) { ducker.setLevel(settings.duckLevel) }
+            if ducker.isActive { ducker.detach() }
+            PlayScreen.shared.duck(level)
+            duckNote = String(format: " · tiếng game %.2f (Màn hình chơi game)", level)
+        case .app(let app):
+            PlayScreen.shared.duck(1)
+            if ducker.attach(to: app) {
+                ducker.setLevel(level)
+                duckNote = String(format: " · tiếng game %.2f (%@)", level, d.label)
+            } else {
+                duckNote = " · tiếng game không giảm (\(ducker.lastError ?? "?"))"
+            }
+        case .none:
+            if ducker.isActive { ducker.detach() }
+            PlayScreen.shared.duck(1)
+            duckNote = " · tiếng game không giảm"
+        }
+        let choice = "\(d.label): \(d.reason)"
+        if choice != lastDuckChoice {
+            lastDuckChoice = choice
+            DebugLog.write(String(format: "Giảm tiếng game: chọn %@ (còn %.0f%%)", choice, level * 100))
         }
     }
 
@@ -580,6 +674,8 @@ final class Speaker: NSObject, ObservableObject, NSSpeechSynthesizerDelegate {
     func releaseGameAudio() {
         ducker.detach()
         PlayScreen.shared.duck(1)
+        duckNote = ""
+        lastDuckChoice = nil
     }
 
     /// Khởi động sẵn bộ đọc Siri (dựng một chữ ra tệp, không phát ra loa): câu thuyết minh đầu tiên đọc ngay thay vì chậm gần 1 giây.

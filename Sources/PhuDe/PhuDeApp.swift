@@ -47,6 +47,7 @@ final class AppModel {
         DebugSnapshot.updatePromptTestIfRequested()
         DebugSnapshot.screenRectIfRequested()
         DebugSnapshot.playTestIfRequested(engine: engine)
+        DebugSnapshot.audioTestIfRequested(engine: engine)
         if let s = ProcessInfo.processInfo.environment["OVERSUB_FRONT_TEST"], let n = Int(s) {
             let engine = engine
             Task { @MainActor in try? await Task.sleep(for: .seconds(2)); await engine.debugFrontCheck(seconds: n) }

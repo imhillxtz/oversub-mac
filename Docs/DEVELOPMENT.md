@@ -163,6 +163,10 @@ macOS chỉ cho app khác dùng giọng Siri đang được chọn cho mỗi ng�
 
 Chọn loa hay tai nghe riêng làm mỗi câu chậm thêm khoảng 1 giây vì phải dựng âm thanh trước. Giảm tiếng game khi đang đọc dùng Core Audio process tap (`AudioDucker`, cần quyền ghi âm thanh hệ thống) và vẫn là thử nghiệm.
 
+Giọng Siri neural bỏ qua mọi cách chỉnh âm lượng của bộ đọc (đo ngày 12/10/2026: `volume` 1,0, 0,5 và 0,2 đều ra −18 dBFS; `setObject(forProperty:)` và lệnh nhúng `[[volm]]` cũng vậy; giọng thường như Samantha thì nhỏ đi đúng mức). Trước bản 1.1.83 thanh âm lượng giọng đọc vì thế không có tác dụng với Voice-over đọc thẳng. Giờ âm lượng dưới 100% đưa giọng Siri qua AVAudioEngine (`player.volume`): câu đến lúc đang im có tiếng sau khoảng 0,7 giây thay vì 0,3 giây; câu xếp hàng sau thì đã dựng sẵn. Kéo thanh giữa câu đổi ngay câu đang đọc qua AVAudioEngine; câu đang đọc thẳng ở 100% thì đổi từ câu sau. Lưu ý `@Published` báo trước khi gán: trong `sink` phải dùng giá trị được truyền vào, đọc lại thuộc tính sẽ ra giá trị cũ.
+
+Giảm tiếng game chọn chỗ giảm mỗi câu theo cửa sổ nằm trên cùng ở giữa vùng phụ đề (`Engine.duckDecision`), không theo game ghi trong hồ sơ (hồ sơ từng ghi Comet trong khi game chạy trong Màn hình chơi game). Màn hình chơi game thì giảm thẳng âm lượng phát của nó (`AVCaptureAudioPreviewOutput.volume`); app khác thì tap mọi tiến trình có tiếng của app, kể cả tiến trình con: trình duyệt nhân Chromium phát tiếng từ tiến trình Helper. Dòng "Lồng tiếng: đọc" ghi âm lượng thực của giọng và mức tiếng game; dòng "Giảm tiếng game: chọn …" ghi lý do mỗi khi lựa chọn đổi. Tap đo cả hệ thống thấy tiếng gốc của app trước khi bị chặn, nên không chứng minh được tiếng gốc đã tắt; phần đó phải nghe bằng tai.
+
 ### Dub (beta)
 
 Mỗi nhân vật, nhận từ nhãn tên trên hộp thoại, có một giọng theo giới tính và tuổi. Groq hoặc Gemini đoán giới tính và tuổi ở câu đầu (`TranslationHub.ask`, chỉ chạy khi bật Dub). Giọng Apple gồm Siri và Linh, đổi cao độ bằng AVAudioUnitTimePitch để phân biệt. Dàn diễn viên lưu theo hồ sơ game. Câu nào chưa dựng kịp giọng nhân vật trong 1 giây thì đọc ngay bằng giọng Voice-over.
@@ -437,6 +441,9 @@ Các móc thử chỉ có trong bản dựng `OVERSUB_DEV=1 ./build.sh` (`DebugS
 | `OVERSUB_PLAY_TEST=ui` | Chụp chân cửa sổ chính (cỡ thường và nhỏ nhất), lời báo trong cửa sổ ở mọi trạng thái, thanh điều khiển, hai hướng dẫn cấp quyền và trang Cài đặt › Màn hình chơi game. |
 | `OVERSUB_PLAY_DEVICE=facetime` | Coi camera FaceTime là capture card, chỉ để thử đường ống khi không có card. Bản thử chạy với cờ này sẽ báo camera ở chân cửa sổ chính; thử xong phải mở lại app bình thường. |
 | `OVERSUB_PLAY_FAKE_DENIED=camera` hoặc `microphone` | Coi như bị từ chối quyền đó. |
+| `OVERSUB_AUDIO_TEST=voice` | Đọc một câu thử ở nhiều mức âm lượng (đọc thẳng, AVAudioEngine, cảm xúc, giọng nhân vật cao độ +3, kéo thanh giữa câu, và một lượt ép đọc thẳng để tái hiện lỗi trước 1.1.83); tap lên chính OverSub, ghi lúc có tiếng và mức dBFS so với lý thuyết. Phát ra loa thật. Cài đặt đổi trong lúc thử được trả lại khi xong. |
+| `OVERSUB_AUDIO_TEST=duck-play` | Mở Màn hình chơi game bằng card thật, đọc một câu câm, ghi mỗi 250 ms âm lượng phát thật của cửa sổ chơi cùng mức tiếng của OverSub và cả hệ thống. |
+| `OVERSUB_AUDIO_TEST=duck-app` kèm `OVERSUB_AUDIO_TEST_APP=<mã app>` | App đó phải đang mở cửa sổ và phát tiếng (ví dụ một app phát sóng sin tự dựng). Đặt vùng phụ đề tạm lên cửa sổ của nó, kiểm app được chọn để giảm, ghi mức áp và mức tiếng OverSub phát lại; ghi thêm các tiến trình có tiếng của Comet nếu đang mở. |
 
 Người dùng bật Stage Manager: cửa sổ nằm ở dải bên thì ảnh chụp bị méo phối cảnh, nên móc chụp tự đưa cửa sổ lên trước.
 

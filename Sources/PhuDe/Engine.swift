@@ -183,6 +183,7 @@ final class Engine: ObservableObject {
             .store(in: &bag)
         // Màn hình chơi game được chọn: tự chuyển sang hồ sơ gắn với nó, như khi một game khác được đưa ra phía trước.
         PlayScreen.shared.onBecameKey = { [weak self] in self?.autoSwitchProfile(for: PlayScreen.gameID) }
+        speaker.duckDecider = { [weak self] in self?.duckDecision() ?? DuckDecision(target: .none, reason: "Engine đã đóng") }
         gamepad.onReplay = { [weak self] in self?.replayLast() }
         gamepad.onToggleVoice = { [weak self] in self?.toggleDub() }
         gamepad.onToggleSubtitles = { [weak self] in self?.toggleOverlay() }
@@ -852,7 +853,7 @@ final class Engine: ObservableObject {
 
     /// App có cửa sổ nằm trên cùng tại giữa vùng (bỏ qua app hệ thống và cửa sổ của OverSub). Màn hình chơi game của OverSub
     /// cũng là game, mang mã riêng `PlayScreen.gameID` để hồ sơ gắn và tự chuyển theo nó.
-    func gameUnder(_ region: CaptureRegion) -> (name: String?, bundle: String?)? {
+    func gameUnder(_ region: CaptureRegion) -> (name: String?, bundle: String?, pid: pid_t?)? {
         guard let screen = resolveScreen(for: region) else { return nil }
         let f = screen.frame
         let mainH = NSScreen.screens.first?.frame.height ?? f.height
@@ -867,14 +868,33 @@ final class Engine: ObservableObject {
                   let dict = info[kCGWindowBounds as String] as? NSDictionary,
                   let b = CGRect(dictionaryRepresentation: dict as CFDictionary), b.contains(center) else { continue }
             if ownerPID == pid {
-                if let play, info[kCGWindowNumber as String] as? Int == play { return (PlayScreen.gameName, PlayScreen.gameID) }
+                if let play, info[kCGWindowNumber as String] as? Int == play { return (PlayScreen.gameName, PlayScreen.gameID, nil) }
                 continue
             }
             let app = NSRunningApplication(processIdentifier: ownerPID)
             guard Self.isPlausibleGame(app?.bundleIdentifier) else { continue }   // bỏ qua cửa sổ app hệ thống nằm đè lên game
-            return (app?.localizedName ?? (info[kCGWindowOwnerName as String] as? String), app?.bundleIdentifier)
+            return (app?.localizedName ?? (info[kCGWindowOwnerName as String] as? String), app?.bundleIdentifier, ownerPID)
         }
         return nil
+    }
+
+    /// Chỗ giảm tiếng game khi đang đọc: app có cửa sổ nằm trên cùng ở giữa vùng phụ đề, tức app đang hiện chữ được đọc. Không lấy
+    /// game ghi trong hồ sơ, vì hồ sơ có thể gắn nhầm (tự gắn vào trình duyệt khi bạn bấm sang nó) hay cũ (đã chuyển sang Màn hình
+    /// chơi game). Không thấy cửa sổ nào ở vùng phụ đề mà Màn hình chơi game đang mở thì giảm nó.
+    func duckDecision(region: CaptureRegion? = nil) -> DuckDecision {
+        let saved = settings.gameBundleID.map { " (hồ sơ ghi \(settings.gameAppName ?? $0))" } ?? ""
+        if let r = region ?? settings.region, let g = gameUnder(r) {
+            if g.bundle == PlayScreen.gameID {
+                return DuckDecision(target: .playScreen, reason: "cửa sổ của nó nằm trên cùng ở vùng phụ đề" + saved)
+            }
+            if let pid = g.pid, let app = NSRunningApplication(processIdentifier: pid) {
+                return DuckDecision(target: .app(app), reason: "cửa sổ của nó nằm trên cùng ở vùng phụ đề" + saved)
+            }
+        }
+        if PlayScreen.shared.isOpen {
+            return DuckDecision(target: .playScreen, reason: "không thấy cửa sổ game ở vùng phụ đề, Màn hình chơi game đang mở" + saved)
+        }
+        return DuckDecision(target: .none, reason: (settings.region == nil ? "chưa chọn vùng phụ đề" : "không thấy cửa sổ game ở vùng phụ đề") + saved)
     }
 
     /// Game có đang hiện ở vùng phụ đề không. Chưa nhận diện được game hoặc đã tắt tuỳ chọn thì luôn coi là có.
@@ -1938,6 +1958,7 @@ final class Engine: ObservableObject {
         }
         guard settings.dubCharacters else {   // Voice-over: không dựng dàn diễn viên, không hỏi AI, không tốn lượt
             // Một giọng Siri đọc thẳng: cảm xúc của câu chỉ đổi tốc độ và âm lượng (đổi cao độ buộc phải dựng trước, trễ thêm).
+            // Phần âm lượng chỉ ăn khi âm lượng chung dưới 100% (câu đi qua AVAudioEngine), xem Speaker.isLiveable.
             var p = voiceOverPlan
             if settings.dubEmotion {
                 let e = Emotion.detect(source: source)
