@@ -21,6 +21,9 @@ final class PlayCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate,
     private var drawnAtLog = 0, replacedAtLog = 0   // chỉ dùng trên videoQueue
     private let output = AVCaptureVideoDataOutput()
     private var audioOut: AVCaptureAudioPreviewOutput?
+    /// Âm lượng vừa đặt cho đầu ra tiếng (đọc lại từ chính đối tượng phát, nil khi phiên không có tiếng). Ghi trên sessionQueue,
+    /// luồng chính đọc để ghi nhật ký và cho bài thử đo; một số Float, lệch một nhịp không sao.
+    nonisolated(unsafe) private(set) var appliedVolume: Float?
     private var direct: CMIOVideoStream?
     private var runtimeObserver: NSObjectProtocol?
 
@@ -66,6 +69,7 @@ final class PlayCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate,
         session.inputs.forEach { session.removeInput($0) }
         session.outputs.forEach { session.removeOutput($0) }
         audioOut = nil
+        appliedVolume = nil
         direct?.stop()
         direct = nil
 
@@ -121,7 +125,7 @@ final class PlayCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate,
                     let ap = AVCaptureAudioPreviewOutput()
                     ap.outputDeviceUniqueID = s.outputUID
                     ap.volume = s.volume
-                    if session.canAddOutput(ap) { session.addOutput(ap); audioOut = ap; audioNote = a.localizedName }
+                    if session.canAddOutput(ap) { session.addOutput(ap); audioOut = ap; appliedVolume = ap.volume; audioNote = a.localizedName }
                 }
             } catch {
                 DebugLog.write("Màn hình chơi: không mở được nguồn tiếng \(a.localizedName): \(error.localizedDescription)")
@@ -193,6 +197,7 @@ final class PlayCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate,
             session.inputs.forEach { session.removeInput($0) }
             session.outputs.forEach { session.removeOutput($0) }
             audioOut = nil
+            appliedVolume = nil
         }
         if let runtimeObserver { NotificationCenter.default.removeObserver(runtimeObserver) }
         runtimeObserver = nil
@@ -207,9 +212,10 @@ final class PlayCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate,
         sessionQueue.async { [self] in
             guard let out = audioOut else { return }
             let from = out.volume
-            guard ramp, abs(from - v) > 0.01 else { out.volume = v; return }
+            guard ramp, abs(from - v) > 0.01 else { out.volume = v; appliedVolume = out.volume; return }
             for k in 1...6 {
                 out.volume = from + (v - from) * Float(k) / 6
+                appliedVolume = out.volume
                 if k < 6 { usleep(20_000) }
             }
         }

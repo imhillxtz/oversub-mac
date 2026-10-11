@@ -226,7 +226,8 @@ enum CastDirector {
         let appleRoute: VoicePlan.Route = (appleID == VoiceCatalog.siriID || !appleAvailable.contains { $0.id == appleID })
             ? .siri : .apple(appleID)
         let adj = emotion.appleAdjust
-        // Cảm xúc chỉ đổi tốc độ và âm lượng (Siri làm được khi đọc thẳng); đổi cao độ buộc phải dựng trước, trễ thêm khoảng 1 giây.
+        // Cảm xúc chỉ đổi tốc độ và âm lượng; đổi cao độ buộc phải dựng trước, trễ thêm khoảng 1 giây. Giọng Siri đọc thẳng bỏ qua
+        // âm lượng (đo 12/10/2026), nên phần âm lượng chỉ ăn khi câu đi qua AVAudioEngine (xem Speaker.isLiveable).
         // Giọng đã phải dựng trước (có lệch cao độ, hoặc giọng Apple khác) thì cảm xúc đổi được cả cao độ; giọng Siri đọc thẳng
         // thì chỉ đổi tốc độ và âm lượng để giữ độ trễ thấp nhất.
         let rendered = abs(m.pitch) >= 0.25 || appleRoute != .siri
