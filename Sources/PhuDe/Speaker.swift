@@ -115,6 +115,8 @@ final class Speaker: NSObject, ObservableObject, NSSpeechSynthesizerDelegate {
     private var liveBaseRate: Float = 0
     private var renderer: NSSpeechSynthesizer?      // dựng giọng Siri ra tệp để đi qua AVAudioEngine
     private var rendererWaiter: CheckedContinuation<Void, Never>?
+    private var renderTimer: Task<Void, Never>?
+    private var renderTimedOut = false
     private var renderBusy = false
     private var renderQueue: [CheckedContinuation<Void, Never>] = []
     private let avSynth = AVSpeechSynthesizer()
@@ -277,6 +279,15 @@ final class Speaker: NSObject, ObservableObject, NSSpeechSynthesizerDelegate {
         job.task?.cancel()
         let wasPlaying = current === job && job.scheduled > 0
         guard !wasPlaying else { job.rendered = true; renderFinished(job); return }   // đã đọc được một phần thì thôi
+        // Đã ở giọng dự phòng mà vẫn lỗi: bỏ câu, không dựng lại mãi.
+        guard job.plan.route != job.plan.fallback else {
+            DebugLog.write("Lồng tiếng: giọng dự phòng cũng lỗi, bỏ câu: \(job.line.text.prefix(40))")
+            job.failed = true
+            job.task = nil
+            job.rendered = true
+            renderFinished(job)
+            return
+        }
         job.buffers.removeAll()
         job.plan.route = job.plan.fallback
         job.plan.style = nil
@@ -302,22 +313,38 @@ final class Speaker: NSObject, ObservableObject, NSSpeechSynthesizerDelegate {
     }
 
     private func renderSiri(_ line: DubLine) async throws -> AVAudioPCMBuffer {
-        // Bộ dựng tệp chỉ chạy từng câu một.
-        if renderBusy { await withCheckedContinuation { renderQueue.append($0) } }
-        renderBusy = true
-        defer {
-            renderBusy = false
-            if !renderQueue.isEmpty { renderQueue.removeFirst().resume() }
-        }
+        // Bộ dựng tệp chỉ chạy từng câu một. Lượt đang dựng xong thì trao thẳng lượt cho người chờ đầu hàng, cờ bận giữ nguyên.
+        // Trước 1.1.85 cờ được trả về trước rồi mới đánh thức người chờ, nên đoạn kế của câu đang dựng chen vào trước: hai lượt
+        // dựng chạy chồng trên cùng bộ đọc, lượt sau ghi đè chỗ chờ của lượt trước, lượt trước treo mãi và cả hàng đợi đọc kẹt
+        // (người dùng gặp 12/10/2026 khi để âm lượng dưới 100%, câu nào cũng phải dựng trước; tái hiện bằng OVERSUB_AUDIO_TEST=queue).
+        if renderBusy { await withCheckedContinuation { renderQueue.append($0) } } else { renderBusy = true }
+        defer { if renderQueue.isEmpty { renderBusy = false } else { renderQueue.removeFirst().resume() } }
         if renderer == nil { renderer = NSSpeechSynthesizer(voice: nil); renderer?.delegate = self }
         guard let r = renderer else { throw AppError(L("Không tạo được bộ đọc", "Couldn't create the speech synthesizer")) }
         if let id = siriVoiceID(for: line.language) { r.setVoice(NSSpeechSynthesizer.VoiceName(rawValue: id)) }
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("oversub-\(UUID().uuidString).aiff")
+        // Lưới an toàn: bộ đọc không báo xong thì không để cả hàng đợi chờ mãi. Giới hạn rộng (dựng nhanh hơn đọc khoảng 5 lần,
+        // lần đầu trên máy mới có thể lâu), quá thì bỏ bộ đọc này và dựng lại bằng bộ mới; báo xong muộn của bộ cũ không đánh
+        // thức nhầm lượt sau vì không còn khớp `renderer`.
+        let limit = 20 + Double(line.text.count) / 10
+        renderTimedOut = false
         await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in
             rendererWaiter = c
-            if !r.startSpeaking(line.text, to: url) { rendererWaiter = nil; c.resume() }
+            if !r.startSpeaking(line.text, to: url) { rendererWaiter = nil; c.resume(); return }
+            renderTimer = Task { [weak self] in
+                try? await Task.sleep(nanoseconds: UInt64(limit * 1_000_000_000))
+                guard let self, !Task.isCancelled, self.renderer === r, let w = self.rendererWaiter else { return }
+                DebugLog.write(String(format: "Lồng tiếng: dựng giọng Siri quá %.0f giây không xong, bỏ bộ đọc này: %@", limit, String(line.text.prefix(40))))
+                self.rendererWaiter = nil
+                self.renderer = nil
+                self.renderTimedOut = true
+                r.stopSpeaking()
+                w.resume()
+            }
         }
+        renderTimer?.cancel()
         defer { try? FileManager.default.removeItem(at: url) }
+        if renderTimedOut { throw AppError(L("Dựng giọng quá lâu", "Rendering the voice took too long")) }
         let file = try AVAudioFile(forReading: url)
         guard let buf = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(file.length)) else {
             throw AppError(L("Không đọc được âm thanh", "Couldn't read the audio"))
@@ -397,6 +424,10 @@ final class Speaker: NSObject, ObservableObject, NSSpeechSynthesizerDelegate {
         if job.live, !isLiveable(job.plan) { job.live = false }   // âm lượng vừa bị kéo xuống dưới 100% khi câu đang chờ
         if job.live {
             playLive(job)
+            return
+        }
+        if job.rendered, job.buffers.isEmpty {   // dựng lỗi hẳn, không có tiếng: sang câu sau
+            finishCurrent()
             return
         }
         if job.task == nil, !job.rendered { startRender(job) }
@@ -537,9 +568,24 @@ final class Speaker: NSObject, ObservableObject, NSSpeechSynthesizerDelegate {
         let started = Date()
         let total = (job.line.text as NSString).length
         karaokeTask = Task { [weak self] in
+            var stoppedSince: Date?
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: 100_000_000)
                 guard let self, self.current === job else { return }
+                // Đường phát dừng giữa câu (thiết bị âm thanh đổi, tai nghe Bluetooth đổi chế độ): AVAudioEngine tự dừng và không
+                // báo xong các đoạn đã xếp, câu sẽ treo mãi. Dừng quá 1,5 giây thì bỏ phần còn lại để hàng đợi chạy tiếp.
+                if !self.engine.isRunning, job.played < job.scheduled {
+                    if stoppedSince == nil { stoppedSince = Date() }
+                    if Date().timeIntervalSince(stoppedSince!) > 1.5 {
+                        DebugLog.write("Lồng tiếng: đường phát dừng giữa câu (thiết bị âm thanh vừa đổi?), bỏ phần còn lại: \(job.line.text.prefix(40))")
+                        self.player.stop()
+                        self.engineDeviceUID = nil
+                        self.finishCurrent()
+                        return
+                    }
+                } else {
+                    stoppedSince = nil
+                }
                 let frames = job.buffers.reduce(0.0) { $0 + Double($1.frameLength) }
                 let duration = frames / GeminiTTS.sampleRate / Double(max(0.1, self.timePitch.rate))
                 guard duration > 0 else { continue }
