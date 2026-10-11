@@ -603,7 +603,26 @@ final class AppSettings: ObservableObject {
     @Published var autoSpeechRate: Bool { didSet { d.set(autoSpeechRate, forKey: "autoSpeechRate") } }
     /// App nằm dưới vùng chọn lúc Chọn khung (chính là game). Chỉ đọc khi app này ở phía trước, để chuyển Space không đọc nhầm.
     @Published var gameAppName: String? { didSet { d.set(gameAppName, forKey: "gameAppName") } }
-    @Published var gameBundleID: String? { didSet { d.set(gameBundleID, forKey: "gameBundleID") } }
+    @Published var gameBundleID: String? {
+        didSet {
+            d.set(gameBundleID, forKey: "gameBundleID")
+            // Game của hồ sơ quyết định tạm ngưng khi game bị che và tự chuyển hồ sơ: mọi lần đổi đều ghi kèm lý do.
+            if gameBundleID != oldValue {
+                DebugLog.write("Game của hồ sơ: \(oldValue ?? "chưa có") → \(gameBundleID.map { "\(gameAppName ?? "?") (\($0))" } ?? "chưa có"), lý do: \(gameChangeReason ?? "áp cài đặt hồ sơ")")
+            }
+            gameChangeReason = nil
+        }
+    }
+    /// Lý do của lần đổi game kế tiếp, để dòng nhật ký ở trên nói rõ vì sao.
+    var gameChangeReason: String?
+
+    /// Đổi game của hồ sơ đang dùng, ghi lý do vào nhật ký.
+    func setGame(_ bundle: String?, name: String?, reason: String) {
+        gameChangeReason = reason
+        gameAppName = name
+        gameBundleID = bundle
+        gameChangeReason = nil
+    }
     @Published var presets: [Preset] {
         didSet { if let data = try? JSONEncoder().encode(presets) { d.set(data, forKey: "presets") } }
     }

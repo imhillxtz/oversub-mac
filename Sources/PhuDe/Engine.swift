@@ -757,22 +757,31 @@ final class Engine: ObservableObject {
     }
 
     /// Tự chuyển hồ sơ khi một game khác được đưa ra phía trước. Hồ sơ bạn tự chọn luôn được tôn trọng:
-    /// - Hồ sơ đang dùng chưa gắn với game nào: gắn nó với game vừa ra phía trước, không chuyển.
+    /// - Hồ sơ đang dùng chưa gắn với game nào: giữ nguyên, không gắn. Game của hồ sơ chỉ đặt khi chọn vùng.
     /// - Hồ sơ đang dùng đã gắn đúng game này: giữ nguyên (nhiều hồ sơ cùng một app xem capture card thì bạn chọn tay).
-    /// - Chỉ khi hồ sơ đang dùng gắn với một game KHÁC thì mới chuyển, sang hồ sơ dùng gần nhất của game này.
-    private func autoSwitchProfile(for bundle: String) {
+    /// - Game của hồ sơ đang dùng vẫn đang hiện (Màn hình chơi game còn mở, hay cửa sổ game vẫn nằm trên cùng ở vùng phụ đề):
+    ///   giữ nguyên, vì bạn chỉ bấm sang app khác một lúc.
+    /// - Còn lại (game của hồ sơ đang dùng đã thôi hiện) thì chuyển sang hồ sơ dùng gần nhất của game này.
+    /// Trước đây hồ sơ chưa gắn game thì tự gắn vào app vừa ra phía trước, đã gắn thì chuyển ngay: đang chơi ở Màn hình chơi game
+    /// mà bấm sang trình duyệt (từng lỡ gắn với một hồ sơ cũ) là hồ sơ bị gắn sang trình duyệt (nhật ký 12/10/2026 01:29).
+    func autoSwitchProfile(for bundle: String) {
         guard settings.autoSwitchProfile, Self.isPlausibleGame(bundle) else { return }
         let matches = settings.presets.filter { $0.snapshot.gameBundleID == bundle }
         guard !matches.isEmpty else { return }   // app này chưa từng là game của hồ sơ nào
         let current = Self.isPlausibleGame(settings.gameBundleID) ? settings.gameBundleID : nil
         if current == bundle { return }
-        if current == nil {
-            settings.gameBundleID = bundle
-            settings.gameAppName = matches.first?.snapshot.gameAppName
-            DebugLog.write("Hồ sơ \(settings.activePreset?.name ?? "?") gắn với game \(settings.gameAppName ?? bundle)")
+        let app = matches.first?.snapshot.gameAppName ?? bundle
+        let profile = settings.activePreset?.name ?? "?"
+        guard let current else {
+            DebugLog.write("Tự chuyển hồ sơ: \(app) ra phía trước, hồ sơ \(profile) chưa gắn game: giữ nguyên, không gắn (game chỉ gắn khi chọn vùng)")
+            return
+        }
+        if let why = gameStillShowing(current) {
+            DebugLog.write("Tự chuyển hồ sơ: \(app) ra phía trước nhưng \(why): giữ hồ sơ \(profile)")
             return
         }
         guard let best = matches.max(by: { ($0.lastUsedAt ?? .distantPast) < ($1.lastUsedAt ?? .distantPast) }) else { return }
+        DebugLog.write("Tự chuyển hồ sơ: \(app) ra phía trước, \(settings.gameAppName ?? current) không còn hiện: chuyển sang hồ sơ \(best.name)")
         applyPreset(best)
         OveEvents.send(.happy, "tự chuyển sang hồ sơ \(best.name)")
         status = L("Đã tự chuyển sang hồ sơ \(best.name) (\(best.snapshot.gameAppName ?? "game")).", "Automatically switched to profile \(best.name) (\(best.snapshot.gameAppName ?? "game")).")
@@ -819,10 +828,14 @@ final class Engine: ObservableObject {
         settings.syncActiveProfile()   // lưu nốt hồ sơ đang dùng trước khi rời
         endDemo()
         speaker.stop()
+        settings.gameChangeReason = "dùng hồ sơ \(p.name)"
         settings.apply(p.snapshot)
+        settings.gameChangeReason = nil
         settings.activePresetID = p.id
         // Hồ sơ lỡ gắn với app hệ thống (chọn vùng lúc Cài đặt hệ thống nằm dưới): bỏ, để không bị "tạm ngưng vì game không ở phía trước".
-        if settings.gameBundleID != nil, !Self.isPlausibleGame(settings.gameBundleID) { settings.gameBundleID = nil; settings.gameAppName = nil }
+        if settings.gameBundleID != nil, !Self.isPlausibleGame(settings.gameBundleID) {
+            settings.setGame(nil, name: nil, reason: "hồ sơ \(p.name) gắn với app hệ thống, không phải game")
+        }
         if let i = settings.presets.firstIndex(where: { $0.id == p.id }) { settings.presets[i].lastUsedAt = Date() }
         resetState()
         resetSecondary()
@@ -840,15 +853,48 @@ final class Engine: ObservableObject {
     }
 
     /// Ghi nhận app có cửa sổ nằm trên cùng tại giữa vùng chọn: đó là game. Sau này chỉ đọc khi app đó ở phía trước.
-    private func detectGame(under region: CaptureRegion) {
+    func detectGame(under region: CaptureRegion) {
         if let g = gameUnder(region) {
-            settings.gameAppName = g.name
-            settings.gameBundleID = g.bundle
+            settings.setGame(g.bundle, name: g.name, reason: "chọn vùng, cửa sổ \(g.name ?? "?") nằm trên cùng ở giữa vùng")
             DebugLog.write("Nhận diện game dưới vùng chọn: \(g.name ?? "?") (\(g.bundle ?? "?"))")
+        } else if let old = settings.gameBundleID, let why = gameOpenOffScreen(old) {
+            // Chọn vùng từ cửa sổ chính ở Space khác trong lúc Màn hình chơi game toàn màn hình ở Space riêng: dưới vùng không có
+            // gì, nhưng game vẫn đó. Trước đây xoá game của hồ sơ ở đây mà không ghi gì (nhật ký 12/10/2026 01:16:40), để rồi bấm
+            // sang trình duyệt là hồ sơ bị gắn sang trình duyệt và hết tạm ngưng khi game bị che.
+            DebugLog.write("Chọn vùng: không thấy cửa sổ game nào ở giữa vùng, giữ game \(settings.gameAppName ?? old) vì \(why)")
         } else {
-            settings.gameAppName = nil
-            settings.gameBundleID = nil
+            let reason = settings.gameBundleID == nil ? "" : ", game cũ đã đóng hoặc vẫn hiện nhưng không nằm ở vùng mới"
+            settings.setGame(nil, name: nil, reason: "chọn vùng, không thấy cửa sổ game nào ở giữa vùng" + reason)
         }
+    }
+
+    /// Game vẫn mở nhưng không có cửa sổ nào trên màn hình lúc này (Màn hình chơi game toàn màn hình ở Space riêng, game ở Space
+    /// khác): trả lý do. Game có cửa sổ trên màn hình mà không nằm ở vùng thì nghĩa là vùng đã dời khỏi nó: trả nil.
+    private func gameOpenOffScreen(_ bundle: String) -> String? {
+        let scene = windowScene()
+        let me = ProcessInfo.processInfo.processIdentifier
+        if bundle == PlayScreen.gameID {
+            guard scene.playOpen else { return nil }
+            let shown = scene.windows.contains {
+                ($0[kCGWindowOwnerPID as String] as? Int32) == me && ($0[kCGWindowNumber as String] as? Int) == scene.playWindowID
+            }
+            return shown ? nil : "Màn hình chơi game vẫn mở, chỉ không hiện trên Space này"
+        }
+        guard scene.isRunning(bundle) else { return nil }
+        let shown = scene.windows.contains { info in
+            guard (info[kCGWindowLayer as String] as? Int) == 0, let pid = info[kCGWindowOwnerPID as String] as? Int32 else { return false }
+            return scene.app(pid).bundle == bundle
+        }
+        return shown ? nil : "\(settings.gameAppName ?? bundle) vẫn mở, chỉ không có cửa sổ nào trên Space này"
+    }
+
+    /// Game của hồ sơ đang dùng còn đang hiện không (để bấm sang app khác không làm đổi hồ sơ): trả lý do nếu còn.
+    private func gameStillShowing(_ bundle: String) -> String? {
+        if bundle == PlayScreen.gameID, windowScene().playOpen { return "Màn hình chơi game vẫn đang mở" }
+        if let r = settings.region, gameUnder(r)?.bundle == bundle {
+            return "cửa sổ \(settings.gameAppName ?? bundle) vẫn nằm trên cùng ở vùng phụ đề"
+        }
+        return nil
     }
 
     /// App có cửa sổ nằm trên cùng tại giữa vùng (bỏ qua app hệ thống và cửa sổ của OverSub). Màn hình chơi game của OverSub
@@ -860,23 +906,49 @@ final class Engine: ObservableObject {
         // Toạ độ toàn cục gốc trên trái, như CGWindowList dùng.
         let center = CGPoint(x: f.minX + region.x + region.w / 2, y: mainH - (f.maxY - region.y - region.h / 2))
         let pid = ProcessInfo.processInfo.processIdentifier
-        let play = PlayScreen.shared.windowID.map(Int.init)
-        let windows = (CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]) ?? []
-        for info in windows {   // xếp từ trên xuống dưới
+        let scene = windowScene()
+        for info in scene.windows {   // xếp từ trên xuống dưới
             guard (info[kCGWindowLayer as String] as? Int) == 0,
                   let ownerPID = info[kCGWindowOwnerPID as String] as? Int32,
                   let dict = info[kCGWindowBounds as String] as? NSDictionary,
                   let b = CGRect(dictionaryRepresentation: dict as CFDictionary), b.contains(center) else { continue }
             if ownerPID == pid {
-                if let play, info[kCGWindowNumber as String] as? Int == play { return (PlayScreen.gameName, PlayScreen.gameID, nil) }
+                if let play = scene.playWindowID, info[kCGWindowNumber as String] as? Int == play { return (PlayScreen.gameName, PlayScreen.gameID, nil) }
                 continue
             }
-            let app = NSRunningApplication(processIdentifier: ownerPID)
-            guard Self.isPlausibleGame(app?.bundleIdentifier) else { continue }   // bỏ qua cửa sổ app hệ thống nằm đè lên game
-            return (app?.localizedName ?? (info[kCGWindowOwnerName as String] as? String), app?.bundleIdentifier, ownerPID)
+            let app = scene.app(ownerPID)
+            guard Self.isPlausibleGame(app.bundle) else { continue }   // bỏ qua cửa sổ app hệ thống nằm đè lên game
+            return (app.name ?? (info[kCGWindowOwnerName as String] as? String), app.bundle, ownerPID)
         }
         return nil
     }
+
+    /// Những gì Engine xét khi nhận diện game: cửa sổ đang hiện trên màn hình (từ trên xuống, như CGWindowList), Màn hình chơi
+    /// game, app đang được chọn. Bài thử hồ sơ game (bản dev) thay bằng cảnh dựng sẵn để chạy lại đúng tình huống đã gặp.
+    struct WindowScene {
+        var windows: [[String: Any]]
+        var playOpen: Bool
+        var playWindowID: Int?
+        var frontmost: (name: String?, bundle: String?)
+        var app: (pid_t) -> (name: String?, bundle: String?)
+        var isRunning: (String) -> Bool
+
+        @MainActor static func live() -> WindowScene {
+            let front = NSWorkspace.shared.frontmostApplication
+            return WindowScene(
+                windows: (CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]) ?? [],
+                playOpen: PlayScreen.shared.isOpen,
+                playWindowID: PlayScreen.shared.windowID.map(Int.init),
+                frontmost: (front?.localizedName, front?.bundleIdentifier),
+                app: { pid in
+                    let a = NSRunningApplication(processIdentifier: pid)
+                    return (a?.localizedName, a?.bundleIdentifier)
+                },
+                isRunning: { !NSRunningApplication.runningApplications(withBundleIdentifier: $0).isEmpty })
+        }
+    }
+
+    var windowScene: @MainActor () -> WindowScene = { WindowScene.live() }
 
     /// Chỗ giảm tiếng game khi đang đọc: app có cửa sổ nằm trên cùng ở giữa vùng phụ đề, tức app đang hiện chữ được đọc. Không lấy
     /// game ghi trong hồ sơ, vì hồ sơ có thể gắn nhầm (tự gắn vào trình duyệt khi bạn bấm sang nó) hay cũ (đã chuyển sang Màn hình
@@ -902,7 +974,7 @@ final class Engine: ObservableObject {
     /// gõ việc gì đó là OverSub ngừng hẳn dù game vẫn chạy và thoại vẫn hiện (nhật ký 07/10: 224 lần tạm ngưng, nhiều lần lỡ thoại).
     /// Giờ game không được chọn mà cửa sổ game vẫn nằm trên cùng ở vùng phụ đề thì vẫn đọc; chỉ tạm ngưng khi game bị ẩn hoặc
     /// cửa sổ app khác che vùng phụ đề (lúc đó vùng chọn chứa chữ của app khác).
-    private func isGameInFront() -> Bool {
+    func isGameInFront() -> Bool {
         // Máy đang khoá, đang chạy bảo vệ màn hình hay màn hình tắt: không đọc được màn hình, tạm ngưng êm, không phải lỗi.
         // (Khoá máy thì cửa sổ game vẫn được liệt kê là đang hiện, nếu không xét riêng thì app cố chụp mỗi nhịp và báo sai là
         // "macOS từ chối chụp màn hình".) Không phụ thuộc tuỳ chọn tạm ngưng: lúc đó không chụp được gì cả.
@@ -911,13 +983,14 @@ final class Engine: ObservableObject {
             return false
         }
         guard settings.pauseWhenGameHidden, let bundle = settings.gameBundleID else { return true }
-        if NSWorkspace.shared.frontmostApplication?.bundleIdentifier == bundle {
+        let frontmost = windowScene().frontmost
+        if frontmost.bundle == bundle {
             behindNote = nil
             return true
         }
         let (visible, cover) = gameVisibleInRegion(bundle: bundle)
         // Ghi nhật ký khi đổi trạng thái: đang chọn app nào, game còn hiện ở vùng phụ đề không, nếu bị che thì do app nào.
-        let front = NSWorkspace.shared.frontmostApplication?.localizedName ?? "?"
+        let front = frontmost.name ?? "?"
         let note = visible ? "Đang chọn \(front), game vẫn hiện ở vùng phụ đề: vẫn đọc" : "Đang chọn \(front), vùng phụ đề \(cover.map { "bị \($0) che" } ?? "không thấy game")"
         if note != behindNote { behindNote = note; DebugLog.write(note) }
         return visible
@@ -966,9 +1039,9 @@ final class Engine: ObservableObject {
         let rect = CGRect(x: f.minX + region.x, y: mainH - (f.maxY - region.y), width: region.w, height: region.h)
         let area = max(1, rect.width * rect.height)
         let me = ProcessInfo.processInfo.processIdentifier
-        let play = PlayScreen.shared.windowID.map(Int.init)
-        let windows = (CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]) ?? []
-        for info in windows {   // xếp từ trên xuống dưới
+        let scene = windowScene()
+        let play = scene.playWindowID
+        for info in scene.windows {   // xếp từ trên xuống dưới
             guard (info[kCGWindowLayer as String] as? Int) == 0,
                   let ownerPID = info[kCGWindowOwnerPID as String] as? Int32,
                   (info[kCGWindowAlpha as String] as? Double ?? 1) > 0.05,
@@ -979,10 +1052,10 @@ final class Engine: ObservableObject {
             let overlap = b.intersection(rect)
             guard !overlap.isNull, overlap.width * overlap.height > 0 else { continue }
             if isPlay { return (true, nil) }
-            let app = NSRunningApplication(processIdentifier: ownerPID)
-            if app?.bundleIdentifier == bundle { return (true, nil) }
+            let app = scene.app(ownerPID)
+            if app.bundle == bundle { return (true, nil) }
             if overlap.width * overlap.height >= area * 0.25 {
-                return (false, app?.localizedName ?? info[kCGWindowOwnerName as String] as? String)
+                return (false, app.name ?? info[kCGWindowOwnerName as String] as? String)
             }
         }
         return (false, nil)

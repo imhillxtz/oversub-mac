@@ -300,6 +300,10 @@ Mọi thay đổi tự ghi vào hồ sơ đang dùng (`syncActiveProfile`, gom s
 
 App tự chuyển hồ sơ khi một game được đưa ra trước, theo bundle id của app đang hiện game; nhiều hồ sơ cùng app thì lấy hồ sơ dùng gần nhất. Game console chơi qua app xem capture card (OBS, VisionRelay) đều hiện qua cùng một app, nên phải chọn hồ sơ bằng tay.
 
+Game của hồ sơ (`gameBundleID`) chỉ đặt khi chọn vùng: app có cửa sổ nằm trên cùng ở giữa vùng phụ đề (`detectGame`). Dưới vùng không có cửa sổ game nào mà game cũ vẫn mở nhưng không hiện trên Space đang xem (Màn hình chơi game toàn màn hình ở Space riêng, bạn chọn vùng từ cửa sổ chính) thì giữ game cũ. Tự chuyển hồ sơ (`autoSwitchProfile`) không gắn game cho hồ sơ chưa có game, và không chuyển khi game của hồ sơ đang dùng vẫn đang hiện (Màn hình chơi game còn mở, hay cửa sổ game vẫn nằm trên cùng ở vùng phụ đề). Mỗi lần game đổi, nhật ký ghi dòng "Game của hồ sơ: cũ → mới, lý do: …"; mỗi lần một app có hồ sơ ra phía trước thì ghi "Tự chuyển hồ sơ: …" kèm quyết định.
+
+Trước 1.1.84 (nhật ký 12/10/2026): chọn lại vùng từ cửa sổ chính trong lúc Màn hình chơi game toàn màn hình ở Space khác làm game của hồ sơ bị xoá mà không ghi gì; 12 phút sau bấm sang Comet (đã lỡ gắn với hồ sơ Monster Hunter Story 3) thì hồ sơ Dragon Dogma 2 bị gắn sang Comet. Game sai làm app thôi tạm ngưng khi game bị che: Comet hay Claude được chọn mà có cửa sổ Comet ở vùng phụ đề thì vẫn đọc chữ của trình duyệt.
+
 ## Điều khiển
 
 Phím tắt toàn cục dùng được khi game toàn màn hình và không cần quyền Trợ năng. Tổ hợp người dùng đã đổi lưu ở khoá `hotkeys` (`KeyCombo`, `HotkeyCenter.setCombo`). Mọi nhãn phím trong giao diện lấy từ `HotkeyCenter.Action.<tên>.display`, không viết cứng.
@@ -429,6 +433,7 @@ Các móc thử chỉ có trong bản dựng `OVERSUB_DEV=1 ./build.sh` (`DebugS
 | `OVERSUB_QUICK_TEST=x,y,w,h` (kèm `OVERSUB_QUICK_TEXT=1`) | Mở Dịch nhanh trên vùng chỉ định và chụp kết quả. |
 | `OVERSUB_MENU_TEST=<tên app toàn màn hình>` | Bấm biểu tượng thanh menu bằng mã khi app khác toàn màn hình, rồi chụp. |
 | `OVERSUB_FRONT_TEST=<giây>` | Ghi mỗi giây app có quét hay không, đang chọn app nào. |
+| `OVERSUB_PROFILE_TEST=1` | Chạy lại các tình huống đổi game của hồ sơ (chọn vùng khi Màn hình chơi game ở Space khác, bấm sang Comet lúc hồ sơ chưa gắn game hay lúc game vẫn hiện, các lần tự chuyển hồ sơ đúng) trên cảnh cửa sổ dựng sẵn (`Engine.windowScene`), ghi ĐÚNG/SAI từng tình huống. Không mở cửa sổ, không đụng card; chạy được trong bản Beta lúc bản chính đang chơi. Hồ sơ và game được trả lại khi xong. |
 | `OVERSUB_HIDE_TEST=<giây>` | Ẩn app sau số giây đó, để đo CPU lúc bị ẩn. |
 | `OVERSUB_SCREEN_RECT=x,y,w,h` | Chụp một vùng màn hình của app khác, ví dụ cửa sổ cài đặt .dmg trong Finder. |
 | `OVERSUB_UPDATE_TEST=1` | Thử tải và cài bản cập nhật từ feed cục bộ (xem phần Phát hành). |
