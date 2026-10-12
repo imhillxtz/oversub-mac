@@ -118,17 +118,22 @@ enum SubtitleFilter {
             if let first = text.first, first.isLetter, first.isLowercase { return "mẩu chữ rời" }
             // Nhãn viết tắt kiểu "Wyvernfell Ab. Stat.", "Drowning Shaft Lv.": từ nào cũng viết hoa, dấu chấm chỉ đứng sau chữ viết tắt
             // (tối đa 4 chữ cái), và có ít nhất một từ dài không kết thúc bằng dấu chấm (để "Oh. Okay." hay "Hmm. Yes." vẫn là lời thoại).
+            // Hai trường hợp là lời thoại chứ không phải nhãn: dấu ba chấm trong chữ thường là câu bỏ lửng ("Arisen ...", "There's
+            // one ..."), và có từ viết thường mà dấu chấm chỉ nằm cuối cụm thì đó là dấu kết câu ("Welcome to the Stardrop Inn.").
+            // Cả ba câu thoại này của Dragon's Dogma 2 từng bị bỏ vì luật này ở bản Windows, 10–12/10/2026.
             let tokens = text.split(separator: " ").map(String.init)
-            if !speech, tokens.count >= 2 {
-                var titleCase = true, dotsOK = true, hasLongWord = false
-                for t in tokens {
+            let trailing = (text.contains("..") || text.contains("…")) && text.contains(where: \.isLowercase)
+            if !speech, !trailing, tokens.count >= 2 {
+                var titleCase = true, dotsOK = true, hasLongWord = false, lowerWord = false, innerDot = false
+                for (i, t) in tokens.enumerated() {
                     let core = t.trimmingCharacters(in: .punctuationCharacters)
                     guard let f = core.first, f.isLetter else { continue }
-                    if f.isLowercase, core.count > 3 { titleCase = false }
+                    if f.isLowercase { lowerWord = true; if core.count > 3 { titleCase = false } }
                     if t.hasSuffix("."), !(f.isUppercase && core.count <= 4) { dotsOK = false }
+                    if t.hasSuffix("."), i < tokens.count - 1 { innerDot = true }
                     if f.isUppercase, core.count >= 4, !t.hasSuffix(".") { hasLongWord = true }
                 }
-                if titleCase, dotsOK, hasLongWord { return "nhãn viết tắt" }
+                if titleCase, dotsOK, hasLongWord, !lowerWord || innerDot { return "nhãn viết tắt" }
             }
         }
         return nil

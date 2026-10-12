@@ -1650,7 +1650,8 @@ final class Engine: ObservableObject {
             if !progLatestRaw.isEmpty, progressiveSettled(progSame) { progSame = 0; try await progressiveCommit(stable: true) }
             return
         }
-        if TextUtil.similar(norm, shown) {
+        // Câu cũ trôi lên với vài ký tự rác ở đầu (Dragon's Dogma 2) cũng là câu đang hiện, không phải câu mới.
+        if TextUtil.similar(norm, shown) || Progressive.scrolledFrom(norm: norm, seen: shown) {
             pending = ""; pendingRaw = ""
             if settings.overlayFollow { overlay.updateFit(lastFit) }   // cùng câu nhưng chữ gốc có thể đã nhích đi
             return
@@ -1766,6 +1767,11 @@ final class Engine: ObservableObject {
             return
         }
         if !progNorm.isEmpty, !Progressive.continues(norm: norm, committedNorm: progNorm) {
+            // Câu cũ trôi lên, dòng trên cùng thành rác (Dragon's Dogma 2): giữ câu đang có, không reset, không dịch và đọc lại.
+            if Progressive.scrolledFrom(norm: norm, seen: progNorm) || Progressive.scrolledFrom(norm: norm, seen: shown) {
+                if !progLine.scrollNoted { progLine.scrollNoted = true; DebugLog.write("Chữ chạy: câu cũ trôi lên, bỏ qua: \(text)") }
+                return
+            }
             DebugLog.write("Dịch dần: câu mới thay vào, bỏ phần đã ghép \"\(progRaw)\"")
             finishLineDub(progLine)   // phần đã dịch mà chưa đọc (chưa có dấu kết thúc câu) thì đọc nốt, không bỏ mất
             resetProgressive()   // câu khác thay vào, không phải câu cũ dài ra
@@ -1806,6 +1812,7 @@ final class Engine: ObservableObject {
         var earlyFlush: Task<Void, Never>?   // hẹn đọc trước phần đã dịch khi phần sau của câu tới chậm
         var firstSeen = 0            // số ký tự lần đầu thấy câu này
         var typedIn = false          // câu được game gõ ra dần trên màn hình (chữ dài thêm hẳn so với lần đầu thấy)
+        var scrollNoted = false      // đã ghi nhật ký "câu cũ trôi lên" cho câu này (mỗi câu ghi một lần)
         var pending: Int { nextSeq - applied }
     }
 
@@ -1813,6 +1820,13 @@ final class Engine: ObservableObject {
         guard let chunk = Progressive.nextChunk(latest: progLatestRaw, committedNorm: progNorm, stable: stable) else {
             // Chữ đã đứng yên mà mọi cụm đều đã gửi dịch: phần còn chờ đủ câu (bản dịch thiếu dấu chấm cuối, câu bị cắt sang
             // khung phụ đề sau) thì đọc luôn, không đợi tới khi câu kế tiếp hiện ra.
+            if stable { finishLineDub(progLine) }
+            return
+        }
+        // Mảnh đuôi lặp của chính phần vừa gửi: không dịch, coi như đã gửi (cộng vào progNorm để cụm sau cắt đúng chỗ).
+        if Progressive.repeatsTail(chunk: chunk, committedNorm: progNorm) {
+            progNorm += TextUtil.normalize(chunk)
+            DebugLog.write("Chữ chạy: bỏ mảnh lặp đuôi câu vừa gửi: \(chunk)")
             if stable { finishLineDub(progLine) }
             return
         }
@@ -2022,6 +2036,7 @@ final class Engine: ObservableObject {
             let n = TextUtil.normalize(text), ns = dedupSource ? TextUtil.normalize(source) : ""
             let repeated = Self.alreadySpoken(n, speaker: name ?? "", in: recentDubs, key: \.norm)
                 || (!ns.isEmpty && Self.alreadySpoken(ns, speaker: name ?? "", in: recentDubs, key: \.source))
+                || (!ns.isEmpty && recentDubs.contains { Progressive.scrolledFrom(norm: ns, seen: $0.source) })   // câu cũ trôi lên có rác ở đầu
             if repeated, !fresh {
                 DebugLog.write("Lồng tiếng: bỏ, câu này vừa đọc rồi: \(text.prefix(40))")
                 return

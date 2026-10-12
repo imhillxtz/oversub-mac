@@ -116,6 +116,30 @@ enum Progressive {
         return TextUtil.similar(String(norm.prefix(committedNorm.count)), committedNorm, tolerance: 0.15)
     }
 
+    /// Hộp thoại đẩy chữ lên (Dragon's Dogma 2): OCR đọc nửa dòng trên cùng đã trôi thành vài ký tự rác ở đầu ("ZMB6LRG9 ld you need to
+    /// communicate in Elvish..."), phần sau vẫn là câu cũ. Bỏ tới 20 ký tự đầu mà phần còn lại (ít nhất 3/4 câu) nằm trọn trong câu đã có
+    /// thì là câu cũ trôi lên, không phải câu mới (bản Windows 11/10/2026: câu như vậy bị dịch và đọc lại). Phần còn lại nằm đúng chỗ cũ
+    /// trong câu đã có thì không tính: đó là câu gõ lại từ đầu (nói chuyện lại với NPC), chỉ đọc sai vài ký tự đầu.
+    static func scrolledFrom(norm: String, seen: String) -> Bool {
+        guard norm.count >= 25, seen.count >= 25 else { return false }
+        let keep = max(25, norm.count * 3 / 4)
+        var k = 1
+        while k <= 20, norm.count - k >= keep {
+            if let r = seen.range(of: String(norm.dropFirst(k))), seen.distance(from: seen.startIndex, to: r.lowerBound) != k { return true }
+            k += 1
+        }
+        return false
+    }
+
+    /// Cụm mới chỉ là đuôi lặp của chính phần vừa gửi (chữ trôi lên làm OCR đọc lệch: "vened." sau "...had you not intervened."). Gửi đi
+    /// thì AI đoán theo ngữ cảnh ra một câu khác ("Phải, đúng vậy đấy.") và giọng đọc lại (bản Windows 11/10/2026). Chỉ xét cụm ngắn
+    /// bắt đầu bằng chữ thường.
+    static func repeatsTail(chunk: String, committedNorm: String) -> Bool {
+        let n = TextUtil.normalize(chunk)
+        guard (1...12).contains(n.count), let first = chunk.trimmingCharacters(in: .whitespaces).first, first.isLowercase else { return false }
+        return committedNorm.hasSuffix(n)
+    }
+
     /// Cụm có thể dịch ngay, hoặc nil nếu chưa đủ. `stable` = khung hình đã đứng yên, chữ không dài thêm nữa: dịch hết phần còn lại.
     static func nextChunk(latest raw: String, committedNorm: String, stable: Bool) -> String? {
         guard TextUtil.normalize(raw).count > committedNorm.count else { return nil }

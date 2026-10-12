@@ -37,6 +37,7 @@ final class AppModel {
         DebugSnapshot.quickTestIfRequested(engine: engine)
         DebugSnapshot.menuTestIfRequested()
         DebugSnapshot.progressiveTestIfRequested(engine: engine)
+        DebugSnapshot.dd2TestIfRequested(engine: engine)
         DebugSnapshot.updateTestIfRequested()
         DebugSnapshot.hideTestIfRequested()
         DebugSnapshot.restartNoticeTestIfRequested()

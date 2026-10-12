@@ -573,6 +573,126 @@ enum DebugSnapshot {
         }
     }
 
+    /// Thử ba bản sửa cho Dragon's Dogma 2 chuyển từ bản Windows 0.9.2, 0.9.3, 0.9.8 (OVERSUB_DD2_TEST=1): câu cũ trôi lên, mảnh
+    /// đuôi lặp, nhãn tên nằm giữa, luật nhãn viết tắt. Chỉ chạy luật thuần, không gọi API; ghi kết quả vào nhật ký rồi thoát app.
+    /// OVERSUB_DD2_TEST=flow: phát lại đường chữ chạy thật (dịch thật vài câu), xem trong nhật ký chỉ có một lần "câu mới thay vào".
+    static func dd2TestIfRequested(engine: Engine) {
+        guard let spec = ProcessInfo.processInfo.environment["OVERSUB_DD2_TEST"] else { return }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1))
+            if spec == "flow" {
+                DebugLog.write("=== Thử DD2 chữ chạy ===")
+                let a = "Would you need to communicate in Elvish with the elders of Sacred Arbor?"
+                let c = "We would have been done for had you not intervened."
+                await engine.debugProgressive([
+                    ("Would you need to", 0.5),
+                    ("Would you need to communicate in Elvish with the", 0.5),
+                    (a, 5),
+                    ("ZMB6LRG9 ld you need to communicate in Elvish with the elders of Sacred Arbor?", 1),   // câu cũ trôi lên: bỏ qua
+                    ("ZMB6LRG9 ld you need to communicate in Elvish with the elders of Sacred Arbor", 1),
+                    ("Not at all. The elders speak our tongue well enough.", 6),   // câu mới: một lần "câu mới thay vào"
+                ], idle: 0)
+                // Hai lần đọc trống: hộp thoại đóng, câu sau bắt đầu lại từ đầu (không tính là "câu mới thay vào").
+                await engine.debugRead([], speaker: nil, wait: 0.3)
+                await engine.debugRead([], speaker: nil, wait: 1)
+                await engine.debugProgressive([
+                    ("We would have been", 0.5),
+                    (c, 4),
+                    (c + " vened.", 4),   // mảnh đuôi lặp: bỏ, không dịch
+                ], idle: 0)
+                DebugLog.write("=== Hết thử DD2 chữ chạy ===")
+                return
+            }
+            var passed = 0, total = 0
+            func check(_ name: String, _ ok: Bool, _ detail: String) {
+                total += 1
+                if ok { passed += 1 }
+                DebugLog.write("DD2 thử: \(name) → \(ok ? "đúng" : "SAI") (\(detail))")
+            }
+
+            // 1. Câu cũ trôi lên.
+            let seen = TextUtil.normalize("would you need to communicate in elvish with the elders of sacred arbor")
+            let scrolls: [(String, String, Bool)] = [
+                ("trôi lên có rác ở đầu", "ZMB6LRG9 ld you need to communicate in Elvish with the elders of Sacred Arbor", true),
+                ("trôi lên mất dòng đầu, không rác", "you need to communicate in Elvish with the elders of Sacred Arbor", true),
+                ("câu khác hẳn", "The weather in Vernworth has been strange these past few days.", false),
+                ("câu cũ nối dài", "Would you need to communicate in Elvish with the elders of Sacred Arbor and the guardians of the gate?", false),
+                ("câu mới cùng mở đầu", "Would you need to speak with the captain before we leave the city?", false),
+                ("câu ngắn viết hoa", "No.", false),
+                ("chuỗi ngắn dưới 25", "ld you need to talk", false),
+                ("gõ lại từ đầu (nói lại với NPC)", "Would you need to communicate in Elvish with", false),
+            ]
+            for (name, text, want) in scrolls {
+                let got = Progressive.scrolledFrom(norm: TextUtil.normalize(text), seen: seen)
+                check("scrolledFrom \(name)", got == want, "\(text) → \(got)")
+            }
+
+            // 2. Mảnh đuôi lặp.
+            let committed = TextUtil.normalize("We would have been done for had you not intervened.")
+            for (chunk, want) in [("vened.", true), ("Vened.", false), ("not intervened.", false), ("really.", false)] {
+                let got = Progressive.repeatsTail(chunk: chunk, committedNorm: committed)
+                check("mảnh đuôi \"\(chunk)\"", got == want, "bỏ=\(got)")
+            }
+
+            // 3. Tách nhãn tên. Ảnh 400x120 nền tối; dòng tên tô màu khác hẳn để luật màu nhận ra (toạ độ Vision, gốc dưới trái).
+            func frame(_ labels: [CGRect]) -> CGImage? {
+                let w = 400, h = 120
+                guard let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(),
+                                          bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+                ctx.setFillColor(CGColor(red: 0.1, green: 0.1, blue: 0.1, alpha: 1))
+                ctx.fill(CGRect(x: 0, y: 0, width: w, height: h))
+                ctx.setFillColor(CGColor(red: 0.8, green: 0.65, blue: 0.25, alpha: 1))
+                for b in labels { ctx.fill(CGRect(x: b.minX * CGFloat(w), y: b.minY * CGFloat(h), width: b.width * CGFloat(w), height: b.height * CGFloat(h))) }
+                return ctx.makeImage()
+            }
+            func splitCase(_ name: String, _ lines: [OCRLine], labels: [CGRect], speaker: String?, body: [String]) {
+                guard let img = frame(labels) else { check(name, false, "không dựng được ảnh"); return }
+                let r = OCR.split(lines, image: img)
+                let texts = r.body.map(\.text)
+                check(name, r.speaker == speaker && texts == body, "người nói=\(r.speaker ?? "-") | thân=\(texts.joined(separator: " / "))")
+            }
+            let gregor = CGRect(x: 0.05, y: 0.45, width: 0.15, height: 0.15)
+            splitCase("split Gregor (tên nằm giữa)", [
+                OCRLine(text: "Who's that you've brought with you, Watchhead, ser?", box: CGRect(x: 0.05, y: 0.70, width: 0.90, height: 0.15)),
+                OCRLine(text: "Gregor", box: gregor),
+                OCRLine(text: "An Arisen...by all appearances.", box: CGRect(x: 0.05, y: 0.20, width: 0.60, height: 0.15)),
+            ], labels: [gregor], speaker: "Gregor", body: ["An Arisen...by all appearances."])
+            let eleanor = CGRect(x: 0.05, y: 0.70, width: 0.20, height: 0.15)
+            splitCase("split MHS3 (tên trên cùng)", [
+                OCRLine(text: "Eleanor", box: eleanor),
+                OCRLine(text: "These vineyards are managed by Thea's father.", box: CGRect(x: 0.05, y: 0.45, width: 0.85, height: 0.15)),
+                OCRLine(text: "Used to wrangle all sorts of Poogies, too.", box: CGRect(x: 0.05, y: 0.25, width: 0.80, height: 0.15)),
+            ], labels: [eleanor], speaker: "Eleanor", body: ["These vineyards are managed by Thea's father.", "Used to wrangle all sorts of Poogies, too."])
+            let heat = ["I can't stand this heat any longer, it's", "been weeks since the last drop of rain fell", "on these fields and the crops are dying."]
+            splitCase("split Heatwave (ba dòng, không tên)", [
+                OCRLine(text: heat[0], box: CGRect(x: 0.05, y: 0.70, width: 0.85, height: 0.15)),
+                OCRLine(text: heat[1], box: CGRect(x: 0.05, y: 0.45, width: 0.88, height: 0.15)),
+                OCRLine(text: heat[2], box: CGRect(x: 0.05, y: 0.20, width: 0.80, height: 0.15)),
+            ], labels: [], speaker: nil, body: heat)
+            // Dòng giữa khác màu, đủ luật tên, nhưng rộng hơn nửa dòng dưới: vẫn là lời thoại.
+            let wide = CGRect(x: 0.05, y: 0.45, width: 0.50, height: 0.15)
+            splitCase("split dòng ngắn giữa rộng hơn nửa dòng dưới", [
+                OCRLine(text: "We should head back before nightfall,", box: CGRect(x: 0.05, y: 0.70, width: 0.85, height: 0.15)),
+                OCRLine(text: "Come along now", box: wide),
+                OCRLine(text: "or the wolves will find us first.", box: CGRect(x: 0.05, y: 0.20, width: 0.80, height: 0.15)),
+            ], labels: [wide], speaker: nil, body: ["We should head back before nightfall,", "Come along now", "or the wolves will find us first."])
+
+            // 4. Luật nhãn viết tắt.
+            for text in ["Welcome to the Stardrop Inn.", "Arisen ...", "There's one ..."] {
+                let r = SubtitleFilter.nonSubtitleReason(text)
+                check("lời thoại \"\(text)\"", r == nil, r ?? "giữ")
+            }
+            for text in ["Wyvernfell Ab. Stat.", "Drowning Shaft Lv.", "3.00 INITIAL FARE ...", "Flower Fan ."] {
+                let r = SubtitleFilter.nonSubtitleReason(text)
+                check("nhãn \"\(text)\"", r != nil, r ?? "giữ")
+            }
+
+            DebugLog.write("=== Hết thử DD2: \(passed)/\(total) đúng ===")
+            try? await Task.sleep(for: .seconds(1))   // nhật ký ghi trên hàng đợi riêng: chờ ghi xong rồi mới thoát
+            exit(0)
+        }
+    }
+
     /// Thử tự cập nhật không cần phát hành thật (OVERSUB_UPDATE_TEST=1, kèm OVERSUB_UPDATE_FEED và OVERSUB_UPDATE_TARGET):
     /// kiểm tra, tải, kiểm chữ ký, cài vào bản sao app; ghi kết quả vào nhật ký.
     static func updateTestIfRequested() {

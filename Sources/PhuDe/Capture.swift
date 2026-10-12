@@ -383,16 +383,29 @@ enum OCR {
             if !kept.isEmpty { lines = kept }
         }
         var speaker: String?
-        if lines.count >= 2, isSpeakerLabel(lines[0], below: lines[1], image: image) {
-            var t = lines[0].text.trimmingCharacters(in: .whitespaces)
+        func name(_ line: OCRLine) -> String? {
+            var t = line.text.trimmingCharacters(in: .whitespaces)
             while let last = t.last, ":-—".contains(last) { t.removeLast() }
             t = t.trimmingCharacters(in: .whitespaces)
             // Tên nhân vật không kết thúc bằng dấu câu và có ít nhất ba chữ cái; không thì đó là một dòng thoại ngắn
             // hoặc chữ giao diện ("OD", "đâu."), không lập nhân vật mới từ nó.
-            if t.filter(\.isLetter).count >= 3, !(t.last.map { ".!?…,".contains($0) } ?? false) {
-                speaker = t
-                lines.removeFirst()
-            }
+            return t.filter(\.isLetter).count >= 3 && !(t.last.map { ".!?…,".contains($0) } ?? false) ? t : nil
+        }
+        if lines.count >= 2, isSpeakerLabel(lines[0], below: lines[1], image: image), let t = name(lines[0]) {
+            speaker = t
+            lines.removeFirst()
+        }
+        // Nhãn tên nằm giữa (Dragon's Dogma 2 để câu trước nằm lại phía trên, rồi tên người nói lệch trái và câu mới bên dưới): câu
+        // đang nói là phần sau nhãn cuối cùng, phần trên là câu cũ. Trước đây khối lớn nhất thắng nên câu cũ dài hơn che mất câu mới,
+        // câu mới không bao giờ được dịch (bản Windows gặp 11/10/2026, "An Arisen...by all appearances." dưới tên Gregor). Dòng giữa
+        // đoạn thoại thường dài hết cỡ, nên nhãn giữa phải hẹp hơn nửa dòng bên dưới và có tâm lệch về bên trái của nó.
+        for i in stride(from: lines.count - 2, through: 1, by: -1) {
+            let label = lines[i], next = lines[i + 1]
+            guard label.box.width < next.box.width * 0.5, label.box.midX < next.box.midX,
+                  isSpeakerLabel(label, below: next, image: image), let t = name(label) else { continue }
+            speaker = t
+            lines = Array(lines[(i + 1)...])
+            break
         }
         let body = blocks(lines, aspect: aspect).max { area($0) < area($1) } ?? lines
         return (body, speaker)
