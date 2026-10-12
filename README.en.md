@@ -55,7 +55,7 @@ https://github.com/user-attachments/assets/db2bf69f-3bb9-4343-82d8-905128e31e92
 Other features:
 
 - Quick translate (⌃⌥Q): press the shortcut anywhere, drag a box around some text and let go to see the translation in place. Buttons copy the translation or show the original text so you can look it up.
-- Game screen: connect a capture card and the bottom of the main window shows the card's name with a button to open it. Your console's picture and sound play in an OverSub window, no separate viewer app needed, and subtitles, voice and screen translation work on it like on any other game.
+- Game screen (Beta): connect a capture card and the bottom of the main window shows the card's name with a button to open it. Your console's picture and sound play in an OverSub window, no separate viewer app needed, and subtitles, voice and screen translation work on it like on any other game.
 - Subtitle window: a floating window with just the dialogue. It stays above every Space, including full-screen games, and shrinks to a thin strip so it doesn't cover the game. The text lights up as it's read aloud.
 - Translation services: Gemini, Groq, Cerebras, Mistral and OpenRouter (all with free plans), paid OpenAI-style services (OpenAI, DeepSeek, xAI), and Apple's two on-device engines, which work offline. The app measures each service's speed and moves to another one when a service is slow or out of quota.
 - Game genres: pick Medieval Europe, Wuxia, Anime/JRPG, Street and so on, and the AI uses forms of address and tone to match, or describe the setting yourself with the Custom genre. Each pair of characters keeps the same forms of address, proper names stay as they are, and there's a glossary.
@@ -186,7 +186,7 @@ Press ⌃⌥Q anywhere (you don't need to click Start), drag a box around some t
 <sub>Quick translate on a long block of text: the translation appears in place, with buttons below to show the original, copy the translation and close.</sub>
 </div>
 
-### Game screen
+### Game screen (Beta)
 
 Connect a capture card to your Mac (before or after opening OverSub). The bottom of the main window then shows "Signal detected from" with the card's name, resolution and frame rate, and an Open game screen button. The window never opens by itself. Without the notice, click Game screen at the bottom of the main window or choose it from the Window menu. The notice ignores webcams and the FaceTime camera; to use a camera, pick it under Video device.
 
@@ -196,7 +196,7 @@ https://github.com/user-attachments/assets/52e95177-6590-4198-8b09-fe6789814012
 
 The game screen is a regular window that remembers its position and size; drag the picture to move it and drag an edge to resize it. Click the green button, double-click the picture or press ⌃⌘F for full screen. The picture keeps its aspect ratio with black bars where needed, and the sound goes straight to your speakers. Move the pointer over the picture to show a small bar at the bottom: mute, volume, full screen and the options menu (right-clicking the picture opens the same menu). Closing the window stops the picture and sound from the card.
 
-The options menu and Settings → Game screen offer the same choices: card, format, audio source, audio output, color range, color matrix, color space, HDR, picture preset, picture size (fit or fill), latency, mute when another app is active, and always on top.
+The options menu and Settings → Game screen (Beta) offer the same choices: card, format, audio source, audio output, color range, color matrix, color space, HDR, picture preset, picture size (fit or fill), latency, mute when another app is active, and always on top.
 
 Picture presets bundle upscaling, sharpening, anti-aliasing and frame generation. A capture card only delivers the finished picture, with no motion or depth data from the game, so DLSS or FSR 2 and later can't be used; every preset below works on the finished picture:
 

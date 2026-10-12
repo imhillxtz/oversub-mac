@@ -55,7 +55,7 @@ https://github.com/user-attachments/assets/db2bf69f-3bb9-4343-82d8-905128e31e92
 Các tính năng khác:
 
 - Dịch nhanh (⌃⌥Q): bấm phím tắt ở đâu cũng được, kéo khung quanh chữ, thả chuột là có bản dịch tại chỗ. Có nút chép bản dịch và nút xem chữ gốc để tra cứu.
-- Màn hình chơi game: cắm capture card là chân cửa sổ chính báo tên card kèm nút mở. Hình và tiếng của máy console hiện trong một cửa sổ của OverSub, không cần app xem hình riêng; phụ đề, giọng đọc và dịch màn hình chạy trên cửa sổ này như với mọi game.
+- Màn hình chơi game (Beta): cắm capture card là chân cửa sổ chính báo tên card kèm nút mở. Hình và tiếng của máy console hiện trong một cửa sổ của OverSub, không cần app xem hình riêng; phụ đề, giọng đọc và dịch màn hình chạy trên cửa sổ này như với mọi game.
 - Cửa sổ phụ đề: cửa sổ nổi chỉ có câu thoại, ghim trên mọi Space kể cả khi game toàn màn hình. Thu được còn một dải mỏng để không che game, chữ sáng dần theo giọng đọc.
 - Dịch vụ dịch: Gemini, Groq, Cerebras, Mistral, OpenRouter (đều có gói miễn phí), dịch vụ trả phí kiểu OpenAI (OpenAI, DeepSeek, xAI), và hai engine của Apple chạy trên máy không cần mạng. App đo tốc độ từng dịch vụ và đổi sang dịch vụ khác khi một dịch vụ chậm hay hết hạn mức.
 - Thể loại game: chọn Trung cổ châu Âu, Cổ trang kiếm hiệp, Anime/JRPG, Đường phố... để AI chọn xưng hô và văn phong, hoặc tự mô tả bối cảnh ở thể loại Tuỳ chỉnh. Xưng hô giữ nhất quán theo từng cặp nhân vật, tên riêng giữ nguyên, có từ điển thuật ngữ.
@@ -186,7 +186,7 @@ Bấm ⌃⌥Q ở đâu cũng được (không cần bấm Bắt đầu), kéo k
 <sub>Dịch nhanh một đoạn chữ dài: bản dịch hiện tại chỗ, thanh nút bên dưới để xem chữ gốc, chép bản dịch và đóng.</sub>
 </div>
 
-### Màn hình chơi game
+### Màn hình chơi game (Beta)
 
 Cắm capture card vào Mac (lúc OverSub đang mở hay trước đó đều được), chân cửa sổ chính hiện dòng "Đã nhận tín hiệu từ" kèm tên card, độ phân giải, số khung hình và nút Mở màn hình chơi. App không tự mở cửa sổ. Không có dòng báo thì bấm Màn hình chơi game ở chân cửa sổ chính, hoặc mục cùng tên trong menu Window. Dòng báo không tính webcam và camera FaceTime; muốn dùng camera thì chọn trong mục Thiết bị hình.
 
@@ -196,7 +196,7 @@ https://github.com/user-attachments/assets/52e95177-6590-4198-8b09-fe6789814012
 
 Cửa sổ mở ra là cửa sổ thường, nhớ vị trí và cỡ; nắm kéo hình để di chuyển cửa sổ, kéo mép để đổi cỡ. Bấm nút xanh, bấm đúp vào hình hoặc ⌃⌘F để toàn màn hình. Hình giữ đúng tỉ lệ, dư thì có viền đen. Tiếng phát thẳng ra loa. Rê chuột vào hình thì hiện thanh nhỏ ở chân cửa sổ: tắt tiếng, âm lượng, toàn màn hình và menu tuỳ chọn (bấm phải vào hình cũng mở menu này). Đóng cửa sổ là app thôi nhận hình và tiếng từ card.
 
-Menu tuỳ chọn và trang Cài đặt → Màn hình chơi game có cùng các mục: chọn card, định dạng, nguồn tiếng, loa phát ra, dải màu, chuẩn màu, không gian màu, HDR, bộ chỉnh hình, khung hình (vừa khung hoặc lấp đầy), độ trễ, tắt tiếng khi chuyển sang app khác, luôn nằm trên cùng.
+Menu tuỳ chọn và trang Cài đặt → Màn hình chơi game (Beta) có cùng các mục: chọn card, định dạng, nguồn tiếng, loa phát ra, dải màu, chuẩn màu, không gian màu, HDR, bộ chỉnh hình, khung hình (vừa khung hoặc lấp đầy), độ trễ, tắt tiếng khi chuyển sang app khác, luôn nằm trên cùng.
 
 Bộ chỉnh hình gom sẵn cách phóng to, làm nét, khử răng cưa và tăng FPS. Capture card chỉ đưa ra hình đã vẽ xong, không có dữ liệu chuyển động hay chiều sâu của game, nên DLSS hay FSR 2 trở lên không dùng được; các bộ dưới đây đều làm việc trên hình hoàn chỉnh:
 
