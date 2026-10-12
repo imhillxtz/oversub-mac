@@ -12,6 +12,9 @@ final class PlayScreen: NSObject, ObservableObject, NSWindowDelegate {
     /// Mã "game" của cửa sổ này trong hồ sơ game. Không phải bundle id thật, chỉ để hồ sơ gắn và tự chuyển theo cửa sổ.
     static let gameID = "vn.imhillxtz.phude.playscreen"
     static var gameName: String { L("Màn hình chơi game", "Game screen") }
+    /// Tên hiện ở các lối vào và tiêu đề cửa sổ. Kèm "(Beta)" vì tính năng này sẽ tách thành app riêng (người dùng chốt 13/10/2026);
+    /// gameName giữ nguyên vì hồ sơ game đã lưu tên đó.
+    nonisolated static var title: String { L("Màn hình chơi game (Beta)", "Game screen (Beta)") }
 
     enum Phase: Equatable { case closed, starting, live, waiting, unplugged, noPermission, failed(String) }
     @Published private(set) var phase: Phase = .closed
@@ -83,7 +86,7 @@ final class PlayScreen: NSObject, ObservableObject, NSWindowDelegate {
         let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1280, height: 720),
                          styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                          backing: .buffered, defer: false)
-        w.title = Self.gameName
+        w.title = Self.title
         w.titleVisibility = .hidden
         w.titlebarAppearsTransparent = true
         w.backgroundColor = .black
@@ -131,7 +134,7 @@ final class PlayScreen: NSObject, ObservableObject, NSWindowDelegate {
         runningFormat = settings.formats[dev.uniqueID]
         runningAudio = settings.audioSources[dev.uniqueID]
         settings.deviceID = dev.uniqueID
-        window?.title = "\(Self.gameName) · \(dev.localizedName)"
+        window?.title = "\(Self.title) · \(dev.localizedName)"
         setPhase(.starting)
         Task { @MainActor in
             guard await CaptureCards.authorize(.video) else {

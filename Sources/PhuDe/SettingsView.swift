@@ -64,7 +64,7 @@ enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
         case .dub: return L("Giọng đọc", "Voice")
         case .cast: return L("Nhân vật", "Characters")
         case .screen: return L("Dịch màn hình", "Screen translation")
-        case .play: return L("Màn hình chơi game", "Game screen")
+        case .play: return PlayScreen.title
         case .translate: return L("Dịch vụ dịch", "Translation services")
         case .smart: return L("Văn phong & thuật ngữ", "Style & glossary")
         case .presets: return L("Hồ sơ game", "Game profiles")
@@ -226,6 +226,7 @@ struct SettingsView: View {
                 }
             }
             .listStyle(.sidebar)
+            .background(SidebarMinWidth(width: 250))
             .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
             .toolbar(removing: .sidebarToggle)
         } detail: {
@@ -1162,6 +1163,39 @@ struct UpdateSection: View {
                     Task { await u.check(manual: true); if u.pending != nil { UpdatePrompt.shared.show() } }
                 }
             }
+        }
+    }
+}
+
+/// Độ rộng tối thiểu của thanh bên Cài đặt, đặt ở tầng AppKit cho vừa mục dài nhất "Màn hình chơi game (Beta)" (220 thì bị cắt
+/// thành "(B..."). Đo 13/10/2026: SwiftUI bỏ qua navigationSplitViewColumnWidth trong cửa sổ Cài đặt (không có độ rộng đã lưu thì
+/// thanh bên co về 144) và macOS khôi phục độ rộng đã lưu, nên đặt minimumThickness của NSSplitViewItem thanh bên.
+private struct SidebarMinWidth: NSViewRepresentable {
+    let width: CGFloat
+    func makeNSView(context: Context) -> NSView { Probe(width: width) }
+    func updateNSView(_ nsView: NSView, context: Context) {}
+
+    private final class Probe: NSView {
+        let width: CGFloat
+        init(width: CGFloat) { self.width = width; super.init(frame: .zero) }
+        required init?(coder: NSCoder) { nil }
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            guard window != nil else { return }
+            DispatchQueue.main.async { [weak self] in self?.apply() }
+        }
+
+        private func apply() {
+            var view = superview
+            while let v = view, !(v is NSSplitView) { view = v.superview }
+            guard let split = view as? NSSplitView, let controller = split.delegate as? NSSplitViewController,
+                  let item = controller.splitViewItems.first else {
+                DebugLog.write("Cài đặt: không tìm thấy thanh bên để đặt độ rộng tối thiểu")
+                return
+            }
+            item.minimumThickness = width
+            if let sidebar = split.arrangedSubviews.first, sidebar.frame.width < width { split.setPosition(width, ofDividerAt: 0) }
         }
     }
 }

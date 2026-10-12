@@ -28,10 +28,19 @@ cp Docs/THIRD_PARTY_NOTICES.md "$APP/Contents/Resources/THIRD_PARTY_NOTICES.md"
 # Máy chỉ có Command Line Tools thì dùng AppIcon.icns phẳng ở trên.
 XCODE_DEV=/Applications/Xcode.app/Contents/Developer
 if [[ -d "$XCODE_DEV" ]]; then
-  DEVELOPER_DIR="$XCODE_DEV" xcrun actool Resources/AppIcon.icon --compile "$APP/Contents/Resources" \
-    --platform macosx --minimum-deployment-target 26.0 --app-icon AppIcon \
-    --output-partial-info-plist "$APP/icon-partial.plist" >/dev/null
-  rm -f "$APP/icon-partial.plist"
+  # Biên dịch ra thư mục tạm rồi chép vào: actool có lúc không ghi được vào thư mục trong Documents ("Operation not permitted")
+  # và hay vấp khi một actool khác đang chạy (13/10/2026). Thử ba lần; vẫn hỏng thì dùng icon phẳng, không dừng bản dựng.
+  ICON_TMP=$(mktemp -d)
+  for try in 1 2 3; do
+    DEVELOPER_DIR="$XCODE_DEV" xcrun actool "$PWD/Resources/AppIcon.icon" --compile "$ICON_TMP" \
+      --platform macosx --minimum-deployment-target 26.0 --app-icon AppIcon \
+      --output-partial-info-plist "$ICON_TMP/icon-partial.plist" >/dev/null 2>&1 || true
+    [[ -f "$ICON_TMP/Assets.car" ]] && break
+    sleep 3
+  done
+  if [[ -f "$ICON_TMP/Assets.car" ]]; then cp "$ICON_TMP/Assets.car" "$APP/Contents/Resources/Assets.car"
+  else echo "actool không dựng được icon kính: dùng icon phẳng."; fi
+  rm -rf "$ICON_TMP"
   cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 else
   echo "Không thấy Xcode: dùng icon phẳng (không có hiệu ứng kính)."

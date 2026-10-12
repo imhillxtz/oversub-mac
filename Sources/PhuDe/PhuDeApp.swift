@@ -122,7 +122,7 @@ struct OverSubCommands: Commands {
             Button(L("Ủng hộ OverSub…", "Support OverSub…")) { openWindow(id: "donate") }
         }
         CommandGroup(after: .windowArrangement) {
-            Button(L("Màn hình chơi game", "Game Screen")) { PlayScreen.shared.open() }
+            Button(PlayScreen.title) { PlayScreen.shared.open() }
         }
         CommandGroup(replacing: .help) {
             Button(L("Gửi báo lỗi…", "Send Bug Report…")) { ErrorReport.send() }

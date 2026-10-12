@@ -265,7 +265,7 @@ struct ContentView: View {
                     Button { play.open() } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "gamecontroller.fill").foregroundStyle(.secondary)
-                            Text(L("Màn hình chơi game", "Game screen")).foregroundStyle(.secondary)
+                            Text(PlayScreen.title).foregroundStyle(.secondary)
                         }
                         .font(.caption)
                         .contentShape(Rectangle())

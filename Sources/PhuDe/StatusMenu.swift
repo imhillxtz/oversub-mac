@@ -125,7 +125,7 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         add(menu, L("Cửa sổ phụ đề", "Subtitle window"), on: subs.isOpen) { subs.isOpen ? subs.close() : subs.show() }
         let play = PlayScreen.shared
         if play.isOpen || CaptureCards.shared.card != nil {
-            add(menu, L("Màn hình chơi game", "Game screen"), on: play.isOpen) { play.isOpen ? play.close() : play.open() }
+            add(menu, PlayScreen.title, on: play.isOpen) { play.isOpen ? play.close() : play.open() }
         }
 
         let profiles = NSMenu()
